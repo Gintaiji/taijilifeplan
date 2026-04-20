@@ -17,6 +17,24 @@ const sectionStyle = {
   maxWidth: "420px",
 };
 
+const headerStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap" as const,
+};
+
+const dateStyle = {
+  margin: "8px 0 0 0",
+  color: "#4b5563",
+};
+
+const summaryStyle = {
+  margin: "16px 0 0 0",
+  fontWeight: 600,
+};
+
 const listStyle = {
   listStyle: "none",
   padding: 0,
@@ -35,6 +53,14 @@ const labelStyle = {
   display: "flex",
   alignItems: "center",
   gap: "12px",
+  cursor: "pointer",
+};
+
+const buttonStyle = {
+  border: "1px solid #d1d5db",
+  borderRadius: "8px",
+  padding: "8px 12px",
+  backgroundColor: "#ffffff",
   cursor: "pointer",
 };
 
@@ -74,6 +100,14 @@ export default function HabitsTracker() {
     }
   });
 
+  const completedHabitsCount = Object.values(habits).filter(Boolean).length;
+  const today = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
   }, [habits]);
@@ -85,9 +119,22 @@ export default function HabitsTracker() {
     }));
   }
 
+  function handleResetHabits() {
+    setHabits(getInitialHabitsState());
+  }
+
   return (
     <section style={sectionStyle}>
-      <h2>Mes habitudes</h2>
+      <div style={headerStyle}>
+        <h2>Mes habitudes</h2>
+        <button type="button" style={buttonStyle} onClick={handleResetHabits}>
+          Réinitialiser
+        </button>
+      </div>
+      <p style={dateStyle}>Aujourd&apos;hui : {today}</p>
+      <p style={summaryStyle}>
+        {completedHabitsCount} habitudes sur {defaultHabits.length} complétées
+      </p>
       <ul style={listStyle}>
         {defaultHabits.map((habit) => (
           <li key={habit} style={itemStyle}>
