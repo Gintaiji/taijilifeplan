@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --field-background: #ffffff;
+  --field-foreground: #171717;
+  --field-border: #d1d5db;
+  --field-placeholder: #6b7280;
+  --field-focus: #9ca3af;
 }
 
 @theme inline {
@@ -16,6 +21,11 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --field-background: #111827;
+    --field-foreground: #f9fafb;
+    --field-border: #4b5563;
+    --field-placeholder: #9ca3af;
+    --field-focus: #d1d5db;
   }
 }
 
@@ -23,4 +33,25 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  background: var(--field-background);
+  color: var(--field-foreground);
+  border-color: var(--field-border);
+}
+
+input:not([type="checkbox"]):not([type="radio"])::placeholder,
+textarea::placeholder {
+  color: var(--field-placeholder);
+  opacity: 1;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--field-focus);
+  outline-offset: 1px;
 }

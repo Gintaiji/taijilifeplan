@@ -52,7 +52,6 @@ const inputStyle = {
   border: "1px solid #d1d5db",
   borderRadius: "8px",
   font: "inherit",
-  backgroundColor: "#ffffff",
 };
 
 const selectStyle = {
