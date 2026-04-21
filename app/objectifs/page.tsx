@@ -60,10 +60,8 @@ const selectStyle = {
 
 const addButtonStyle = {
   width: "fit-content",
-  border: "1px solid #d1d5db",
   borderRadius: "8px",
   padding: "10px 14px",
-  backgroundColor: "#ffffff",
   cursor: "pointer",
   font: "inherit",
 };
@@ -102,10 +100,8 @@ const periodBadgeStyle = {
 };
 
 const deleteButtonStyle = {
-  border: "1px solid #d1d5db",
   borderRadius: "8px",
   padding: "8px 12px",
-  backgroundColor: "#ffffff",
   cursor: "pointer",
   font: "inherit",
 };
@@ -224,7 +220,7 @@ export default function ObjectifsPage() {
             </select>
           </div>
 
-          <button type="submit" style={addButtonStyle}>
+          <button type="submit" className="control-button" style={addButtonStyle}>
             Ajouter l&apos;objectif
           </button>
         </form>
@@ -244,6 +240,7 @@ export default function ObjectifsPage() {
 
                 <button
                   type="button"
+                  className="control-button"
                   style={deleteButtonStyle}
                   onClick={() => handleDelete(goal.id)}
                 >

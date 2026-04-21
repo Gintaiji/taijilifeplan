@@ -3,11 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --field-background: #ffffff;
-  --field-foreground: #171717;
-  --field-border: #d1d5db;
-  --field-placeholder: #6b7280;
-  --field-focus: #9ca3af;
+  --field-background: #123524;
+  --field-foreground: #f7fee7;
+  --field-border: #2f855a;
+  --field-placeholder: #bbf7d0;
+  --field-focus: #86efac;
+  --control-button-background: #14532d;
+  --control-button-background-hover: #166534;
+  --control-button-background-active: #15803d;
+  --control-button-foreground: #f0fdf4;
+  --control-button-border: #22c55e;
+  --control-button-focus: #86efac;
 }
 
 @theme inline {
@@ -21,11 +27,17 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
-    --field-background: #111827;
-    --field-foreground: #f9fafb;
-    --field-border: #4b5563;
-    --field-placeholder: #9ca3af;
-    --field-focus: #d1d5db;
+    --field-background: #123524;
+    --field-foreground: #f7fee7;
+    --field-border: #2f855a;
+    --field-placeholder: #bbf7d0;
+    --field-focus: #86efac;
+    --control-button-background: #14532d;
+    --control-button-background-hover: #166534;
+    --control-button-background-active: #15803d;
+    --control-button-foreground: #f0fdf4;
+    --control-button-border: #22c55e;
+    --control-button-focus: #86efac;
   }
 }
 
@@ -54,4 +66,25 @@ textarea:focus,
 select:focus {
   outline: 2px solid var(--field-focus);
   outline-offset: 1px;
+}
+
+.control-button {
+  background: var(--control-button-background);
+  color: var(--control-button-foreground);
+  border: 1px solid var(--control-button-border);
+}
+
+.control-button:hover {
+  background: var(--control-button-background-hover);
+}
+
+.control-button:focus {
+  outline: 2px solid var(--control-button-focus);
+  outline-offset: 1px;
+}
+
+.control-button-active {
+  background: var(--control-button-background-active);
+  color: var(--control-button-foreground);
+  border: 1px solid var(--control-button-border);
 }

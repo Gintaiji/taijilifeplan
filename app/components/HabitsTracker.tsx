@@ -57,11 +57,10 @@ const labelStyle = {
 };
 
 const buttonStyle = {
-  border: "1px solid #d1d5db",
   borderRadius: "8px",
   padding: "8px 12px",
-  backgroundColor: "#ffffff",
   cursor: "pointer",
+  font: "inherit",
 };
 
 type HabitsState = Record<string, boolean>;
@@ -127,7 +126,12 @@ export default function HabitsTracker() {
     <section style={sectionStyle}>
       <div style={headerStyle}>
         <h2>Mes habitudes</h2>
-        <button type="button" style={buttonStyle} onClick={handleResetHabits}>
+        <button
+          type="button"
+          className="control-button"
+          style={buttonStyle}
+          onClick={handleResetHabits}
+        >
           Réinitialiser
         </button>
       </div>

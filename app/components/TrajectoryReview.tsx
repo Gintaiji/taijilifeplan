@@ -57,16 +57,14 @@ const historyListStyle = {
 const historyButtonStyle = {
   width: "100%",
   textAlign: "left" as const,
-  border: "1px solid #d1d5db",
   borderRadius: "8px",
   padding: "12px 16px",
-  backgroundColor: "#ffffff",
   cursor: "pointer",
+  font: "inherit",
 };
 
 const activeHistoryButtonStyle = {
   ...historyButtonStyle,
-  backgroundColor: "#e5e7eb",
   fontWeight: 600,
 };
 
@@ -286,6 +284,11 @@ export default function TrajectoryReview() {
               <li key={dateKey}>
                 <button
                   type="button"
+                  className={
+                    consultationDate === dateKey
+                      ? "control-button control-button-active"
+                      : "control-button"
+                  }
                   style={
                     consultationDate === dateKey
                       ? activeHistoryButtonStyle
