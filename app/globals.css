@@ -14,6 +14,15 @@
   --control-button-foreground: #f0fdf4;
   --control-button-border: #22c55e;
   --control-button-focus: #86efac;
+  --dashboard-card-background: #0f172a;
+  --dashboard-card-background-soft: #13271d;
+  --dashboard-card-border: #2f855a;
+  --dashboard-text-primary: #f0fdf4;
+  --dashboard-text-secondary: #d1fae5;
+  --dashboard-text-muted: #a7f3d0;
+  --dashboard-text-accent: #bbf7d0;
+  --dashboard-progress-track: #1f2937;
+  --dashboard-progress-fill: #22c55e;
 }
 
 @theme inline {
@@ -38,6 +47,15 @@
     --control-button-foreground: #f0fdf4;
     --control-button-border: #22c55e;
     --control-button-focus: #86efac;
+    --dashboard-card-background: #0f172a;
+    --dashboard-card-background-soft: #13271d;
+    --dashboard-card-border: #2f855a;
+    --dashboard-text-primary: #f0fdf4;
+    --dashboard-text-secondary: #d1fae5;
+    --dashboard-text-muted: #a7f3d0;
+    --dashboard-text-accent: #bbf7d0;
+    --dashboard-progress-track: #1f2937;
+    --dashboard-progress-fill: #22c55e;
   }
 }
 

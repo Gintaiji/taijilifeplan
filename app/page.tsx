@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const HABITS_STORAGE_KEY = "taiji-life-plan-habits";
 const GOALS_STORAGE_KEY = "taiji-life-plan-objectifs";
 const PLANNING_STORAGE_KEY = "taiji-life-plan-planning";
 const TRAJECTORY_STORAGE_KEY = "taiji-life-plan-trajectory";
+const PRIORITIES_STORAGE_KEY = "taiji-life-plan-priorities";
 
 type HabitsState = Record<string, boolean>;
 
@@ -33,6 +34,17 @@ type TrajectoryState = {
 
 type TrajectoryEntries = Record<string, TrajectoryState>;
 
+type DailyPriority = {
+  id: number;
+  label: string;
+  completed: boolean;
+};
+
+type SavedPriorities = {
+  date: string;
+  priorities: DailyPriority[];
+};
+
 type DashboardState = {
   habitsCompleted: number;
   habitsTotal: number;
@@ -52,7 +64,7 @@ const pageStyle = {
 
 const introStyle = {
   marginTop: "8px",
-  color: "#4b5563",
+  color: "var(--dashboard-text-secondary)",
   maxWidth: "720px",
 };
 
@@ -63,19 +75,21 @@ const gridStyle = {
 };
 
 const cardStyle = {
-  border: "1px solid #e5e7eb",
+  border: "1px solid var(--dashboard-card-border)",
   borderRadius: "8px",
   padding: "16px",
   maxWidth: "720px",
+  backgroundColor: "var(--dashboard-card-background)",
 };
 
 const cardTitleStyle = {
   margin: 0,
+  color: "var(--dashboard-text-primary)",
 };
 
 const cardTextStyle = {
   margin: "12px 0 0 0",
-  color: "#4b5563",
+  color: "var(--dashboard-text-secondary)",
 };
 
 const listStyle = {
@@ -87,21 +101,22 @@ const listStyle = {
 };
 
 const listItemStyle = {
-  border: "1px solid #e5e7eb",
+  border: "1px solid var(--dashboard-card-border)",
   borderRadius: "8px",
   padding: "12px",
+  backgroundColor: "var(--dashboard-card-background-soft)",
 };
 
 const emptyTextStyle = {
   margin: "12px 0 0 0",
-  color: "#6b7280",
+  color: "var(--dashboard-text-muted)",
 };
 
 const progressValueStyle = {
   margin: "12px 0 0 0",
   fontSize: "28px",
   fontWeight: 700,
-  color: "#111827",
+  color: "var(--dashboard-text-accent)",
 };
 
 const progressBarStyle = {
@@ -109,22 +124,99 @@ const progressBarStyle = {
   width: "100%",
   height: "10px",
   borderRadius: "999px",
-  backgroundColor: "#e5e7eb",
+  backgroundColor: "var(--dashboard-progress-track)",
   overflow: "hidden",
 };
 
 const progressBarFillBaseStyle = {
   height: "100%",
   borderRadius: "999px",
-  backgroundColor: "#111827",
+  backgroundColor: "var(--dashboard-progress-fill)",
 };
 
 const progressDetailsStyle = {
   margin: "16px 0 0 0",
   paddingLeft: "18px",
-  color: "#4b5563",
+  color: "var(--dashboard-text-secondary)",
   display: "grid",
   gap: "8px",
+};
+
+const prioritiesFormStyle = {
+  display: "grid",
+  gap: "12px",
+  marginTop: "16px",
+};
+
+const inputRowStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const inputStyle = {
+  flex: "1 1 260px",
+  minWidth: "0",
+  padding: "10px 12px",
+  border: "1px solid #d1d5db",
+  borderRadius: "8px",
+  font: "inherit",
+};
+
+const buttonStyle = {
+  borderRadius: "8px",
+  padding: "8px 12px",
+  cursor: "pointer",
+  font: "inherit",
+};
+
+const addButtonStyle = {
+  ...buttonStyle,
+  width: "fit-content",
+};
+
+const prioritiesHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap" as const,
+};
+
+const counterStyle = {
+  color: "var(--dashboard-text-muted)",
+  fontSize: "14px",
+};
+
+const priorityItemStyle = {
+  ...listItemStyle,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap" as const,
+};
+
+const priorityCompletedItemStyle = {
+  ...priorityItemStyle,
+  backgroundColor: "var(--dashboard-card-background-soft)",
+};
+
+const priorityTextStyle = {
+  fontWeight: 600,
+  color: "var(--dashboard-text-primary)",
+};
+
+const priorityCompletedTextStyle = {
+  ...priorityTextStyle,
+  textDecoration: "line-through",
+  color: "var(--dashboard-text-muted)",
+};
+
+const actionsStyle = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap" as const,
 };
 
 const weekdayOrder: Record<string, number> = {
@@ -353,6 +445,82 @@ function getGlobalProgressMessage(score: number) {
   return "A renforcer";
 }
 
+function normalizePriorities(savedPriorities: unknown): SavedPriorities | null {
+  if (typeof savedPriorities !== "object" || savedPriorities === null) {
+    return null;
+  }
+
+  if (!("date" in savedPriorities) || !("priorities" in savedPriorities)) {
+    return null;
+  }
+
+  if (
+    typeof savedPriorities.date !== "string" ||
+    !Array.isArray(savedPriorities.priorities)
+  ) {
+    return null;
+  }
+
+  const priorities = savedPriorities.priorities.flatMap((priority) => {
+    if (
+      typeof priority !== "object" ||
+      priority === null ||
+      !("id" in priority) ||
+      !("label" in priority) ||
+      !("completed" in priority)
+    ) {
+      return [];
+    }
+
+    if (
+      typeof priority.id !== "number" ||
+      typeof priority.label !== "string" ||
+      typeof priority.completed !== "boolean"
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: priority.id,
+        label: priority.label,
+        completed: priority.completed,
+      },
+    ];
+  });
+
+  return {
+    date: savedPriorities.date,
+    priorities,
+  };
+}
+
+function getInitialPriorities(todayKey: string): DailyPriority[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const savedPriorities = localStorage.getItem(PRIORITIES_STORAGE_KEY);
+
+  if (!savedPriorities) {
+    return [];
+  }
+
+  try {
+    const parsedPriorities = JSON.parse(savedPriorities);
+    const normalizedPriorities = normalizePriorities(parsedPriorities);
+
+    if (!normalizedPriorities || normalizedPriorities.date !== todayKey) {
+      return [];
+    }
+
+    return normalizedPriorities.priorities.slice(0, 3);
+  } catch {
+    localStorage.removeItem(PRIORITIES_STORAGE_KEY);
+    return [];
+  }
+}
+
 function getDashboardFromLocalStorage(): DashboardState {
   const habits = getSavedData(HABITS_STORAGE_KEY, normalizeHabits, {});
   const goals = getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
@@ -411,6 +579,7 @@ function getDashboardFromLocalStorage(): DashboardState {
 }
 
 export default function HomePage() {
+  const todayKey = getTodayKey();
   const [dashboard] = useState<DashboardState>(() => {
     if (typeof window === "undefined") {
       return initialDashboardState;
@@ -423,6 +592,61 @@ export default function HomePage() {
     () => true,
     () => false,
   );
+  const [priorities, setPriorities] = useState<DailyPriority[]>(() =>
+    getInitialPriorities(todayKey),
+  );
+  const [priorityLabel, setPriorityLabel] = useState("");
+
+  useEffect(() => {
+    if (!isClient) {
+      return;
+    }
+
+    const savedPriorities: SavedPriorities = {
+      date: todayKey,
+      priorities,
+    };
+
+    localStorage.setItem(
+      PRIORITIES_STORAGE_KEY,
+      JSON.stringify(savedPriorities),
+    );
+  }, [isClient, priorities, todayKey]);
+
+  function handleAddPriority(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const cleanLabel = priorityLabel.trim();
+
+    if (cleanLabel === "" || priorities.length >= 3) {
+      return;
+    }
+
+    const newPriority: DailyPriority = {
+      id: Date.now(),
+      label: cleanLabel,
+      completed: false,
+    };
+
+    setPriorities((currentPriorities) => [...currentPriorities, newPriority]);
+    setPriorityLabel("");
+  }
+
+  function handleDeletePriority(priorityId: number) {
+    setPriorities((currentPriorities) =>
+      currentPriorities.filter((priority) => priority.id !== priorityId),
+    );
+  }
+
+  function handleTogglePriority(priorityId: number) {
+    setPriorities((currentPriorities) =>
+      currentPriorities.map((priority) =>
+        priority.id === priorityId
+          ? { ...priority, completed: !priority.completed }
+          : priority,
+      ),
+    );
+  }
 
   return (
     <main style={pageStyle}>
@@ -433,6 +657,85 @@ export default function HomePage() {
       </p>
 
       <section style={gridStyle}>
+        <article style={cardStyle}>
+          <div style={prioritiesHeaderStyle}>
+            <h2 style={cardTitleStyle}>Priorites du jour</h2>
+            <span style={counterStyle}>{priorities.length}/3</span>
+          </div>
+
+          <p style={cardTextStyle}>
+            Choisis jusqu&apos;a 3 priorites importantes pour aujourd&apos;hui.
+          </p>
+
+          <form style={prioritiesFormStyle} onSubmit={handleAddPriority}>
+            <div style={inputRowStyle}>
+              <input
+                type="text"
+                value={priorityLabel}
+                onChange={(event) => setPriorityLabel(event.target.value)}
+                placeholder="Exemple : Finaliser mon objectif principal"
+                style={inputStyle}
+              />
+
+              <button
+                type="submit"
+                className="control-button"
+                style={addButtonStyle}
+                disabled={priorities.length >= 3}
+              >
+                Ajouter
+              </button>
+            </div>
+          </form>
+
+          {priorities.length === 0 ? (
+            <p style={emptyTextStyle}>Aucune priorite pour aujourd&apos;hui.</p>
+          ) : (
+            <ul style={listStyle}>
+              {priorities.map((priority) => (
+                <li
+                  key={priority.id}
+                  style={
+                    priority.completed
+                      ? priorityCompletedItemStyle
+                      : priorityItemStyle
+                  }
+                >
+                  <span
+                    style={
+                      priority.completed
+                        ? priorityCompletedTextStyle
+                        : priorityTextStyle
+                    }
+                  >
+                    {priority.label}
+                  </span>
+
+                  <div style={actionsStyle}>
+                    <button
+                      type="button"
+                      className="control-button"
+                      style={buttonStyle}
+                      onClick={() => handleTogglePriority(priority.id)}
+                    >
+                      {priority.completed ? "Marquer non faite" : "Marquer faite"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="control-button"
+                      style={buttonStyle}
+                      onClick={() => handleDeletePriority(priority.id)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+
         <article style={cardStyle}>
           <h2 style={cardTitleStyle}>Progression globale</h2>
           <p style={cardTextStyle}>
