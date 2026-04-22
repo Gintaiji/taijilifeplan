@@ -128,13 +128,8 @@ function formatDate(dateKey: string) {
   });
 }
 
-function getInitialEntriesState(): TrajectoryEntries {
+function getEntriesFromLocalStorage(todayKey: string): TrajectoryEntries {
   const initialState = getInitialTrajectoryState();
-
-  if (typeof window === "undefined") {
-    return {};
-  }
-
   const savedTrajectory = localStorage.getItem(STORAGE_KEY);
 
   if (!savedTrajectory) {
@@ -161,7 +156,7 @@ function getInitialEntriesState(): TrajectoryEntries {
       }
 
       return {
-        [getTodayKey()]: migratedEntry,
+        [todayKey]: migratedEntry,
       };
     }
 
@@ -190,8 +185,9 @@ export default function TrajectoryReview() {
   const todayKey = useMemo(() => getTodayKey(), []);
   const today = useMemo(() => formatDate(todayKey), [todayKey]);
 
-  const [entries, setEntries] = useState<TrajectoryEntries>(getInitialEntriesState);
+  const [entries, setEntries] = useState<TrajectoryEntries>({});
   const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [isClient, setIsClient] = useState(false);
 
   const todayEntry = entries[todayKey] ?? getInitialTrajectoryState();
 
@@ -202,8 +198,19 @@ export default function TrajectoryReview() {
   const consultationEntry = entries[consultationDate] ?? getInitialTrajectoryState();
 
   useEffect(() => {
+    const savedEntries = getEntriesFromLocalStorage(todayKey);
+    setEntries(savedEntries);
+    setSelectedDate(Object.keys(savedEntries).sort((a, b) => b.localeCompare(a))[0] ?? todayKey);
+    setIsClient(true);
+  }, [todayKey]);
+
+  useEffect(() => {
+    if (!isClient) {
+      return;
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  }, [entries]);
+  }, [entries, isClient]);
 
   function handleFieldChange(fieldName: keyof TrajectoryState, value: string) {
     setEntries((currentEntries) => {
@@ -260,7 +267,7 @@ export default function TrajectoryReview() {
 
         <div style={fieldStyle}>
           <label htmlFor="decideForTomorrow" style={labelStyle}>
-            Ce que je décide pour demain
+            Ce que je decide pour demain
           </label>
           <textarea
             id="decideForTomorrow"
@@ -274,10 +281,12 @@ export default function TrajectoryReview() {
       </div>
 
       <section style={historySectionStyle}>
-        <h2>Derniers jours enregistrés</h2>
+        <h2>Derniers jours enregistres</h2>
 
-        {savedDates.length === 0 ? (
-          <p style={emptyTextStyle}>Aucune journée enregistrée pour le moment.</p>
+        {!isClient ? (
+          <p style={emptyTextStyle}>Chargement des jours enregistres...</p>
+        ) : savedDates.length === 0 ? (
+          <p style={emptyTextStyle}>Aucune journee enregistree pour le moment.</p>
         ) : (
           <ul style={historyListStyle}>
             {savedDates.map((dateKey) => (
@@ -303,7 +312,7 @@ export default function TrajectoryReview() {
           </ul>
         )}
 
-        {savedDates.length > 0 && (
+        {isClient && savedDates.length > 0 && (
           <>
             <h3 style={consultationTitleStyle}>Consultation du {formatDate(consultationDate)}</h3>
 
@@ -323,7 +332,7 @@ export default function TrajectoryReview() {
               </div>
 
               <div>
-                <strong>Ce que je décide pour demain</strong>
+                <strong>Ce que je decide pour demain</strong>
                 <p style={consultationTextStyle}>
                   {consultationEntry.decideForTomorrow || "Aucun contenu."}
                 </p>

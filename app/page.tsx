@@ -104,6 +104,16 @@ const weekdayOrder: Record<string, number> = {
   dimanche: 7,
 };
 
+const initialDashboardState: DashboardState = {
+  habitsCompleted: 0,
+  habitsTotal: 0,
+  goalsCompleted: 0,
+  goalsTotal: 0,
+  planningTotal: 0,
+  nextTasks: [],
+  lastTrajectoryDate: null,
+};
+
 function normalizeHabits(savedHabits: unknown): HabitsState {
   if (typeof savedHabits !== "object" || savedHabits === null) {
     return {};
@@ -238,11 +248,11 @@ function normalizeTrajectoryEntries(savedEntries: unknown): TrajectoryEntries {
   return cleanedEntries;
 }
 
-function getSavedData<T>(storageKey: string, normalize: (data: unknown) => T, fallback: T): T {
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
+function getSavedData<T>(
+  storageKey: string,
+  normalize: (data: unknown) => T,
+  fallback: T,
+): T {
   const savedData = localStorage.getItem(storageKey);
 
   if (!savedData) {
@@ -283,7 +293,7 @@ function formatTrajectoryDate(dateKey: string) {
   });
 }
 
-function getInitialDashboardState(): DashboardState {
+function getDashboardFromLocalStorage(): DashboardState {
   const habits = getSavedData(HABITS_STORAGE_KEY, normalizeHabits, {});
   const goals = getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
   const tasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
@@ -328,12 +338,14 @@ function getInitialDashboardState(): DashboardState {
 }
 
 export default function HomePage() {
-  const [dashboard, setDashboard] = useState<DashboardState>(() =>
-    getInitialDashboardState(),
+  const [dashboard, setDashboard] = useState<DashboardState>(
+    initialDashboardState,
   );
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setDashboard(getInitialDashboardState());
+    setDashboard(getDashboardFromLocalStorage());
+    setIsClient(true);
   }, []);
 
   return (
@@ -348,26 +360,32 @@ export default function HomePage() {
         <article style={cardStyle}>
           <h2 style={cardTitleStyle}>Habitudes</h2>
           <p style={cardTextStyle}>
-            {dashboard.habitsCompleted} habitudes completees sur{" "}
-            {dashboard.habitsTotal}.
+            {isClient
+              ? `${dashboard.habitsCompleted} habitudes completees sur ${dashboard.habitsTotal}.`
+              : "Chargement des habitudes..."}
           </p>
         </article>
 
         <article style={cardStyle}>
           <h2 style={cardTitleStyle}>Objectifs</h2>
           <p style={cardTextStyle}>
-            {dashboard.goalsCompleted} objectifs termines sur{" "}
-            {dashboard.goalsTotal}.
+            {isClient
+              ? `${dashboard.goalsCompleted} objectifs termines sur ${dashboard.goalsTotal}.`
+              : "Chargement des objectifs..."}
           </p>
         </article>
 
         <article style={cardStyle}>
           <h2 style={cardTitleStyle}>Planning</h2>
           <p style={cardTextStyle}>
-            {dashboard.planningTotal} taches planifiees.
+            {isClient
+              ? `${dashboard.planningTotal} taches planifiees.`
+              : "Chargement du planning..."}
           </p>
 
-          {dashboard.nextTasks.length === 0 ? (
+          {!isClient ? (
+            <p style={emptyTextStyle}>Chargement des prochaines taches...</p>
+          ) : dashboard.nextTasks.length === 0 ? (
             <p style={emptyTextStyle}>Aucune tache enregistree pour le moment.</p>
           ) : (
             <ul style={listStyle}>
@@ -386,7 +404,9 @@ export default function HomePage() {
         <article style={cardStyle}>
           <h2 style={cardTitleStyle}>Correcteur de trajectoire</h2>
 
-          {dashboard.lastTrajectoryDate ? (
+          {!isClient ? (
+            <p style={emptyTextStyle}>Chargement de la derniere entree...</p>
+          ) : dashboard.lastTrajectoryDate ? (
             <p style={cardTextStyle}>
               Derniere entree enregistree :{" "}
               {formatTrajectoryDate(dashboard.lastTrajectoryDate)}

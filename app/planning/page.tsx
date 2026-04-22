@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "taiji-life-plan-planning";
 
+const weekdayOrder: Record<string, number> = {
+  lundi: 1,
+  mardi: 2,
+  mercredi: 3,
+  jeudi: 4,
+  vendredi: 5,
+  samedi: 6,
+  dimanche: 7,
+};
+
 type PlannedTask = {
   id: number;
   day: string;
@@ -18,6 +28,10 @@ const pageStyle = {
 const sectionStyle = {
   marginTop: "24px",
   maxWidth: "720px",
+};
+
+const planningSectionStyle = {
+  marginTop: "32px",
 };
 
 const introStyle = {
@@ -64,32 +78,74 @@ const listStyle = {
   padding: 0,
   margin: "24px 0 0 0",
   display: "grid",
+  gap: "24px",
+};
+
+const dayGroupStyle = {
+  display: "grid",
   gap: "12px",
 };
 
+const dayTitleStyle = {
+  margin: 0,
+  fontSize: "18px",
+};
+
 const itemStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap" as const,
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: "16px",
   border: "1px solid #e5e7eb",
   borderRadius: "8px",
   padding: "16px",
+  backgroundColor: "#ffffff",
 };
 
 const taskTextStyle = {
   display: "grid",
-  gap: "6px",
+  gap: "10px",
+};
+
+const taskInfoRowStyle = {
+  display: "grid",
+  gap: "4px",
+};
+
+const taskInfoLabelStyle = {
+  fontSize: "12px",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase" as const,
+  color: "#4b5563",
+};
+
+const taskInfoValueStyle = {
+  fontSize: "16px",
+  color: "#111827",
 };
 
 const taskLabelStyle = {
   fontWeight: 600,
+  fontSize: "18px",
+  color: "#111827",
 };
 
 const taskMetaStyle = {
-  color: "#4b5563",
+  display: "grid",
+  gap: "8px",
+};
+
+const taskSummaryStyle = {
+  padding: "12px 16px",
+  borderRadius: "8px",
+  border: "1px solid #e5e7eb",
+  backgroundColor: "#f9fafb",
+};
+
+const taskCountStyle = {
+  margin: "8px 0 0 0",
   fontSize: "14px",
+  color: "#4b5563",
 };
 
 const deleteButtonStyle = {
@@ -97,12 +153,63 @@ const deleteButtonStyle = {
   padding: "8px 12px",
   cursor: "pointer",
   font: "inherit",
+  alignSelf: "start",
 };
 
 const emptyTextStyle = {
   marginTop: "24px",
   color: "#6b7280",
 };
+
+function getDayOrder(day: string) {
+  return weekdayOrder[day.trim().toLowerCase()] ?? 99;
+}
+
+function getTimeValue(time: string) {
+  const [hoursText, minutesText] = time.split(":");
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function sortTasks(tasks: PlannedTask[]) {
+  return [...tasks].sort((taskA, taskB) => {
+    const dayDifference = getDayOrder(taskA.day) - getDayOrder(taskB.day);
+
+    if (dayDifference !== 0) {
+      return dayDifference;
+    }
+
+    return getTimeValue(taskA.time) - getTimeValue(taskB.time);
+  });
+}
+
+function groupTasksByDay(tasks: PlannedTask[]) {
+  const groups: Array<{ day: string; tasks: PlannedTask[] }> = [];
+
+  for (const task of tasks) {
+    const existingGroup = groups.find(
+      (group) => group.day.toLowerCase() === task.day.toLowerCase(),
+    );
+
+    if (existingGroup) {
+      existingGroup.tasks.push(task);
+      continue;
+    }
+
+    groups.push({
+      day: task.day,
+      tasks: [task],
+    });
+  }
+
+  return groups;
+}
 
 function normalizeTasks(savedTasks: unknown): PlannedTask[] {
   if (!Array.isArray(savedTasks)) {
@@ -166,6 +273,8 @@ export default function PlanningPage() {
   const [day, setDay] = useState("");
   const [time, setTime] = useState("");
   const [label, setLabel] = useState("");
+  const sortedTasks = sortTasks(tasks);
+  const groupedTasks = groupTasksByDay(sortedTasks);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
@@ -264,33 +373,64 @@ export default function PlanningPage() {
           </button>
         </form>
 
-        <h2 style={{ marginTop: "32px" }}>Mes taches planifiees</h2>
+        <section style={planningSectionStyle}>
+          <h2>Mes taches planifiees</h2>
 
-        {tasks.length === 0 ? (
-          <p style={emptyTextStyle}>Aucune tache pour le moment.</p>
-        ) : (
-          <ul style={listStyle}>
-            {tasks.map((task) => (
-              <li key={task.id} style={itemStyle}>
-                <div style={taskTextStyle}>
-                  <span style={taskLabelStyle}>{task.label}</span>
-                  <span style={taskMetaStyle}>
-                    {task.day} a {task.time}
-                  </span>
-                </div>
+          {tasks.length === 0 ? (
+            <p style={emptyTextStyle}>Aucune tache pour le moment.</p>
+          ) : (
+            <>
+              <div style={taskSummaryStyle}>
+                <strong>Organisation automatique</strong>
+                <p style={taskCountStyle}>
+                  Les taches sont triees par jour puis par heure.
+                </p>
+              </div>
 
-                <button
-                  type="button"
-                  className="control-button"
-                  style={deleteButtonStyle}
-                  onClick={() => handleDelete(task.id)}
-                >
-                  Supprimer
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+              <ul style={listStyle}>
+                {groupedTasks.map((group) => (
+                  <li key={group.day} style={dayGroupStyle}>
+                    <h3 style={dayTitleStyle}>{group.day}</h3>
+
+                    <ul style={listStyle}>
+                      {group.tasks.map((task) => (
+                        <li key={task.id} style={itemStyle}>
+                          <div style={taskTextStyle}>
+                            <div style={taskMetaStyle}>
+                              <div style={taskInfoRowStyle}>
+                                <span style={taskInfoLabelStyle}>Jour</span>
+                                <span style={taskInfoValueStyle}>{task.day}</span>
+                              </div>
+
+                              <div style={taskInfoRowStyle}>
+                                <span style={taskInfoLabelStyle}>Heure</span>
+                                <span style={taskInfoValueStyle}>{task.time}</span>
+                              </div>
+                            </div>
+
+                            <div style={taskInfoRowStyle}>
+                              <span style={taskInfoLabelStyle}>Libelle</span>
+                              <span style={taskLabelStyle}>{task.label}</span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="control-button"
+                            style={deleteButtonStyle}
+                            onClick={() => handleDelete(task.id)}
+                          >
+                            Supprimer
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
       </section>
     </main>
   );
