@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 const HABITS_STORAGE_KEY = "taiji-life-plan-habits";
 const GOALS_STORAGE_KEY = "taiji-life-plan-objectifs";
@@ -41,6 +41,9 @@ type DashboardState = {
   planningTotal: number;
   nextTasks: PlannedTask[];
   lastTrajectoryDate: string | null;
+  hasTodayTrajectoryEntry: boolean;
+  globalProgressScore: number;
+  globalProgressMessage: string;
 };
 
 const pageStyle = {
@@ -94,6 +97,36 @@ const emptyTextStyle = {
   color: "#6b7280",
 };
 
+const progressValueStyle = {
+  margin: "12px 0 0 0",
+  fontSize: "28px",
+  fontWeight: 700,
+  color: "#111827",
+};
+
+const progressBarStyle = {
+  marginTop: "16px",
+  width: "100%",
+  height: "10px",
+  borderRadius: "999px",
+  backgroundColor: "#e5e7eb",
+  overflow: "hidden",
+};
+
+const progressBarFillBaseStyle = {
+  height: "100%",
+  borderRadius: "999px",
+  backgroundColor: "#111827",
+};
+
+const progressDetailsStyle = {
+  margin: "16px 0 0 0",
+  paddingLeft: "18px",
+  color: "#4b5563",
+  display: "grid",
+  gap: "8px",
+};
+
 const weekdayOrder: Record<string, number> = {
   lundi: 1,
   mardi: 2,
@@ -112,6 +145,9 @@ const initialDashboardState: DashboardState = {
   planningTotal: 0,
   nextTasks: [],
   lastTrajectoryDate: null,
+  hasTodayTrajectoryEntry: false,
+  globalProgressScore: 0,
+  globalProgressMessage: "A renforcer",
 };
 
 function normalizeHabits(savedHabits: unknown): HabitsState {
@@ -293,6 +329,30 @@ function formatTrajectoryDate(dateKey: string) {
   });
 }
 
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getRatio(completed: number, total: number) {
+  if (total === 0) {
+    return 0;
+  }
+
+  return completed / total;
+}
+
+function getGlobalProgressMessage(score: number) {
+  if (score >= 75) {
+    return "Tres bon rythme";
+  }
+
+  if (score >= 45) {
+    return "Bonne dynamique";
+  }
+
+  return "A renforcer";
+}
+
 function getDashboardFromLocalStorage(): DashboardState {
   const habits = getSavedData(HABITS_STORAGE_KEY, normalizeHabits, {});
   const goals = getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
@@ -325,6 +385,16 @@ function getDashboardFromLocalStorage(): DashboardState {
   const savedTrajectoryDates = Object.keys(trajectoryEntries).sort((a, b) =>
     b.localeCompare(a),
   );
+  const todayKey = getTodayKey();
+  const hasTodayTrajectoryEntry = todayKey in trajectoryEntries;
+
+  const habitsRatio = getRatio(habitsCompleted, habitsTotal);
+  const goalsRatio = getRatio(goalsCompleted, goalsTotal);
+  const planningRatio = tasks.length > 0 ? 1 : 0;
+  const trajectoryRatio = hasTodayTrajectoryEntry ? 1 : 0;
+  const globalProgressScore = Math.round(
+    ((habitsRatio + goalsRatio + planningRatio + trajectoryRatio) / 4) * 100,
+  );
 
   return {
     habitsCompleted,
@@ -334,19 +404,25 @@ function getDashboardFromLocalStorage(): DashboardState {
     planningTotal: tasks.length,
     nextTasks,
     lastTrajectoryDate: savedTrajectoryDates[0] ?? null,
+    hasTodayTrajectoryEntry,
+    globalProgressScore,
+    globalProgressMessage: getGlobalProgressMessage(globalProgressScore),
   };
 }
 
 export default function HomePage() {
-  const [dashboard, setDashboard] = useState<DashboardState>(
-    initialDashboardState,
-  );
-  const [isClient, setIsClient] = useState(false);
+  const [dashboard] = useState<DashboardState>(() => {
+    if (typeof window === "undefined") {
+      return initialDashboardState;
+    }
 
-  useEffect(() => {
-    setDashboard(getDashboardFromLocalStorage());
-    setIsClient(true);
-  }, []);
+    return getDashboardFromLocalStorage();
+  });
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   return (
     <main style={pageStyle}>
@@ -357,6 +433,55 @@ export default function HomePage() {
       </p>
 
       <section style={gridStyle}>
+        <article style={cardStyle}>
+          <h2 style={cardTitleStyle}>Progression globale</h2>
+          <p style={cardTextStyle}>
+            {isClient
+              ? "Vue simple de ta progression sur les sections principales."
+              : "Chargement de la progression globale..."}
+          </p>
+
+          {isClient ? (
+            <>
+              <p style={progressValueStyle}>{dashboard.globalProgressScore}%</p>
+
+              <div style={progressBarStyle} aria-hidden="true">
+                <div
+                  style={{
+                    ...progressBarFillBaseStyle,
+                    width: `${dashboard.globalProgressScore}%`,
+                  }}
+                />
+              </div>
+
+              <p style={cardTextStyle}>{dashboard.globalProgressMessage}</p>
+
+              <ul style={progressDetailsStyle}>
+                <li>
+                  Habitudes : {dashboard.habitsCompleted}/{dashboard.habitsTotal}
+                </li>
+                <li>
+                  Objectifs : {dashboard.goalsCompleted}/{dashboard.goalsTotal}
+                </li>
+                <li>
+                  Planning :{" "}
+                  {dashboard.planningTotal > 0
+                    ? "taches planifiees presentes"
+                    : "aucune tache planifiee"}
+                </li>
+                <li>
+                  Correcteur de trajectoire :{" "}
+                  {dashboard.hasTodayTrajectoryEntry
+                    ? "entree du jour presente"
+                    : "pas encore d'entree aujourd'hui"}
+                </li>
+              </ul>
+            </>
+          ) : (
+            <p style={emptyTextStyle}>Chargement de la progression...</p>
+          )}
+        </article>
+
         <article style={cardStyle}>
           <h2 style={cardTitleStyle}>Habitudes</h2>
           <p style={cardTextStyle}>
