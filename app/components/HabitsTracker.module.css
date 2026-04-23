@@ -1,0 +1,146 @@
+.section {
+  margin-top: 24px;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 22px;
+  padding: 22px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(10, 20, 16, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  color: var(--dashboard-text-primary);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.date {
+  margin: 10px 0 0;
+  color: var(--dashboard-text-muted);
+  line-height: 1.6;
+}
+
+.summary {
+  margin: 18px 0 0;
+  color: var(--dashboard-text-primary);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.input {
+  min-width: 0;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(134, 239, 172, 0.15);
+  border-radius: 14px;
+  font: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.helperText {
+  margin: 0;
+  color: var(--dashboard-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+  display: grid;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px;
+  border: 1px solid rgba(134, 239, 172, 0.12);
+  border-radius: 18px;
+  background: rgba(19, 39, 29, 0.72);
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.habitName {
+  color: var(--dashboard-text-primary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.button {
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.addButton,
+.deleteButton {
+  white-space: normal;
+  text-align: center;
+}
+
+.addButton {
+  min-width: 120px;
+}
+
+.deleteButton {
+  min-width: 110px;
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+
+  .addButton,
+  .deleteButton {
+    width: 100%;
+  }
+
+  .item {
+    align-items: stretch;
+  }
+}
