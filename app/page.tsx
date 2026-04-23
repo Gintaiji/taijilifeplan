@@ -163,6 +163,10 @@ const inputStyle = {
   font: "inherit",
 };
 
+const selectStyle = {
+  ...inputStyle,
+};
+
 const buttonStyle = {
   borderRadius: "8px",
   padding: "8px 12px",
@@ -173,6 +177,12 @@ const buttonStyle = {
 const addButtonStyle = {
   ...buttonStyle,
   width: "fit-content",
+};
+
+const helperTextStyle = {
+  margin: 0,
+  color: "var(--dashboard-text-muted)",
+  fontSize: "14px",
 };
 
 const prioritiesHeaderStyle = {
@@ -495,6 +505,27 @@ function normalizePriorities(savedPriorities: unknown): SavedPriorities | null {
   };
 }
 
+function getInitialGoals(): Goal[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  return getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
+}
+
+function getNextPriorityId(currentPriorities: DailyPriority[]) {
+  if (currentPriorities.length === 0) {
+    return 1;
+  }
+
+  return (
+    currentPriorities.reduce(
+      (highestId, priority) => Math.max(highestId, priority.id),
+      0,
+    ) + 1
+  );
+}
+
 function getInitialPriorities(todayKey: string): DailyPriority[] {
   if (typeof window === "undefined") {
     return [];
@@ -595,7 +626,20 @@ export default function HomePage() {
   const [priorities, setPriorities] = useState<DailyPriority[]>(() =>
     getInitialPriorities(todayKey),
   );
+  const [goals] = useState<Goal[]>(getInitialGoals);
   const [priorityLabel, setPriorityLabel] = useState("");
+  const [selectedGoalId, setSelectedGoalId] = useState(() => {
+    const initialGoals = getInitialGoals();
+
+    if (initialGoals.length === 0) {
+      return "";
+    }
+
+    return String(initialGoals[0].id);
+  });
+
+  const selectedGoal =
+    goals.find((goal) => String(goal.id) === selectedGoalId) ?? null;
 
   useEffect(() => {
     if (!isClient) {
@@ -613,23 +657,57 @@ export default function HomePage() {
     );
   }, [isClient, priorities, todayKey]);
 
+  function hasSamePriorityLabel(label: string) {
+    const cleanLabel = label.trim().toLowerCase();
+
+    return priorities.some(
+      (priority) => priority.label.trim().toLowerCase() === cleanLabel,
+    );
+  }
+
   function handleAddPriority(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const cleanLabel = priorityLabel.trim();
 
-    if (cleanLabel === "" || priorities.length >= 3) {
+    if (
+      cleanLabel === "" ||
+      priorities.length >= 3 ||
+      hasSamePriorityLabel(cleanLabel)
+    ) {
       return;
     }
 
-    const newPriority: DailyPriority = {
-      id: Date.now(),
-      label: cleanLabel,
-      completed: false,
-    };
-
-    setPriorities((currentPriorities) => [...currentPriorities, newPriority]);
+    setPriorities((currentPriorities) => [
+      ...currentPriorities,
+      {
+        id: getNextPriorityId(currentPriorities),
+        label: cleanLabel,
+        completed: false,
+      },
+    ]);
     setPriorityLabel("");
+  }
+
+  function handleAddGoalAsPriority() {
+    if (!selectedGoal || priorities.length >= 3) {
+      return;
+    }
+
+    const cleanLabel = selectedGoal.title.trim();
+
+    if (cleanLabel === "" || hasSamePriorityLabel(cleanLabel)) {
+      return;
+    }
+
+    setPriorities((currentPriorities) => [
+      ...currentPriorities,
+      {
+        id: getNextPriorityId(currentPriorities),
+        label: cleanLabel,
+        completed: false,
+      },
+    ]);
   }
 
   function handleDeletePriority(priorityId: number) {
@@ -684,6 +762,43 @@ export default function HomePage() {
                 disabled={priorities.length >= 3}
               >
                 Ajouter
+              </button>
+            </div>
+
+            <p style={helperTextStyle}>
+              Ou choisis un objectif existant pour l&apos;ajouter directement.
+            </p>
+
+            <div style={inputRowStyle}>
+              <select
+                value={selectedGoalId}
+                onChange={(event) => setSelectedGoalId(event.target.value)}
+                style={selectStyle}
+                disabled={goals.length === 0}
+              >
+                {goals.length === 0 ? (
+                  <option value="">Aucun objectif disponible</option>
+                ) : (
+                  goals.map((goal) => (
+                    <option key={goal.id} value={goal.id}>
+                      {goal.title} ({goal.period})
+                    </option>
+                  ))
+                )}
+              </select>
+
+              <button
+                type="button"
+                className="control-button"
+                style={addButtonStyle}
+                onClick={handleAddGoalAsPriority}
+                disabled={
+                  priorities.length >= 3 ||
+                  selectedGoal === null ||
+                  hasSamePriorityLabel(selectedGoal.title)
+                }
+              >
+                Transformer en priorite
               </button>
             </div>
           </form>
