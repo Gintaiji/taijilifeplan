@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import styles from "./page.module.css";
 
 const HABITS_STORAGE_KEY = "taiji-life-plan-habits";
 const GOALS_STORAGE_KEY = "taiji-life-plan-objectifs";
@@ -56,177 +57,6 @@ type DashboardState = {
   hasTodayTrajectoryEntry: boolean;
   globalProgressScore: number;
   globalProgressMessage: string;
-};
-
-const pageStyle = {
-  padding: "24px",
-};
-
-const introStyle = {
-  marginTop: "8px",
-  color: "var(--dashboard-text-secondary)",
-  maxWidth: "720px",
-};
-
-const gridStyle = {
-  display: "grid",
-  gap: "16px",
-  marginTop: "24px",
-};
-
-const cardStyle = {
-  border: "1px solid var(--dashboard-card-border)",
-  borderRadius: "8px",
-  padding: "16px",
-  maxWidth: "720px",
-  backgroundColor: "var(--dashboard-card-background)",
-};
-
-const cardTitleStyle = {
-  margin: 0,
-  color: "var(--dashboard-text-primary)",
-};
-
-const cardTextStyle = {
-  margin: "12px 0 0 0",
-  color: "var(--dashboard-text-secondary)",
-};
-
-const listStyle = {
-  listStyle: "none",
-  padding: 0,
-  margin: "12px 0 0 0",
-  display: "grid",
-  gap: "8px",
-};
-
-const listItemStyle = {
-  border: "1px solid var(--dashboard-card-border)",
-  borderRadius: "8px",
-  padding: "12px",
-  backgroundColor: "var(--dashboard-card-background-soft)",
-};
-
-const emptyTextStyle = {
-  margin: "12px 0 0 0",
-  color: "var(--dashboard-text-muted)",
-};
-
-const progressValueStyle = {
-  margin: "12px 0 0 0",
-  fontSize: "28px",
-  fontWeight: 700,
-  color: "var(--dashboard-text-accent)",
-};
-
-const progressBarStyle = {
-  marginTop: "16px",
-  width: "100%",
-  height: "10px",
-  borderRadius: "999px",
-  backgroundColor: "var(--dashboard-progress-track)",
-  overflow: "hidden",
-};
-
-const progressBarFillBaseStyle = {
-  height: "100%",
-  borderRadius: "999px",
-  backgroundColor: "var(--dashboard-progress-fill)",
-};
-
-const progressDetailsStyle = {
-  margin: "16px 0 0 0",
-  paddingLeft: "18px",
-  color: "var(--dashboard-text-secondary)",
-  display: "grid",
-  gap: "8px",
-};
-
-const prioritiesFormStyle = {
-  display: "grid",
-  gap: "12px",
-  marginTop: "16px",
-};
-
-const inputRowStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
-};
-
-const inputStyle = {
-  flex: "1 1 260px",
-  minWidth: "0",
-  padding: "10px 12px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
-  font: "inherit",
-};
-
-const selectStyle = {
-  ...inputStyle,
-};
-
-const buttonStyle = {
-  borderRadius: "8px",
-  padding: "8px 12px",
-  cursor: "pointer",
-  font: "inherit",
-};
-
-const addButtonStyle = {
-  ...buttonStyle,
-  width: "fit-content",
-};
-
-const helperTextStyle = {
-  margin: 0,
-  color: "var(--dashboard-text-muted)",
-  fontSize: "14px",
-};
-
-const prioritiesHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap" as const,
-};
-
-const counterStyle = {
-  color: "var(--dashboard-text-muted)",
-  fontSize: "14px",
-};
-
-const priorityItemStyle = {
-  ...listItemStyle,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap" as const,
-};
-
-const priorityCompletedItemStyle = {
-  ...priorityItemStyle,
-  backgroundColor: "var(--dashboard-card-background-soft)",
-};
-
-const priorityTextStyle = {
-  fontWeight: 600,
-  color: "var(--dashboard-text-primary)",
-};
-
-const priorityCompletedTextStyle = {
-  ...priorityTextStyle,
-  textDecoration: "line-through",
-  color: "var(--dashboard-text-muted)",
-};
-
-const actionsStyle = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
 };
 
 const weekdayOrder: Record<string, number> = {
@@ -727,53 +557,57 @@ export default function HomePage() {
   }
 
   return (
-    <main style={pageStyle}>
-      <h1>Taiji Life Plan</h1>
-      <p style={introStyle}>
-        Bienvenue dans ton application de pilotage personnel. Voici un resume
-        simple de tes principales sections.
-      </p>
+    <main className={styles.page}>
+      <section className={styles.hero}>
+        <p className={styles.eyebrow}>Dashboard</p>
+        <h1 className={styles.pageTitle}>Taiji Life Plan</h1>
+        <p className={styles.intro}>
+          Bienvenue dans ton application de pilotage personnel. Voici un resume
+          simple de tes principales sections.
+        </p>
+      </section>
 
-      <section style={gridStyle}>
-        <article style={cardStyle}>
-          <div style={prioritiesHeaderStyle}>
-            <h2 style={cardTitleStyle}>Priorites du jour</h2>
-            <span style={counterStyle}>{priorities.length}/3</span>
+      <section className={styles.grid}>
+        <article className={`${styles.card} ${styles.primaryCard}`}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Priorites du jour</h2>
+              <p className={styles.cardText}>
+                Choisis jusqu&apos;a 3 priorites importantes pour
+                aujourd&apos;hui.
+              </p>
+            </div>
+            <span className={styles.counterBadge}>{priorities.length}/3</span>
           </div>
 
-          <p style={cardTextStyle}>
-            Choisis jusqu&apos;a 3 priorites importantes pour aujourd&apos;hui.
-          </p>
-
-          <form style={prioritiesFormStyle} onSubmit={handleAddPriority}>
-            <div style={inputRowStyle}>
+          <form className={styles.prioritiesForm} onSubmit={handleAddPriority}>
+            <div className={styles.inputRow}>
               <input
                 type="text"
                 value={priorityLabel}
                 onChange={(event) => setPriorityLabel(event.target.value)}
                 placeholder="Exemple : Finaliser mon objectif principal"
-                style={inputStyle}
+                className={styles.textField}
               />
 
               <button
                 type="submit"
-                className="control-button"
-                style={addButtonStyle}
+                className={`control-button ${styles.button} ${styles.addButton}`}
                 disabled={priorities.length >= 3}
               >
                 Ajouter
               </button>
             </div>
 
-            <p style={helperTextStyle}>
+            <p className={styles.helperText}>
               Ou choisis un objectif existant pour l&apos;ajouter directement.
             </p>
 
-            <div style={inputRowStyle}>
+            <div className={styles.inputRow}>
               <select
                 value={selectedGoalId}
                 onChange={(event) => setSelectedGoalId(event.target.value)}
-                style={selectStyle}
+                className={styles.textField}
                 disabled={goals.length === 0}
               >
                 {goals.length === 0 ? (
@@ -789,8 +623,7 @@ export default function HomePage() {
 
               <button
                 type="button"
-                className="control-button"
-                style={addButtonStyle}
+                className={`control-button ${styles.button} ${styles.addButton}`}
                 onClick={handleAddGoalAsPriority}
                 disabled={
                   priorities.length >= 3 ||
@@ -804,33 +637,32 @@ export default function HomePage() {
           </form>
 
           {priorities.length === 0 ? (
-            <p style={emptyTextStyle}>Aucune priorite pour aujourd&apos;hui.</p>
+            <p className={styles.emptyText}>
+              Aucune priorite pour aujourd&apos;hui.
+            </p>
           ) : (
-            <ul style={listStyle}>
+            <ul className={styles.list}>
               {priorities.map((priority) => (
                 <li
                   key={priority.id}
-                  style={
-                    priority.completed
-                      ? priorityCompletedItemStyle
-                      : priorityItemStyle
-                  }
+                  className={`${styles.priorityItem} ${
+                    priority.completed ? styles.priorityCompletedItem : ""
+                  }`}
                 >
                   <span
-                    style={
+                    className={
                       priority.completed
-                        ? priorityCompletedTextStyle
-                        : priorityTextStyle
+                        ? styles.priorityCompletedText
+                        : styles.priorityText
                     }
                   >
                     {priority.label}
                   </span>
 
-                  <div style={actionsStyle}>
+                  <div className={styles.actions}>
                     <button
                       type="button"
-                      className="control-button"
-                      style={buttonStyle}
+                      className={`control-button ${styles.button}`}
                       onClick={() => handleTogglePriority(priority.id)}
                     >
                       {priority.completed ? "Marquer non faite" : "Marquer faite"}
@@ -838,8 +670,7 @@ export default function HomePage() {
 
                     <button
                       type="button"
-                      className="control-button"
-                      style={buttonStyle}
+                      className={`control-button ${styles.button}`}
                       onClick={() => handleDeletePriority(priority.id)}
                     >
                       Supprimer
@@ -851,91 +682,177 @@ export default function HomePage() {
           )}
         </article>
 
-        <article style={cardStyle}>
-          <h2 style={cardTitleStyle}>Progression globale</h2>
-          <p style={cardTextStyle}>
-            {isClient
-              ? "Vue simple de ta progression sur les sections principales."
-              : "Chargement de la progression globale..."}
-          </p>
+        <article className={`${styles.card} ${styles.progressCard}`}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Progression globale</h2>
+              <p className={styles.cardText}>
+                {isClient
+                  ? "Vue simple de ta progression sur les sections principales."
+                  : "Chargement de la progression globale..."}
+              </p>
+            </div>
+          </div>
 
           {isClient ? (
             <>
-              <p style={progressValueStyle}>{dashboard.globalProgressScore}%</p>
+              <div className={styles.progressTop}>
+                <div>
+                  <p className={styles.progressLabel}>Score actuel</p>
+                  <p className={styles.progressValue}>
+                    {dashboard.globalProgressScore}%
+                  </p>
+                </div>
 
-              <div style={progressBarStyle} aria-hidden="true">
+                <p className={styles.messageBadge}>
+                  {dashboard.globalProgressMessage}
+                </p>
+              </div>
+
+              <div className={styles.progressBar} aria-hidden="true">
                 <div
-                  style={{
-                    ...progressBarFillBaseStyle,
-                    width: `${dashboard.globalProgressScore}%`,
-                  }}
+                  className={styles.progressBarFill}
+                  style={{ width: `${dashboard.globalProgressScore}%` }}
                 />
               </div>
 
-              <p style={cardTextStyle}>{dashboard.globalProgressMessage}</p>
+              <div className={styles.metricsGrid}>
+                <div className={styles.metricCard}>
+                  <span className={styles.metricLabel}>Habitudes</span>
+                  <strong className={styles.metricValue}>
+                    {dashboard.habitsCompleted}/{dashboard.habitsTotal}
+                  </strong>
+                </div>
 
-              <ul style={progressDetailsStyle}>
-                <li>
-                  Habitudes : {dashboard.habitsCompleted}/{dashboard.habitsTotal}
+                <div className={styles.metricCard}>
+                  <span className={styles.metricLabel}>Objectifs</span>
+                  <strong className={styles.metricValue}>
+                    {dashboard.goalsCompleted}/{dashboard.goalsTotal}
+                  </strong>
+                </div>
+
+                <div className={styles.metricCard}>
+                  <span className={styles.metricLabel}>Planning</span>
+                  <strong className={styles.metricValue}>
+                    {dashboard.planningTotal > 0 ? "Actif" : "Vide"}
+                  </strong>
+                </div>
+
+                <div className={styles.metricCard}>
+                  <span className={styles.metricLabel}>Trajectoire</span>
+                  <strong className={styles.metricValue}>
+                    {dashboard.hasTodayTrajectoryEntry ? "A jour" : "A remplir"}
+                  </strong>
+                </div>
+              </div>
+
+              <ul className={styles.progressDetails}>
+                <li className={styles.progressDetailItem}>
+                  <span className={styles.progressDetailLabel}>Habitudes</span>
+                  <span className={styles.progressDetailValue}>
+                    {dashboard.habitsCompleted}/{dashboard.habitsTotal}
+                  </span>
                 </li>
-                <li>
-                  Objectifs : {dashboard.goalsCompleted}/{dashboard.goalsTotal}
+                <li className={styles.progressDetailItem}>
+                  <span className={styles.progressDetailLabel}>Objectifs</span>
+                  <span className={styles.progressDetailValue}>
+                    {dashboard.goalsCompleted}/{dashboard.goalsTotal}
+                  </span>
                 </li>
-                <li>
-                  Planning :{" "}
-                  {dashboard.planningTotal > 0
-                    ? "taches planifiees presentes"
-                    : "aucune tache planifiee"}
+                <li className={styles.progressDetailItem}>
+                  <span className={styles.progressDetailLabel}>Planning</span>
+                  <span className={styles.progressDetailValue}>
+                    {dashboard.planningTotal > 0
+                      ? "taches planifiees presentes"
+                      : "aucune tache planifiee"}
+                  </span>
                 </li>
-                <li>
-                  Correcteur de trajectoire :{" "}
-                  {dashboard.hasTodayTrajectoryEntry
-                    ? "entree du jour presente"
-                    : "pas encore d'entree aujourd'hui"}
+                <li className={styles.progressDetailItem}>
+                  <span className={styles.progressDetailLabel}>
+                    Correcteur de trajectoire
+                  </span>
+                  <span className={styles.progressDetailValue}>
+                    {dashboard.hasTodayTrajectoryEntry
+                      ? "entree du jour presente"
+                      : "pas encore d'entree aujourd'hui"}
+                  </span>
                 </li>
               </ul>
             </>
           ) : (
-            <p style={emptyTextStyle}>Chargement de la progression...</p>
+            <p className={styles.emptyText}>Chargement de la progression...</p>
           )}
         </article>
 
-        <article style={cardStyle}>
-          <h2 style={cardTitleStyle}>Habitudes</h2>
-          <p style={cardTextStyle}>
+        <article className={`${styles.card} ${styles.compactCard}`}>
+          <h2 className={styles.cardTitle}>Habitudes</h2>
+          <p className={styles.cardText}>
             {isClient
-              ? `${dashboard.habitsCompleted} habitudes completees sur ${dashboard.habitsTotal}.`
+              ? "Suivi rapide de tes habitudes du moment."
               : "Chargement des habitudes..."}
           </p>
+          {isClient ? (
+            <>
+              <p className={styles.highlightValue}>
+                {dashboard.habitsCompleted}/{dashboard.habitsTotal}
+              </p>
+              <p className={styles.cardText}>
+                habitudes completees aujourd&apos;hui.
+              </p>
+            </>
+          ) : (
+            <p className={styles.emptyText}>Chargement des habitudes...</p>
+          )}
         </article>
 
-        <article style={cardStyle}>
-          <h2 style={cardTitleStyle}>Objectifs</h2>
-          <p style={cardTextStyle}>
+        <article className={`${styles.card} ${styles.compactCard}`}>
+          <h2 className={styles.cardTitle}>Objectifs</h2>
+          <p className={styles.cardText}>
             {isClient
-              ? `${dashboard.goalsCompleted} objectifs termines sur ${dashboard.goalsTotal}.`
+              ? "Vision rapide de l'avancement de tes objectifs."
               : "Chargement des objectifs..."}
           </p>
+          {isClient ? (
+            <>
+              <p className={styles.highlightValue}>
+                {dashboard.goalsCompleted}/{dashboard.goalsTotal}
+              </p>
+              <p className={styles.cardText}>objectifs termines.</p>
+            </>
+          ) : (
+            <p className={styles.emptyText}>Chargement des objectifs...</p>
+          )}
         </article>
 
-        <article style={cardStyle}>
-          <h2 style={cardTitleStyle}>Planning</h2>
-          <p style={cardTextStyle}>
-            {isClient
-              ? `${dashboard.planningTotal} taches planifiees.`
-              : "Chargement du planning..."}
-          </p>
+        <article className={`${styles.card} ${styles.planningCard}`}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Planning</h2>
+              <p className={styles.cardText}>
+                {isClient
+                  ? `${dashboard.planningTotal} taches planifiees.`
+                  : "Chargement du planning..."}
+              </p>
+            </div>
+            {isClient ? (
+              <span className={styles.counterBadge}>
+                {dashboard.nextTasks.length} a venir
+              </span>
+            ) : null}
+          </div>
 
           {!isClient ? (
-            <p style={emptyTextStyle}>Chargement des prochaines taches...</p>
+            <p className={styles.emptyText}>Chargement des prochaines taches...</p>
           ) : dashboard.nextTasks.length === 0 ? (
-            <p style={emptyTextStyle}>Aucune tache enregistree pour le moment.</p>
+            <p className={styles.emptyText}>
+              Aucune tache enregistree pour le moment.
+            </p>
           ) : (
-            <ul style={listStyle}>
+            <ul className={styles.list}>
               {dashboard.nextTasks.map((task) => (
-                <li key={task.id} style={listItemStyle}>
-                  <strong>{task.label}</strong>
-                  <p style={cardTextStyle}>
+                <li key={task.id} className={styles.listItem}>
+                  <strong className={styles.itemTitle}>{task.label}</strong>
+                  <p className={styles.itemMeta}>
                     {task.day} a {task.time}
                   </p>
                 </li>
@@ -944,18 +861,34 @@ export default function HomePage() {
           )}
         </article>
 
-        <article style={cardStyle}>
-          <h2 style={cardTitleStyle}>Correcteur de trajectoire</h2>
+        <article className={`${styles.card} ${styles.compactCard}`}>
+          <h2 className={styles.cardTitle}>Correcteur de trajectoire</h2>
+          <p className={styles.cardText}>
+            {isClient
+              ? "Garde un point de controle sur ta direction."
+              : "Chargement de la derniere entree..."}
+          </p>
 
           {!isClient ? (
-            <p style={emptyTextStyle}>Chargement de la derniere entree...</p>
+            <p className={styles.emptyText}>Chargement de la derniere entree...</p>
           ) : dashboard.lastTrajectoryDate ? (
-            <p style={cardTextStyle}>
-              Derniere entree enregistree :{" "}
-              {formatTrajectoryDate(dashboard.lastTrajectoryDate)}
-            </p>
+            <>
+              <p className={styles.highlightValueSmall}>
+                {formatTrajectoryDate(dashboard.lastTrajectoryDate)}
+              </p>
+              <p className={styles.cardText}>
+                Derniere entree enregistree.
+              </p>
+              <p className={styles.statusText}>
+                {dashboard.hasTodayTrajectoryEntry
+                  ? "Ton point du jour est deja rempli."
+                  : "Il reste ton point du jour a completer."}
+              </p>
+            </>
           ) : (
-            <p style={emptyTextStyle}>Aucune entree enregistree pour le moment.</p>
+            <p className={styles.emptyText}>
+              Aucune entree enregistree pour le moment.
+            </p>
           )}
         </article>
       </section>

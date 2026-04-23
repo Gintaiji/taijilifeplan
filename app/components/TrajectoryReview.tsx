@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "taiji-life-plan-trajectory";
 
@@ -184,10 +184,26 @@ function getEntriesFromLocalStorage(todayKey: string): TrajectoryEntries {
 export default function TrajectoryReview() {
   const todayKey = useMemo(() => getTodayKey(), []);
   const today = useMemo(() => formatDate(todayKey), [todayKey]);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [entries, setEntries] = useState<TrajectoryEntries>(() => {
+    if (typeof window === "undefined") {
+      return {};
+    }
 
-  const [entries, setEntries] = useState<TrajectoryEntries>({});
-  const [selectedDate, setSelectedDate] = useState(todayKey);
-  const [isClient, setIsClient] = useState(false);
+    return getEntriesFromLocalStorage(todayKey);
+  });
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (typeof window === "undefined") {
+      return todayKey;
+    }
+
+    const savedEntries = getEntriesFromLocalStorage(todayKey);
+    return Object.keys(savedEntries).sort((a, b) => b.localeCompare(a))[0] ?? todayKey;
+  });
 
   const todayEntry = entries[todayKey] ?? getInitialTrajectoryState();
 
@@ -196,13 +212,6 @@ export default function TrajectoryReview() {
     ? selectedDate
     : (savedDates[0] ?? todayKey);
   const consultationEntry = entries[consultationDate] ?? getInitialTrajectoryState();
-
-  useEffect(() => {
-    const savedEntries = getEntriesFromLocalStorage(todayKey);
-    setEntries(savedEntries);
-    setSelectedDate(Object.keys(savedEntries).sort((a, b) => b.localeCompare(a))[0] ?? todayKey);
-    setIsClient(true);
-  }, [todayKey]);
 
   useEffect(() => {
     if (!isClient) {
