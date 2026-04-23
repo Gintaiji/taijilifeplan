@@ -273,6 +273,10 @@ export default function PlanningPage() {
   const [day, setDay] = useState("");
   const [time, setTime] = useState("");
   const [label, setLabel] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editingDay, setEditingDay] = useState("");
+  const [editingTime, setEditingTime] = useState("");
+  const [editingLabel, setEditingLabel] = useState("");
   const sortedTasks = sortTasks(tasks);
   const groupedTasks = groupTasksByDay(sortedTasks);
 
@@ -308,6 +312,49 @@ export default function PlanningPage() {
     setTasks((currentTasks) =>
       currentTasks.filter((task) => task.id !== taskId),
     );
+
+    if (editingTaskId === taskId) {
+      handleCancelEdit();
+    }
+  }
+
+  function handleStartEdit(task: PlannedTask) {
+    setEditingTaskId(task.id);
+    setEditingDay(task.day);
+    setEditingTime(task.time);
+    setEditingLabel(task.label);
+  }
+
+  function handleCancelEdit() {
+    setEditingTaskId(null);
+    setEditingDay("");
+    setEditingTime("");
+    setEditingLabel("");
+  }
+
+  function handleSaveEdit(taskId: number) {
+    const cleanDay = editingDay.trim();
+    const cleanTime = editingTime.trim();
+    const cleanLabel = editingLabel.trim();
+
+    if (cleanDay === "" || cleanTime === "" || cleanLabel === "") {
+      return;
+    }
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              day: cleanDay,
+              time: cleanTime,
+              label: cleanLabel,
+            }
+          : task,
+      ),
+    );
+
+    handleCancelEdit();
   }
 
   return (
@@ -395,33 +442,120 @@ export default function PlanningPage() {
                     <ul style={listStyle}>
                       {group.tasks.map((task) => (
                         <li key={task.id} style={itemStyle}>
-                          <div style={taskTextStyle}>
-                            <div style={taskMetaStyle}>
-                              <div style={taskInfoRowStyle}>
-                                <span style={taskInfoLabelStyle}>Jour</span>
-                                <span style={taskInfoValueStyle}>{task.day}</span>
+                          {editingTaskId === task.id ? (
+                            <>
+                              <div style={taskTextStyle}>
+                                <div style={taskInfoRowStyle}>
+                                  <label htmlFor={`edit-day-${task.id}`} style={taskInfoLabelStyle}>
+                                    Jour
+                                  </label>
+                                  <input
+                                    id={`edit-day-${task.id}`}
+                                    type="text"
+                                    value={editingDay}
+                                    onChange={(event) => setEditingDay(event.target.value)}
+                                    placeholder="Exemple : Lundi"
+                                    style={inputStyle}
+                                  />
+                                </div>
+
+                                <div style={taskInfoRowStyle}>
+                                  <label
+                                    htmlFor={`edit-time-${task.id}`}
+                                    style={taskInfoLabelStyle}
+                                  >
+                                    Heure
+                                  </label>
+                                  <input
+                                    id={`edit-time-${task.id}`}
+                                    type="text"
+                                    value={editingTime}
+                                    onChange={(event) => setEditingTime(event.target.value)}
+                                    placeholder="Exemple : 08:30"
+                                    style={inputStyle}
+                                  />
+                                </div>
+
+                                <div style={taskInfoRowStyle}>
+                                  <label
+                                    htmlFor={`edit-label-${task.id}`}
+                                    style={taskInfoLabelStyle}
+                                  >
+                                    Libelle
+                                  </label>
+                                  <input
+                                    id={`edit-label-${task.id}`}
+                                    type="text"
+                                    value={editingLabel}
+                                    onChange={(event) => setEditingLabel(event.target.value)}
+                                    placeholder="Exemple : Sport"
+                                    style={inputStyle}
+                                  />
+                                </div>
                               </div>
 
-                              <div style={taskInfoRowStyle}>
-                                <span style={taskInfoLabelStyle}>Heure</span>
-                                <span style={taskInfoValueStyle}>{task.time}</span>
+                              <div style={taskTextStyle}>
+                                <button
+                                  type="button"
+                                  className="control-button"
+                                  style={deleteButtonStyle}
+                                  onClick={() => handleSaveEdit(task.id)}
+                                >
+                                  Enregistrer
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="control-button"
+                                  style={deleteButtonStyle}
+                                  onClick={handleCancelEdit}
+                                >
+                                  Annuler
+                                </button>
                               </div>
-                            </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={taskTextStyle}>
+                                <div style={taskMetaStyle}>
+                                  <div style={taskInfoRowStyle}>
+                                    <span style={taskInfoLabelStyle}>Jour</span>
+                                    <span style={taskInfoValueStyle}>{task.day}</span>
+                                  </div>
 
-                            <div style={taskInfoRowStyle}>
-                              <span style={taskInfoLabelStyle}>Libelle</span>
-                              <span style={taskLabelStyle}>{task.label}</span>
-                            </div>
-                          </div>
+                                  <div style={taskInfoRowStyle}>
+                                    <span style={taskInfoLabelStyle}>Heure</span>
+                                    <span style={taskInfoValueStyle}>{task.time}</span>
+                                  </div>
+                                </div>
 
-                          <button
-                            type="button"
-                            className="control-button"
-                            style={deleteButtonStyle}
-                            onClick={() => handleDelete(task.id)}
-                          >
-                            Supprimer
-                          </button>
+                                <div style={taskInfoRowStyle}>
+                                  <span style={taskInfoLabelStyle}>Libelle</span>
+                                  <span style={taskLabelStyle}>{task.label}</span>
+                                </div>
+                              </div>
+
+                              <div style={taskTextStyle}>
+                                <button
+                                  type="button"
+                                  className="control-button"
+                                  style={deleteButtonStyle}
+                                  onClick={() => handleStartEdit(task)}
+                                >
+                                  Modifier
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="control-button"
+                                  style={deleteButtonStyle}
+                                  onClick={() => handleDelete(task.id)}
+                                >
+                                  Supprimer
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </li>
                       ))}
                     </ul>
