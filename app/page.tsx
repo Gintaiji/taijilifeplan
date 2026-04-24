@@ -439,20 +439,7 @@ function getDashboardFromLocalStorage(): DashboardState {
   };
 }
 
-export default function HomePage() {
-  const todayKey = getTodayKey();
-  const [dashboard] = useState<DashboardState>(() => {
-    if (typeof window === "undefined") {
-      return initialDashboardState;
-    }
-
-    return getDashboardFromLocalStorage();
-  });
-  const isClient = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+function PrioritiesCard({ todayKey }: { todayKey: string }) {
   const [priorities, setPriorities] = useState<DailyPriority[]>(() =>
     getInitialPriorities(todayKey),
   );
@@ -472,10 +459,6 @@ export default function HomePage() {
     goals.find((goal) => String(goal.id) === selectedGoalId) ?? null;
 
   useEffect(() => {
-    if (!isClient) {
-      return;
-    }
-
     const savedPriorities: SavedPriorities = {
       date: todayKey,
       priorities,
@@ -485,7 +468,7 @@ export default function HomePage() {
       PRIORITIES_STORAGE_KEY,
       JSON.stringify(savedPriorities),
     );
-  }, [isClient, priorities, todayKey]);
+  }, [priorities, todayKey]);
 
   function hasSamePriorityLabel(label: string) {
     const cleanLabel = label.trim().toLowerCase();
@@ -557,6 +540,186 @@ export default function HomePage() {
   }
 
   return (
+    <article className={`${styles.card} ${styles.primaryCard}`}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.cardTitle}>Priorites du jour</h2>
+          <p className={styles.cardText}>
+            Choisis jusqu&apos;a 3 priorites importantes pour aujourd&apos;hui.
+          </p>
+        </div>
+        <span className={styles.counterBadge}>{priorities.length}/3</span>
+      </div>
+
+      <form className={styles.prioritiesForm} onSubmit={handleAddPriority}>
+        <div className={styles.inputRow}>
+          <input
+            type="text"
+            value={priorityLabel}
+            onChange={(event) => setPriorityLabel(event.target.value)}
+            placeholder="Exemple : Finaliser mon objectif principal"
+            className={styles.textField}
+          />
+
+          <button
+            type="submit"
+            className={`control-button ${styles.button} ${styles.addButton}`}
+            disabled={priorities.length >= 3}
+          >
+            Ajouter
+          </button>
+        </div>
+
+        <p className={styles.helperText}>
+          Ou choisis un objectif existant pour l&apos;ajouter directement.
+        </p>
+
+        <div className={styles.inputRow}>
+          <select
+            value={selectedGoalId}
+            onChange={(event) => setSelectedGoalId(event.target.value)}
+            className={styles.textField}
+            disabled={goals.length === 0}
+          >
+            {goals.length === 0 ? (
+              <option value="">Aucun objectif disponible</option>
+            ) : (
+              goals.map((goal) => (
+                <option key={goal.id} value={goal.id}>
+                  {goal.title} ({goal.period})
+                </option>
+              ))
+            )}
+          </select>
+
+          <button
+            type="button"
+            className={`control-button ${styles.button} ${styles.addButton}`}
+            onClick={handleAddGoalAsPriority}
+            disabled={
+              priorities.length >= 3 ||
+              selectedGoal === null ||
+              hasSamePriorityLabel(selectedGoal.title)
+            }
+          >
+            Transformer en priorite
+          </button>
+        </div>
+      </form>
+
+      {priorities.length === 0 ? (
+        <p className={styles.emptyText}>Aucune priorite pour aujourd&apos;hui.</p>
+      ) : (
+        <ul className={styles.list}>
+          {priorities.map((priority) => (
+            <li
+              key={priority.id}
+              className={`${styles.priorityItem} ${
+                priority.completed ? styles.priorityCompletedItem : ""
+              }`}
+            >
+              <span
+                className={
+                  priority.completed
+                    ? styles.priorityCompletedText
+                    : styles.priorityText
+                }
+              >
+                {priority.label}
+              </span>
+
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={`control-button ${styles.button}`}
+                  onClick={() => handleTogglePriority(priority.id)}
+                >
+                  {priority.completed ? "Marquer non faite" : "Marquer faite"}
+                </button>
+
+                <button
+                  type="button"
+                  className={`control-button ${styles.button}`}
+                  onClick={() => handleDeletePriority(priority.id)}
+                >
+                  Supprimer
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
+}
+
+function PrioritiesLoadingCard() {
+  return (
+    <article className={`${styles.card} ${styles.primaryCard}`}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.cardTitle}>Priorites du jour</h2>
+          <p className={styles.cardText}>
+            Choisis jusqu&apos;a 3 priorites importantes pour aujourd&apos;hui.
+          </p>
+        </div>
+        <span className={styles.counterBadge}>0/3</span>
+      </div>
+
+      <form className={styles.prioritiesForm}>
+        <div className={styles.inputRow}>
+          <input
+            type="text"
+            value=""
+            placeholder="Exemple : Finaliser mon objectif principal"
+            className={styles.textField}
+            readOnly
+          />
+
+          <button
+            type="button"
+            className={`control-button ${styles.button} ${styles.addButton}`}
+          >
+            Ajouter
+          </button>
+        </div>
+
+        <p className={styles.helperText}>
+          Ou choisis un objectif existant pour l&apos;ajouter directement.
+        </p>
+
+        <div className={styles.inputRow}>
+          <select value="" className={styles.textField} disabled>
+            <option value="">Aucun objectif disponible</option>
+          </select>
+
+          <button
+            type="button"
+            className={`control-button ${styles.button} ${styles.addButton}`}
+            disabled
+          >
+            Transformer en priorite
+          </button>
+        </div>
+      </form>
+
+      <p className={styles.emptyText}>Aucune priorite pour aujourd&apos;hui.</p>
+    </article>
+  );
+}
+
+export default function HomePage() {
+  const todayKey = getTodayKey();
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const dashboard = isClient
+    ? getDashboardFromLocalStorage()
+    : initialDashboardState;
+
+  return (
     <main className={styles.page}>
       <section className={styles.hero}>
         <p className={styles.eyebrow}>Dashboard</p>
@@ -568,119 +731,11 @@ export default function HomePage() {
       </section>
 
       <section className={styles.grid}>
-        <article className={`${styles.card} ${styles.primaryCard}`}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <h2 className={styles.cardTitle}>Priorites du jour</h2>
-              <p className={styles.cardText}>
-                Choisis jusqu&apos;a 3 priorites importantes pour
-                aujourd&apos;hui.
-              </p>
-            </div>
-            <span className={styles.counterBadge}>{priorities.length}/3</span>
-          </div>
-
-          <form className={styles.prioritiesForm} onSubmit={handleAddPriority}>
-            <div className={styles.inputRow}>
-              <input
-                type="text"
-                value={priorityLabel}
-                onChange={(event) => setPriorityLabel(event.target.value)}
-                placeholder="Exemple : Finaliser mon objectif principal"
-                className={styles.textField}
-              />
-
-              <button
-                type="submit"
-                className={`control-button ${styles.button} ${styles.addButton}`}
-                disabled={priorities.length >= 3}
-              >
-                Ajouter
-              </button>
-            </div>
-
-            <p className={styles.helperText}>
-              Ou choisis un objectif existant pour l&apos;ajouter directement.
-            </p>
-
-            <div className={styles.inputRow}>
-              <select
-                value={selectedGoalId}
-                onChange={(event) => setSelectedGoalId(event.target.value)}
-                className={styles.textField}
-                disabled={goals.length === 0}
-              >
-                {goals.length === 0 ? (
-                  <option value="">Aucun objectif disponible</option>
-                ) : (
-                  goals.map((goal) => (
-                    <option key={goal.id} value={goal.id}>
-                      {goal.title} ({goal.period})
-                    </option>
-                  ))
-                )}
-              </select>
-
-              <button
-                type="button"
-                className={`control-button ${styles.button} ${styles.addButton}`}
-                onClick={handleAddGoalAsPriority}
-                disabled={
-                  priorities.length >= 3 ||
-                  selectedGoal === null ||
-                  hasSamePriorityLabel(selectedGoal.title)
-                }
-              >
-                Transformer en priorite
-              </button>
-            </div>
-          </form>
-
-          {priorities.length === 0 ? (
-            <p className={styles.emptyText}>
-              Aucune priorite pour aujourd&apos;hui.
-            </p>
-          ) : (
-            <ul className={styles.list}>
-              {priorities.map((priority) => (
-                <li
-                  key={priority.id}
-                  className={`${styles.priorityItem} ${
-                    priority.completed ? styles.priorityCompletedItem : ""
-                  }`}
-                >
-                  <span
-                    className={
-                      priority.completed
-                        ? styles.priorityCompletedText
-                        : styles.priorityText
-                    }
-                  >
-                    {priority.label}
-                  </span>
-
-                  <div className={styles.actions}>
-                    <button
-                      type="button"
-                      className={`control-button ${styles.button}`}
-                      onClick={() => handleTogglePriority(priority.id)}
-                    >
-                      {priority.completed ? "Marquer non faite" : "Marquer faite"}
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`control-button ${styles.button}`}
-                      onClick={() => handleDeletePriority(priority.id)}
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </article>
+        {isClient ? (
+          <PrioritiesCard todayKey={todayKey} />
+        ) : (
+          <PrioritiesLoadingCard />
+        )}
 
         <article className={`${styles.card} ${styles.progressCard}`}>
           <div className={styles.sectionHeader}>

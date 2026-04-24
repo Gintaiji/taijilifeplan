@@ -94,6 +94,7 @@ const itemCompletedStyle = {
 const goalTextStyle = {
   display: "grid",
   gap: "6px",
+  flex: "1 1 260px",
 };
 
 const goalTitleStyle = {
@@ -126,6 +127,18 @@ const actionsStyle = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap" as const,
+};
+
+const editFormStyle = {
+  display: "grid",
+  gap: "12px",
+  flex: "1 1 320px",
+};
+
+const editFieldsStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(160px, 220px)",
+  gap: "10px",
 };
 
 const periodSectionTitleStyle = {
@@ -199,6 +212,9 @@ export default function ObjectifsPage() {
   const [goals, setGoals] = useState<Goal[]>(getInitialGoals);
   const [title, setTitle] = useState("");
   const [period, setPeriod] = useState<GoalPeriod>("Hebdomadaire");
+  const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPeriod, setEditPeriod] = useState<GoalPeriod>("Hebdomadaire");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
@@ -229,6 +245,10 @@ export default function ObjectifsPage() {
     setGoals((currentGoals) =>
       currentGoals.filter((goal) => goal.id !== goalId),
     );
+
+    if (editingGoalId === goalId) {
+      handleCancelEdit();
+    }
   }
 
   function handleToggleCompleted(goalId: number) {
@@ -237,6 +257,39 @@ export default function ObjectifsPage() {
         goal.id === goalId ? { ...goal, completed: !goal.completed } : goal,
       ),
     );
+  }
+
+  function handleStartEdit(goal: Goal) {
+    setEditingGoalId(goal.id);
+    setEditTitle(goal.title);
+    setEditPeriod(goal.period);
+  }
+
+  function handleCancelEdit() {
+    setEditingGoalId(null);
+    setEditTitle("");
+    setEditPeriod("Hebdomadaire");
+  }
+
+  function handleSaveEdit(goalId: number) {
+    const cleanTitle = editTitle.trim();
+
+    if (cleanTitle === "") {
+      return;
+    }
+
+    setGoals((currentGoals) =>
+      currentGoals.map((goal) =>
+        goal.id === goalId
+          ? {
+              ...goal,
+              title: cleanTitle,
+              period: editPeriod,
+            }
+          : goal,
+      ),
+    );
+    handleCancelEdit();
   }
 
   return (
@@ -317,40 +370,106 @@ export default function ObjectifsPage() {
                         key={goal.id}
                         style={goal.completed ? itemCompletedStyle : itemStyle}
                       >
-                        <div style={goalTextStyle}>
-                          <span
-                            style={
-                              goal.completed
-                                ? goalTitleCompletedStyle
-                                : goalTitleStyle
-                            }
-                          >
-                            {goal.title}
-                          </span>
-                          <span style={periodBadgeStyle}>{goal.period}</span>
-                        </div>
+                        {editingGoalId === goal.id ? (
+                          <div style={editFormStyle}>
+                            <div style={editFieldsStyle}>
+                              <input
+                                type="text"
+                                value={editTitle}
+                                onChange={(event) =>
+                                  setEditTitle(event.target.value)
+                                }
+                                style={inputStyle}
+                                aria-label="Titre de l'objectif"
+                              />
 
-                        <div style={actionsStyle}>
-                          <button
-                            type="button"
-                            className="control-button"
-                            style={buttonStyle}
-                            onClick={() => handleToggleCompleted(goal.id)}
-                          >
-                            {goal.completed
-                              ? "Marquer non termine"
-                              : "Marquer termine"}
-                          </button>
+                              <select
+                                value={editPeriod}
+                                onChange={(event) =>
+                                  setEditPeriod(
+                                    event.target.value as GoalPeriod,
+                                  )
+                                }
+                                style={selectStyle}
+                                aria-label="Periode de l'objectif"
+                              >
+                                {periods.map((item) => (
+                                  <option key={item} value={item}>
+                                    {item}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
 
-                          <button
-                            type="button"
-                            className="control-button"
-                            style={buttonStyle}
-                            onClick={() => handleDelete(goal.id)}
-                          >
-                            Supprimer
-                          </button>
-                        </div>
+                            <div style={actionsStyle}>
+                              <button
+                                type="button"
+                                className="control-button"
+                                style={buttonStyle}
+                                onClick={() => handleSaveEdit(goal.id)}
+                              >
+                                Enregistrer
+                              </button>
+
+                              <button
+                                type="button"
+                                className="control-button"
+                                style={buttonStyle}
+                                onClick={handleCancelEdit}
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={goalTextStyle}>
+                              <span
+                                style={
+                                  goal.completed
+                                    ? goalTitleCompletedStyle
+                                    : goalTitleStyle
+                                }
+                              >
+                                {goal.title}
+                              </span>
+                              <span style={periodBadgeStyle}>
+                                {goal.period}
+                              </span>
+                            </div>
+
+                            <div style={actionsStyle}>
+                              <button
+                                type="button"
+                                className="control-button"
+                                style={buttonStyle}
+                                onClick={() => handleToggleCompleted(goal.id)}
+                              >
+                                {goal.completed
+                                  ? "Marquer non termine"
+                                  : "Marquer termine"}
+                              </button>
+
+                              <button
+                                type="button"
+                                className="control-button"
+                                style={buttonStyle}
+                                onClick={() => handleStartEdit(goal)}
+                              >
+                                Modifier
+                              </button>
+
+                              <button
+                                type="button"
+                                className="control-button"
+                                style={buttonStyle}
+                                onClick={() => handleDelete(goal.id)}
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </li>
                     ))}
                   </ul>
