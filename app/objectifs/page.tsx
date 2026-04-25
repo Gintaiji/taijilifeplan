@@ -182,6 +182,37 @@ const subGoalListStyle = {
   gap: "8px",
 };
 
+const progressAreaStyle = {
+  display: "grid",
+  gap: "8px",
+};
+
+const progressTextStyle = {
+  margin: 0,
+  color: "#d1fae5",
+  fontSize: "14px",
+};
+
+const noSubGoalTextStyle = {
+  margin: 0,
+  color: "#a7f3d0",
+  fontSize: "14px",
+};
+
+const progressBarStyle = {
+  width: "100%",
+  height: "10px",
+  overflow: "hidden",
+  borderRadius: "999px",
+  backgroundColor: "#1f2937",
+};
+
+const progressBarFillStyle = {
+  height: "100%",
+  borderRadius: "999px",
+  backgroundColor: "#22c55e",
+};
+
 const subGoalItemStyle = {
   display: "flex",
   justifyContent: "space-between",
@@ -189,14 +220,17 @@ const subGoalItemStyle = {
   gap: "8px",
   flexWrap: "wrap" as const,
   padding: "10px",
-  border: "1px solid #e5e7eb",
+  border: "1px solid #2f855a",
   borderRadius: "8px",
-  backgroundColor: "#ffffff",
+  backgroundColor: "#13271d",
+  color: "#f0fdf4",
 };
 
 const subGoalCompletedStyle = {
   ...subGoalItemStyle,
-  backgroundColor: "#f9fafb",
+  border: "1px solid #86efac",
+  backgroundColor: "#dcfce7",
+  color: "#1f2937",
 };
 
 const subGoalTextStyle = {
@@ -208,7 +242,8 @@ const subGoalTextStyle = {
 
 const subGoalTitleCompletedStyle = {
   textDecoration: "line-through",
-  color: "#6b7280",
+  color: "#1f2937",
+  fontWeight: 600,
 };
 
 function normalizeSubGoals(savedSubGoals: unknown): SubGoal[] {
@@ -535,78 +570,54 @@ export default function ObjectifsPage() {
                   </p>
                 ) : (
                   <ul style={listStyle}>
-                    {goalsByPeriod.map((goal) => (
-                      <li
-                        key={goal.id}
-                        style={goal.completed ? itemCompletedStyle : itemStyle}
-                      >
-                        {editingGoalId === goal.id ? (
-                          <div style={editFormStyle}>
-                            <div style={editFieldsStyle}>
-                              <input
-                                type="text"
-                                value={editTitle}
-                                onChange={(event) =>
-                                  setEditTitle(event.target.value)
-                                }
-                                style={inputStyle}
-                                aria-label="Titre de l'objectif"
-                              />
+                    {goalsByPeriod.map((goal) => {
+                      const totalSubGoals = goal.subGoals.length;
+                      const completedSubGoals = goal.subGoals.filter(
+                        (subGoal) => subGoal.completed,
+                      ).length;
+                      const progressPercent =
+                        totalSubGoals === 0
+                          ? 0
+                          : Math.round(
+                              (completedSubGoals / totalSubGoals) * 100,
+                            );
 
-                              <select
-                                value={editPeriod}
-                                onChange={(event) =>
-                                  setEditPeriod(
-                                    event.target.value as GoalPeriod,
-                                  )
-                                }
-                                style={selectStyle}
-                                aria-label="Periode de l'objectif"
-                              >
-                                {periods.map((item) => (
-                                  <option key={item} value={item}>
-                                    {item}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div style={actionsStyle}>
-                              <button
-                                type="button"
-                                className="control-button"
-                                style={buttonStyle}
-                                onClick={() => handleSaveEdit(goal.id)}
-                              >
-                                Enregistrer
-                              </button>
-
-                              <button
-                                type="button"
-                                className="control-button"
-                                style={buttonStyle}
-                                onClick={handleCancelEdit}
-                              >
-                                Annuler
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div style={goalHeaderStyle}>
-                              <div style={goalTextStyle}>
-                                <span
-                                  style={
-                                    goal.completed
-                                      ? goalTitleCompletedStyle
-                                      : goalTitleStyle
+                      return (
+                        <li
+                          key={goal.id}
+                          style={
+                            goal.completed ? itemCompletedStyle : itemStyle
+                          }
+                        >
+                          {editingGoalId === goal.id ? (
+                            <div style={editFormStyle}>
+                              <div style={editFieldsStyle}>
+                                <input
+                                  type="text"
+                                  value={editTitle}
+                                  onChange={(event) =>
+                                    setEditTitle(event.target.value)
                                   }
+                                  style={inputStyle}
+                                  aria-label="Titre de l'objectif"
+                                />
+
+                                <select
+                                  value={editPeriod}
+                                  onChange={(event) =>
+                                    setEditPeriod(
+                                      event.target.value as GoalPeriod,
+                                    )
+                                  }
+                                  style={selectStyle}
+                                  aria-label="Periode de l'objectif"
                                 >
-                                  {goal.title}
-                                </span>
-                                <span style={periodBadgeStyle}>
-                                  {goal.period}
-                                </span>
+                                  {periods.map((item) => (
+                                    <option key={item} value={item}>
+                                      {item}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
 
                               <div style={actionsStyle}>
@@ -614,120 +625,183 @@ export default function ObjectifsPage() {
                                   type="button"
                                   className="control-button"
                                   style={buttonStyle}
-                                  onClick={() =>
-                                    handleToggleCompleted(goal.id)
-                                  }
+                                  onClick={() => handleSaveEdit(goal.id)}
                                 >
-                                  {goal.completed
-                                    ? "Marquer non termine"
-                                    : "Marquer termine"}
+                                  Enregistrer
                                 </button>
 
                                 <button
                                   type="button"
                                   className="control-button"
                                   style={buttonStyle}
-                                  onClick={() => handleStartEdit(goal)}
+                                  onClick={handleCancelEdit}
                                 >
-                                  Modifier
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="control-button"
-                                  style={buttonStyle}
-                                  onClick={() => handleDelete(goal.id)}
-                                >
-                                  Supprimer
+                                  Annuler
                                 </button>
                               </div>
                             </div>
+                          ) : (
+                            <>
+                              <div style={goalHeaderStyle}>
+                                <div style={goalTextStyle}>
+                                  <span
+                                    style={
+                                      goal.completed
+                                        ? goalTitleCompletedStyle
+                                        : goalTitleStyle
+                                    }
+                                  >
+                                    {goal.title}
+                                  </span>
+                                  <span style={periodBadgeStyle}>
+                                    {goal.period}
+                                  </span>
+                                </div>
 
-                            <div style={subGoalsAreaStyle}>
-                              <form
-                                style={subGoalFormStyle}
-                                onSubmit={(event) =>
-                                  handleAddSubGoal(event, goal.id)
-                                }
-                              >
-                                <input
-                                  type="text"
-                                  value={newSubGoalTitles[goal.id] ?? ""}
-                                  onChange={(event) =>
-                                    handleSubGoalTitleChange(
-                                      goal.id,
-                                      event.target.value,
-                                    )
+                                <div style={actionsStyle}>
+                                  <button
+                                    type="button"
+                                    className="control-button"
+                                    style={buttonStyle}
+                                    onClick={() =>
+                                      handleToggleCompleted(goal.id)
+                                    }
+                                  >
+                                    {goal.completed
+                                      ? "Marquer non termine"
+                                      : "Marquer termine"}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="control-button"
+                                    style={buttonStyle}
+                                    onClick={() => handleStartEdit(goal)}
+                                  >
+                                    Modifier
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="control-button"
+                                    style={buttonStyle}
+                                    onClick={() => handleDelete(goal.id)}
+                                  >
+                                    Supprimer
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div style={subGoalsAreaStyle}>
+                                <form
+                                  style={subGoalFormStyle}
+                                  onSubmit={(event) =>
+                                    handleAddSubGoal(event, goal.id)
                                   }
-                                  placeholder="Ajouter un sous-objectif"
-                                  style={inputStyle}
-                                  aria-label={`Nouveau sous-objectif pour ${goal.title}`}
-                                />
-
-                                <button
-                                  type="submit"
-                                  className="control-button"
-                                  style={buttonStyle}
                                 >
-                                  Ajouter
-                                </button>
-                              </form>
+                                  <input
+                                    type="text"
+                                    value={newSubGoalTitles[goal.id] ?? ""}
+                                    onChange={(event) =>
+                                      handleSubGoalTitleChange(
+                                        goal.id,
+                                        event.target.value,
+                                      )
+                                    }
+                                    placeholder="Ajouter un sous-objectif"
+                                    style={inputStyle}
+                                    aria-label={`Nouveau sous-objectif pour ${goal.title}`}
+                                  />
 
-                              {goal.subGoals.length > 0 && (
-                                <ul style={subGoalListStyle}>
-                                  {goal.subGoals.map((subGoal) => (
-                                    <li
-                                      key={subGoal.id}
-                                      style={
-                                        subGoal.completed
-                                          ? subGoalCompletedStyle
-                                          : subGoalItemStyle
-                                      }
-                                    >
-                                      <label style={subGoalTextStyle}>
-                                        <input
-                                          type="checkbox"
-                                          checked={subGoal.completed}
-                                          onChange={() =>
-                                            handleToggleSubGoal(
+                                  <button
+                                    type="submit"
+                                    className="control-button"
+                                    style={buttonStyle}
+                                  >
+                                    Ajouter
+                                  </button>
+                                </form>
+
+                                <div style={progressAreaStyle}>
+                                  {totalSubGoals === 0 ? (
+                                    <p style={noSubGoalTextStyle}>
+                                      Aucun sous-objectif pour le moment
+                                    </p>
+                                  ) : (
+                                    <>
+                                      <p style={progressTextStyle}>
+                                        {completedSubGoals} / {totalSubGoals}{" "}
+                                        sous-objectifs termines (
+                                        {progressPercent}%)
+                                      </p>
+                                      <div style={progressBarStyle}>
+                                        <div
+                                          style={{
+                                            ...progressBarFillStyle,
+                                            width: `${progressPercent}%`,
+                                          }}
+                                        />
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+
+                                {goal.subGoals.length > 0 && (
+                                  <ul style={subGoalListStyle}>
+                                    {goal.subGoals.map((subGoal) => (
+                                      <li
+                                        key={subGoal.id}
+                                        style={
+                                          subGoal.completed
+                                            ? subGoalCompletedStyle
+                                            : subGoalItemStyle
+                                        }
+                                      >
+                                        <label style={subGoalTextStyle}>
+                                          <input
+                                            type="checkbox"
+                                            checked={subGoal.completed}
+                                            onChange={() =>
+                                              handleToggleSubGoal(
+                                                goal.id,
+                                                subGoal.id,
+                                              )
+                                            }
+                                          />
+                                          <span
+                                            style={
+                                              subGoal.completed
+                                                ? subGoalTitleCompletedStyle
+                                                : undefined
+                                            }
+                                          >
+                                            {subGoal.title}
+                                          </span>
+                                        </label>
+
+                                        <button
+                                          type="button"
+                                          className="control-button"
+                                          style={buttonStyle}
+                                          onClick={() =>
+                                            handleDeleteSubGoal(
                                               goal.id,
                                               subGoal.id,
                                             )
                                           }
-                                        />
-                                        <span
-                                          style={
-                                            subGoal.completed
-                                              ? subGoalTitleCompletedStyle
-                                              : undefined
-                                          }
                                         >
-                                          {subGoal.title}
-                                        </span>
-                                      </label>
-
-                                      <button
-                                        type="button"
-                                        className="control-button"
-                                        style={buttonStyle}
-                                        onClick={() =>
-                                          handleDeleteSubGoal(
-                                            goal.id,
-                                            subGoal.id,
-                                          )
-                                        }
-                                      >
-                                        Supprimer
-                                      </button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </li>
-                    ))}
+                                          Supprimer
+                                        </button>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </section>
