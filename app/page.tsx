@@ -17,6 +17,8 @@ type SavedDailyHabits = {
   habitsState: HabitsState;
 };
 
+type HabitsByDate = Record<string, HabitsState>;
+
 type GoalPeriod = "Hebdomadaire" | "Mensuel" | "Annuel";
 
 type Goal = {
@@ -151,6 +153,28 @@ function normalizeDailyHabits(savedDailyHabits: unknown): SavedDailyHabits | nul
     date: savedDailyHabits.date,
     habitsState: normalizeHabits(savedDailyHabits.habitsState),
   };
+}
+
+function normalizeHabitsByDate(savedHabitsByDate: unknown): HabitsByDate {
+  if (typeof savedHabitsByDate !== "object" || savedHabitsByDate === null) {
+    return {};
+  }
+
+  const cleanedHabitsByDate: HabitsByDate = {};
+
+  for (const [dateKey, habitsState] of Object.entries(savedHabitsByDate)) {
+    if (typeof habitsState !== "object" || habitsState === null) {
+      continue;
+    }
+
+    const cleanedHabitsState = normalizeHabits(habitsState);
+
+    if (Object.keys(cleanedHabitsState).length > 0) {
+      cleanedHabitsByDate[dateKey] = cleanedHabitsState;
+    }
+  }
+
+  return cleanedHabitsByDate;
 }
 
 function normalizeGoals(savedGoals: unknown): Goal[] {
@@ -448,20 +472,26 @@ function getDashboardFromLocalStorage(): DashboardState {
     normalizeHabitNames,
     [],
   );
-  const savedHabits = getSavedData(
+  const habitsByDate = getSavedData(
     HABITS_STORAGE_KEY,
     (savedData) => {
       const dailyHabits = normalizeDailyHabits(savedData);
 
-      if (dailyHabits === null) {
-        return normalizeHabits(savedData);
+      if (dailyHabits) {
+        return {
+          [dailyHabits.date]: dailyHabits.habitsState,
+        };
       }
 
-      if (dailyHabits.date !== getTodayKey()) {
-        return {};
+      const oldHabitsState = normalizeHabits(savedData);
+
+      if (Object.keys(oldHabitsState).length > 0) {
+        return {
+          [getTodayKey()]: oldHabitsState,
+        };
       }
 
-      return dailyHabits.habitsState;
+      return normalizeHabitsByDate(savedData);
     },
     {},
   );
@@ -474,9 +504,10 @@ function getDashboardFromLocalStorage(): DashboardState {
   );
 
   const dashboardHabitNames =
-    habitNames.length > 0 ? habitNames : Object.keys(savedHabits);
+    habitNames.length > 0 ? habitNames : Object.keys(habitsByDate[getTodayKey()] ?? {});
+  const todayHabitsState = habitsByDate[getTodayKey()] ?? {};
   const habitsValues = dashboardHabitNames.map(
-    (habitName) => savedHabits[habitName] ?? false,
+    (habitName) => todayHabitsState[habitName] ?? false,
   );
   const habitsCompleted = habitsValues.filter(Boolean).length;
   const habitsTotal = dashboardHabitNames.length;

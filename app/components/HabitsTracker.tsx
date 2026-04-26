@@ -27,6 +27,8 @@ type SavedDailyHabits = {
   habitsState: HabitsState;
 };
 
+type HabitsByDate = Record<string, HabitsState>;
+
 function getTodayKey() {
   const today = new Date();
   const year = today.getFullYear();
@@ -112,6 +114,60 @@ function normalizeDailyHabits(savedDailyHabits: unknown): SavedDailyHabits | nul
   };
 }
 
+function normalizeHabitsByDate(savedHabitsByDate: unknown): HabitsByDate {
+  if (typeof savedHabitsByDate !== "object" || savedHabitsByDate === null) {
+    return {};
+  }
+
+  const cleanedHabitsByDate: HabitsByDate = {};
+
+  for (const [dateKey, habitsState] of Object.entries(savedHabitsByDate)) {
+    if (typeof habitsState !== "object" || habitsState === null) {
+      continue;
+    }
+
+    const cleanedHabitsState = normalizeHabitsState(habitsState);
+
+    if (Object.keys(cleanedHabitsState).length > 0) {
+      cleanedHabitsByDate[dateKey] = cleanedHabitsState;
+    }
+  }
+
+  return cleanedHabitsByDate;
+}
+
+function getSavedHabitsByDate(): HabitsByDate {
+  const savedHabits = localStorage.getItem(STORAGE_KEY);
+
+  if (!savedHabits) {
+    return {};
+  }
+
+  try {
+    const parsedHabits = JSON.parse(savedHabits);
+    const savedDailyHabits = normalizeDailyHabits(parsedHabits);
+
+    if (savedDailyHabits) {
+      return {
+        [savedDailyHabits.date]: savedDailyHabits.habitsState,
+      };
+    }
+
+    const oldHabitsState = normalizeHabitsState(parsedHabits);
+
+    if (Object.keys(oldHabitsState).length > 0) {
+      return {
+        [getTodayKey()]: oldHabitsState,
+      };
+    }
+
+    return normalizeHabitsByDate(parsedHabits);
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return {};
+  }
+}
+
 function getSavedHabitNames(): string[] | null {
   const savedHabitList = localStorage.getItem(HABIT_LIST_STORAGE_KEY);
 
@@ -162,32 +218,13 @@ function getSavedHabitNames(): string[] | null {
 }
 
 function getSavedHabitsState(habitNames: string[]): HabitsState {
-  const savedHabits = localStorage.getItem(STORAGE_KEY);
-  const emptyHabitsState = getEmptyHabitsState(habitNames);
+  const habitsByDate = getSavedHabitsByDate();
+  const todayHabitsState = habitsByDate[getTodayKey()] ?? {};
 
-  if (!savedHabits) {
-    return emptyHabitsState;
-  }
-
-  try {
-    const parsedHabits = JSON.parse(savedHabits);
-    const savedDailyHabits = normalizeDailyHabits(parsedHabits);
-    const todayKey = getTodayKey();
-    const savedHabitsState =
-      savedDailyHabits === null
-        ? normalizeHabitsState(parsedHabits)
-        : savedDailyHabits.date === todayKey
-          ? savedDailyHabits.habitsState
-          : {};
-
-    return habitNames.reduce<HabitsState>((accumulator, habitName) => {
-      accumulator[habitName] = savedHabitsState[habitName] ?? false;
-      return accumulator;
-    }, {});
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
-    return emptyHabitsState;
-  }
+  return habitNames.reduce<HabitsState>((accumulator, habitName) => {
+    accumulator[habitName] = todayHabitsState[habitName] ?? false;
+    return accumulator;
+  }, {});
 }
 
 function getInitialHabitsData(): HabitsData {
@@ -222,13 +259,16 @@ export default function HabitsTracker() {
   });
 
   useEffect(() => {
-    const savedDailyHabits: SavedDailyHabits = {
-      date: getTodayKey(),
-      habitsState: habitsData.habitsState,
-    };
+    const habitsByDate = getSavedHabitsByDate();
 
     localStorage.setItem(HABIT_LIST_STORAGE_KEY, JSON.stringify(habitsData.habitNames));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedDailyHabits));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        ...habitsByDate,
+        [getTodayKey()]: habitsData.habitsState,
+      }),
+    );
   }, [habitsData]);
 
   function handleHabitChange(habitName: string) {
