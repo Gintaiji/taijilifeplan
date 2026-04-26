@@ -4,12 +4,18 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import styles from "./page.module.css";
 
 const HABITS_STORAGE_KEY = "taiji-life-plan-habits";
+const HABIT_LIST_STORAGE_KEY = "taiji-life-plan-habit-list";
 const GOALS_STORAGE_KEY = "taiji-life-plan-objectifs";
 const PLANNING_STORAGE_KEY = "taiji-life-plan-planning";
 const TRAJECTORY_STORAGE_KEY = "taiji-life-plan-trajectory";
 const PRIORITIES_STORAGE_KEY = "taiji-life-plan-priorities";
 
 type HabitsState = Record<string, boolean>;
+
+type SavedDailyHabits = {
+  date: string;
+  habitsState: HabitsState;
+};
 
 type GoalPeriod = "Hebdomadaire" | "Mensuel" | "Annuel";
 
@@ -96,6 +102,55 @@ function normalizeHabits(savedHabits: unknown): HabitsState {
   }
 
   return cleanedHabits;
+}
+
+function normalizeHabitNames(savedHabitNames: unknown): string[] {
+  if (!Array.isArray(savedHabitNames)) {
+    return [];
+  }
+
+  const usedNames = new Set<string>();
+  const habitNames: string[] = [];
+
+  for (const habitName of savedHabitNames) {
+    if (typeof habitName !== "string") {
+      continue;
+    }
+
+    const cleanHabitName = habitName.trim();
+    const normalizedHabitName = cleanHabitName.toLowerCase();
+
+    if (cleanHabitName === "" || usedNames.has(normalizedHabitName)) {
+      continue;
+    }
+
+    usedNames.add(normalizedHabitName);
+    habitNames.push(cleanHabitName);
+  }
+
+  return habitNames;
+}
+
+function normalizeDailyHabits(savedDailyHabits: unknown): SavedDailyHabits | null {
+  if (typeof savedDailyHabits !== "object" || savedDailyHabits === null) {
+    return null;
+  }
+
+  if (!("date" in savedDailyHabits) || !("habitsState" in savedDailyHabits)) {
+    return null;
+  }
+
+  if (
+    typeof savedDailyHabits.date !== "string" ||
+    typeof savedDailyHabits.habitsState !== "object"
+  ) {
+    return null;
+  }
+
+  return {
+    date: savedDailyHabits.date,
+    habitsState: normalizeHabits(savedDailyHabits.habitsState),
+  };
 }
 
 function normalizeGoals(savedGoals: unknown): Goal[] {
@@ -262,7 +317,12 @@ function formatTrajectoryDate(dateKey: string) {
 }
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function getRatio(completed: number, total: number) {
@@ -383,7 +443,28 @@ function getInitialPriorities(todayKey: string): DailyPriority[] {
 }
 
 function getDashboardFromLocalStorage(): DashboardState {
-  const habits = getSavedData(HABITS_STORAGE_KEY, normalizeHabits, {});
+  const habitNames = getSavedData(
+    HABIT_LIST_STORAGE_KEY,
+    normalizeHabitNames,
+    [],
+  );
+  const savedHabits = getSavedData(
+    HABITS_STORAGE_KEY,
+    (savedData) => {
+      const dailyHabits = normalizeDailyHabits(savedData);
+
+      if (dailyHabits === null) {
+        return normalizeHabits(savedData);
+      }
+
+      if (dailyHabits.date !== getTodayKey()) {
+        return {};
+      }
+
+      return dailyHabits.habitsState;
+    },
+    {},
+  );
   const goals = getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
   const tasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
   const trajectoryEntries = getSavedData(
@@ -392,9 +473,13 @@ function getDashboardFromLocalStorage(): DashboardState {
     {},
   );
 
-  const habitsValues = Object.values(habits);
+  const dashboardHabitNames =
+    habitNames.length > 0 ? habitNames : Object.keys(savedHabits);
+  const habitsValues = dashboardHabitNames.map(
+    (habitName) => savedHabits[habitName] ?? false,
+  );
   const habitsCompleted = habitsValues.filter(Boolean).length;
-  const habitsTotal = habitsValues.length;
+  const habitsTotal = dashboardHabitNames.length;
 
   const goalsCompleted = goals.filter((goal) => goal.completed).length;
   const goalsTotal = goals.length;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "./HabitsTracker.module.css";
 
 const STORAGE_KEY = "taiji-life-plan-habits";
+const HABIT_LIST_STORAGE_KEY = "taiji-life-plan-habit-list";
 const ORDER_STORAGE_KEY = "taiji-life-plan-habits-order";
 
 const defaultHabits = [
@@ -21,9 +22,42 @@ type HabitsData = {
   habitsState: HabitsState;
 };
 
-function getDefaultHabitsState() {
-  return defaultHabits.reduce<HabitsState>((accumulator, habit) => {
-    accumulator[habit] = false;
+type SavedDailyHabits = {
+  date: string;
+  habitsState: HabitsState;
+};
+
+function getTodayKey() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function removeDuplicateHabitNames(habitNames: string[]) {
+  const usedNames = new Set<string>();
+  const uniqueHabitNames: string[] = [];
+
+  for (const habitName of habitNames) {
+    const cleanHabitName = habitName.trim();
+    const normalizedHabitName = cleanHabitName.toLowerCase();
+
+    if (cleanHabitName === "" || usedNames.has(normalizedHabitName)) {
+      continue;
+    }
+
+    usedNames.add(normalizedHabitName);
+    uniqueHabitNames.push(cleanHabitName);
+  }
+
+  return uniqueHabitNames;
+}
+
+function getEmptyHabitsState(habitNames: string[]) {
+  return habitNames.reduce<HabitsState>((accumulator, habitName) => {
+    accumulator[habitName] = false;
     return accumulator;
   }, {});
 }
@@ -44,74 +78,132 @@ function normalizeHabitsState(savedHabits: unknown): HabitsState {
   return cleanedHabits;
 }
 
-function normalizeHabitNames(
-  savedOrder: unknown,
-  habitsState: HabitsState,
-): string[] {
-  const validHabitNames = new Set(Object.keys(habitsState));
-
-  if (!Array.isArray(savedOrder)) {
-    return Object.keys(habitsState);
+function normalizeHabitNames(savedHabitNames: unknown): string[] {
+  if (!Array.isArray(savedHabitNames)) {
+    return [];
   }
 
-  const orderedHabits = savedOrder.filter(
-    (habitName): habitName is string =>
-      typeof habitName === "string" && validHabitNames.has(habitName),
+  const habitNames = savedHabitNames.filter(
+    (habitName): habitName is string => typeof habitName === "string",
   );
 
-  const missingHabits = Object.keys(habitsState).filter(
-    (habitName) => !orderedHabits.includes(habitName),
-  );
-
-  return [...orderedHabits, ...missingHabits];
+  return removeDuplicateHabitNames(habitNames);
 }
 
-function getInitialHabitsData(): HabitsData {
-  const defaultHabitsState = getDefaultHabitsState();
+function normalizeDailyHabits(savedDailyHabits: unknown): SavedDailyHabits | null {
+  if (typeof savedDailyHabits !== "object" || savedDailyHabits === null) {
+    return null;
+  }
 
-  if (typeof window === "undefined") {
-    return {
-      habitNames: defaultHabits,
-      habitsState: defaultHabitsState,
-    };
+  if (!("date" in savedDailyHabits) || !("habitsState" in savedDailyHabits)) {
+    return null;
+  }
+
+  if (
+    typeof savedDailyHabits.date !== "string" ||
+    typeof savedDailyHabits.habitsState !== "object"
+  ) {
+    return null;
+  }
+
+  return {
+    date: savedDailyHabits.date,
+    habitsState: normalizeHabitsState(savedDailyHabits.habitsState),
+  };
+}
+
+function getSavedHabitNames(): string[] | null {
+  const savedHabitList = localStorage.getItem(HABIT_LIST_STORAGE_KEY);
+
+  if (savedHabitList) {
+    try {
+      return normalizeHabitNames(JSON.parse(savedHabitList));
+    } catch {
+      localStorage.removeItem(HABIT_LIST_STORAGE_KEY);
+    }
+  }
+
+  const savedOrder = localStorage.getItem(ORDER_STORAGE_KEY);
+
+  if (savedOrder) {
+    try {
+      const normalizedHabitNames = normalizeHabitNames(JSON.parse(savedOrder));
+
+      if (normalizedHabitNames.length > 0) {
+        return normalizedHabitNames;
+      }
+    } catch {
+      localStorage.removeItem(ORDER_STORAGE_KEY);
+    }
   }
 
   const savedHabits = localStorage.getItem(STORAGE_KEY);
-  const savedOrder = localStorage.getItem(ORDER_STORAGE_KEY);
-
-  let normalizedSavedHabits: HabitsState = {};
-  let normalizedHabitNames = defaultHabits;
 
   if (savedHabits) {
     try {
-      normalizedSavedHabits = normalizeHabitsState(JSON.parse(savedHabits));
+      const parsedHabits = JSON.parse(savedHabits);
+      const savedDailyHabits = normalizeDailyHabits(parsedHabits);
+      const habitsState = savedDailyHabits
+        ? savedDailyHabits.habitsState
+        : normalizeHabitsState(parsedHabits);
+      const normalizedHabitNames = removeDuplicateHabitNames(
+        Object.keys(habitsState),
+      );
+
+      if (normalizedHabitNames.length > 0) {
+        return normalizedHabitNames;
+      }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
   }
 
-  const mergedHabitsState = {
-    ...defaultHabitsState,
-    ...normalizedSavedHabits,
-  };
+  return null;
+}
 
-  if (savedOrder) {
-    try {
-      normalizedHabitNames = normalizeHabitNames(
-        JSON.parse(savedOrder),
-        mergedHabitsState,
-      );
-    } catch {
-      localStorage.removeItem(ORDER_STORAGE_KEY);
-      normalizedHabitNames = normalizeHabitNames([], mergedHabitsState);
-    }
-  } else {
-    normalizedHabitNames = normalizeHabitNames([], mergedHabitsState);
+function getSavedHabitsState(habitNames: string[]): HabitsState {
+  const savedHabits = localStorage.getItem(STORAGE_KEY);
+  const emptyHabitsState = getEmptyHabitsState(habitNames);
+
+  if (!savedHabits) {
+    return emptyHabitsState;
   }
 
+  try {
+    const parsedHabits = JSON.parse(savedHabits);
+    const savedDailyHabits = normalizeDailyHabits(parsedHabits);
+    const todayKey = getTodayKey();
+    const savedHabitsState =
+      savedDailyHabits === null
+        ? normalizeHabitsState(parsedHabits)
+        : savedDailyHabits.date === todayKey
+          ? savedDailyHabits.habitsState
+          : {};
+
+    return habitNames.reduce<HabitsState>((accumulator, habitName) => {
+      accumulator[habitName] = savedHabitsState[habitName] ?? false;
+      return accumulator;
+    }, {});
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return emptyHabitsState;
+  }
+}
+
+function getInitialHabitsData(): HabitsData {
+  if (typeof window === "undefined") {
+    return {
+      habitNames: defaultHabits,
+      habitsState: getEmptyHabitsState(defaultHabits),
+    };
+  }
+
+  const savedHabitNames = getSavedHabitNames();
+  const habitNames = savedHabitNames ?? defaultHabits;
+
   return {
-    habitNames: normalizedHabitNames,
-    habitsState: mergedHabitsState,
+    habitNames,
+    habitsState: getSavedHabitsState(habitNames),
   };
 }
 
@@ -130,11 +222,13 @@ export default function HabitsTracker() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(habitsData.habitsState));
-    localStorage.setItem(
-      ORDER_STORAGE_KEY,
-      JSON.stringify(habitsData.habitNames),
-    );
+    const savedDailyHabits: SavedDailyHabits = {
+      date: getTodayKey(),
+      habitsState: habitsData.habitsState,
+    };
+
+    localStorage.setItem(HABIT_LIST_STORAGE_KEY, JSON.stringify(habitsData.habitNames));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedDailyHabits));
   }, [habitsData]);
 
   function handleHabitChange(habitName: string) {
@@ -167,7 +261,10 @@ export default function HabitsTracker() {
 
     if (
       cleanHabitName === "" ||
-      cleanHabitName in habitsData.habitsState
+      habitsData.habitNames.some(
+        (habitName) =>
+          habitName.trim().toLowerCase() === cleanHabitName.toLowerCase(),
+      )
     ) {
       return;
     }
