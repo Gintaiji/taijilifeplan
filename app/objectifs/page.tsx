@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getStorage, setStorage } from "../utils/storage";
 
 const STORAGE_KEY = "taiji-life-plan-objectifs";
 
@@ -323,19 +324,8 @@ function getInitialGoals(): Goal[] {
     return [];
   }
 
-  const savedGoals = localStorage.getItem(STORAGE_KEY);
-
-  if (!savedGoals) {
-    return [];
-  }
-
-  try {
-    const parsedGoals = JSON.parse(savedGoals);
-    return normalizeGoals(parsedGoals);
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
-    return [];
-  }
+  const savedGoals = getStorage<unknown>(STORAGE_KEY, []);
+  return normalizeGoals(savedGoals);
 }
 
 export default function ObjectifsPage() {
@@ -350,7 +340,7 @@ export default function ObjectifsPage() {
   >({});
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+    setStorage(STORAGE_KEY, goals);
   }, [goals]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

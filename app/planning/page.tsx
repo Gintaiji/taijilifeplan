@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getStorage, setStorage, STORAGE_KEYS } from "../utils/storage";
 
-const STORAGE_KEY = "taiji-life-plan-planning";
+const STORAGE_KEY = STORAGE_KEYS.planning;
 
 const weekdayOrder: Record<string, number> = {
   lundi: 1,
@@ -253,23 +254,13 @@ function getInitialTasks(): PlannedTask[] {
     return [];
   }
 
-  const savedTasks = localStorage.getItem(STORAGE_KEY);
-
-  if (!savedTasks) {
-    return [];
-  }
-
-  try {
-    const parsedTasks = JSON.parse(savedTasks);
-    return normalizeTasks(parsedTasks);
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
-    return [];
-  }
+  const savedTasks = getStorage<unknown>(STORAGE_KEY, []);
+  return normalizeTasks(savedTasks);
 }
 
 export default function PlanningPage() {
-  const [tasks, setTasks] = useState<PlannedTask[]>(getInitialTasks);
+  const [tasks, setTasks] = useState<PlannedTask[]>([]);
+  const [isStorageLoaded, setIsStorageLoaded] = useState(false);
   const [day, setDay] = useState("");
   const [time, setTime] = useState("");
   const [label, setLabel] = useState("");
@@ -281,8 +272,21 @@ export default function PlanningPage() {
   const groupedTasks = groupTasksByDay(sortedTasks);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  }, [tasks]);
+    const timeoutId = window.setTimeout(() => {
+      setTasks(getInitialTasks());
+      setIsStorageLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (!isStorageLoaded) {
+      return;
+    }
+
+    setStorage(STORAGE_KEY, tasks);
+  }, [isStorageLoaded, tasks]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -423,7 +427,9 @@ export default function PlanningPage() {
         <section style={planningSectionStyle}>
           <h2>Mes taches planifiees</h2>
 
-          {tasks.length === 0 ? (
+          {!isStorageLoaded ? (
+            <p style={emptyTextStyle}>Chargement du planning...</p>
+          ) : tasks.length === 0 ? (
             <p style={emptyTextStyle}>Aucune tache pour le moment.</p>
           ) : (
             <>

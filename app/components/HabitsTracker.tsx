@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getStorage, setStorage } from "../utils/storage";
 import styles from "./HabitsTracker.module.css";
 
 const STORAGE_KEY = "taiji-life-plan-habits";
@@ -137,80 +138,59 @@ function normalizeHabitsByDate(savedHabitsByDate: unknown): HabitsByDate {
 }
 
 function getSavedHabitsByDate(): HabitsByDate {
-  const savedHabits = localStorage.getItem(STORAGE_KEY);
+  const savedHabits = getStorage<unknown>(STORAGE_KEY, {});
+  const savedDailyHabits = normalizeDailyHabits(savedHabits);
 
-  if (!savedHabits) {
-    return {};
+  if (savedDailyHabits) {
+    return {
+      [savedDailyHabits.date]: savedDailyHabits.habitsState,
+    };
   }
 
-  try {
-    const parsedHabits = JSON.parse(savedHabits);
-    const savedDailyHabits = normalizeDailyHabits(parsedHabits);
+  const oldHabitsState = normalizeHabitsState(savedHabits);
 
-    if (savedDailyHabits) {
-      return {
-        [savedDailyHabits.date]: savedDailyHabits.habitsState,
-      };
-    }
-
-    const oldHabitsState = normalizeHabitsState(parsedHabits);
-
-    if (Object.keys(oldHabitsState).length > 0) {
-      return {
-        [getTodayKey()]: oldHabitsState,
-      };
-    }
-
-    return normalizeHabitsByDate(parsedHabits);
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
-    return {};
+  if (Object.keys(oldHabitsState).length > 0) {
+    return {
+      [getTodayKey()]: oldHabitsState,
+    };
   }
+
+  return normalizeHabitsByDate(savedHabits);
 }
 
 function getSavedHabitNames(): string[] | null {
-  const savedHabitList = localStorage.getItem(HABIT_LIST_STORAGE_KEY);
+  const savedHabitList = getStorage<unknown | null>(
+    HABIT_LIST_STORAGE_KEY,
+    null,
+  );
 
-  if (savedHabitList) {
-    try {
-      return normalizeHabitNames(JSON.parse(savedHabitList));
-    } catch {
-      localStorage.removeItem(HABIT_LIST_STORAGE_KEY);
+  if (savedHabitList !== null) {
+    return normalizeHabitNames(savedHabitList);
+  }
+
+  const savedOrder = getStorage<unknown | null>(ORDER_STORAGE_KEY, null);
+
+  if (savedOrder !== null) {
+    const normalizedHabitNames = normalizeHabitNames(savedOrder);
+
+    if (normalizedHabitNames.length > 0) {
+      return normalizedHabitNames;
     }
   }
 
-  const savedOrder = localStorage.getItem(ORDER_STORAGE_KEY);
+  const savedHabits = getStorage<unknown | null>(STORAGE_KEY, null);
 
-  if (savedOrder) {
-    try {
-      const normalizedHabitNames = normalizeHabitNames(JSON.parse(savedOrder));
+  if (savedHabits !== null) {
+    const savedDailyHabits = normalizeDailyHabits(savedHabits);
+    const habitsState = savedDailyHabits
+      ? savedDailyHabits.habitsState
+      : normalizeHabitsState(savedHabits);
+    const normalizedHabitNames = removeDuplicateHabitNames(
+      Object.keys(habitsState),
+    );
 
-      if (normalizedHabitNames.length > 0) {
-        return normalizedHabitNames;
-      }
-    } catch {
-      localStorage.removeItem(ORDER_STORAGE_KEY);
-    }
-  }
-
-  const savedHabits = localStorage.getItem(STORAGE_KEY);
-
-  if (savedHabits) {
-    try {
-      const parsedHabits = JSON.parse(savedHabits);
-      const savedDailyHabits = normalizeDailyHabits(parsedHabits);
-      const habitsState = savedDailyHabits
-        ? savedDailyHabits.habitsState
-        : normalizeHabitsState(parsedHabits);
-      const normalizedHabitNames = removeDuplicateHabitNames(
-        Object.keys(habitsState),
-      );
-
-      if (normalizedHabitNames.length > 0) {
-        return normalizedHabitNames;
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
+    if (normalizedHabitNames.length > 0) {
+      return normalizedHabitNames;
     }
   }
 
@@ -261,14 +241,11 @@ export default function HabitsTracker() {
   useEffect(() => {
     const habitsByDate = getSavedHabitsByDate();
 
-    localStorage.setItem(HABIT_LIST_STORAGE_KEY, JSON.stringify(habitsData.habitNames));
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        ...habitsByDate,
-        [getTodayKey()]: habitsData.habitsState,
-      }),
-    );
+    setStorage(HABIT_LIST_STORAGE_KEY, habitsData.habitNames);
+    setStorage(STORAGE_KEY, {
+      ...habitsByDate,
+      [getTodayKey()]: habitsData.habitsState,
+    });
   }, [habitsData]);
 
   function handleHabitChange(habitName: string) {

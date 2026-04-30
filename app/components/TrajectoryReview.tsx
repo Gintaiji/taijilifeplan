@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { getStorage, setStorage } from "../utils/storage";
 
 const STORAGE_KEY = "taiji-life-plan-trajectory";
 
@@ -119,6 +120,29 @@ function isTrajectoryEmpty(trajectory: TrajectoryState) {
   );
 }
 
+function normalizeTrajectoryEntry(savedEntry: unknown): TrajectoryState {
+  if (typeof savedEntry !== "object" || savedEntry === null) {
+    return getInitialTrajectoryState();
+  }
+
+  return {
+    accomplishedToday:
+      "accomplishedToday" in savedEntry &&
+      typeof savedEntry.accomplishedToday === "string"
+        ? savedEntry.accomplishedToday
+        : "",
+    notDoneToday:
+      "notDoneToday" in savedEntry && typeof savedEntry.notDoneToday === "string"
+        ? savedEntry.notDoneToday
+        : "",
+    decideForTomorrow:
+      "decideForTomorrow" in savedEntry &&
+      typeof savedEntry.decideForTomorrow === "string"
+        ? savedEntry.decideForTomorrow
+        : "",
+  };
+}
+
 function formatDate(dateKey: string) {
   return new Date(`${dateKey}T12:00:00`).toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -129,56 +153,42 @@ function formatDate(dateKey: string) {
 }
 
 function getEntriesFromLocalStorage(todayKey: string): TrajectoryEntries {
-  const initialState = getInitialTrajectoryState();
-  const savedTrajectory = localStorage.getItem(STORAGE_KEY);
+  const savedTrajectory = getStorage<unknown | null>(STORAGE_KEY, null);
 
-  if (!savedTrajectory) {
+  if (savedTrajectory === null) {
     return {};
   }
 
-  try {
-    const parsedTrajectory = JSON.parse(savedTrajectory) as
-      | Partial<TrajectoryState>
-      | TrajectoryEntries;
+  if (
+    typeof savedTrajectory === "object" &&
+    "accomplishedToday" in savedTrajectory
+  ) {
+    const migratedEntry = normalizeTrajectoryEntry(savedTrajectory);
 
-    if (
-      typeof parsedTrajectory === "object" &&
-      parsedTrajectory !== null &&
-      "accomplishedToday" in parsedTrajectory
-    ) {
-      const migratedEntry = {
-        ...initialState,
-        ...parsedTrajectory,
-      };
-
-      if (isTrajectoryEmpty(migratedEntry)) {
-        return {};
-      }
-
-      return {
-        [todayKey]: migratedEntry,
-      };
+    if (isTrajectoryEmpty(migratedEntry)) {
+      return {};
     }
 
-    const entries = parsedTrajectory as TrajectoryEntries;
-    const cleanedEntries: TrajectoryEntries = {};
+    return {
+      [todayKey]: migratedEntry,
+    };
+  }
 
-    for (const [dateKey, entry] of Object.entries(entries)) {
-      const completeEntry = {
-        ...initialState,
-        ...entry,
-      };
-
-      if (!isTrajectoryEmpty(completeEntry)) {
-        cleanedEntries[dateKey] = completeEntry;
-      }
-    }
-
-    return cleanedEntries;
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
+  if (typeof savedTrajectory !== "object") {
     return {};
   }
+
+  const cleanedEntries: TrajectoryEntries = {};
+
+  for (const [dateKey, entry] of Object.entries(savedTrajectory)) {
+    const completeEntry = normalizeTrajectoryEntry(entry);
+
+    if (!isTrajectoryEmpty(completeEntry)) {
+      cleanedEntries[dateKey] = completeEntry;
+    }
+  }
+
+  return cleanedEntries;
 }
 
 export default function TrajectoryReview() {
@@ -218,7 +228,7 @@ export default function TrajectoryReview() {
       return;
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    setStorage(STORAGE_KEY, entries);
   }, [entries, isClient]);
 
   function handleFieldChange(fieldName: keyof TrajectoryState, value: string) {

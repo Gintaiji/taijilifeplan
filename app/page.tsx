@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import DataBackupCard from "./components/DataBackupCard";
+import { getStorage, setStorage, STORAGE_KEYS } from "./utils/storage";
 import styles from "./page.module.css";
 
-const HABITS_STORAGE_KEY = "taiji-life-plan-habits";
-const HABIT_LIST_STORAGE_KEY = "taiji-life-plan-habit-list";
-const GOALS_STORAGE_KEY = "taiji-life-plan-objectifs";
-const PLANNING_STORAGE_KEY = "taiji-life-plan-planning";
-const TRAJECTORY_STORAGE_KEY = "taiji-life-plan-trajectory";
-const PRIORITIES_STORAGE_KEY = "taiji-life-plan-priorities";
+const HABITS_STORAGE_KEY = STORAGE_KEYS.habits;
+const HABIT_LIST_STORAGE_KEY = STORAGE_KEYS.habitNames;
+const GOALS_STORAGE_KEY = STORAGE_KEYS.goals;
+const PLANNING_STORAGE_KEY = STORAGE_KEYS.planning;
+const TRAJECTORY_STORAGE_KEY = STORAGE_KEYS.trajectory;
+const PRIORITIES_STORAGE_KEY = STORAGE_KEYS.priorities;
 
 type HabitsState = Record<string, boolean>;
 
@@ -52,6 +54,13 @@ type DailyPriority = {
 type SavedPriorities = {
   date: string;
   priorities: DailyPriority[];
+};
+
+type TodayAction = {
+  id: string;
+  category: string;
+  title: string;
+  detail: string;
 };
 
 type DashboardState = {
@@ -300,19 +309,8 @@ function getSavedData<T>(
   normalize: (data: unknown) => T,
   fallback: T,
 ): T {
-  const savedData = localStorage.getItem(storageKey);
-
-  if (!savedData) {
-    return fallback;
-  }
-
-  try {
-    const parsedData = JSON.parse(savedData);
-    return normalize(parsedData);
-  } catch {
-    localStorage.removeItem(storageKey);
-    return fallback;
-  }
+  const savedData = getStorage<unknown>(storageKey, fallback);
+  return normalize(savedData);
 }
 
 function getDayOrder(day: string) {
@@ -347,6 +345,14 @@ function getTodayKey() {
   const day = String(today.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function getTodayDayOrder() {
+  const todayName = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+  });
+
+  return getDayOrder(todayName);
 }
 
 function getRatio(completed: number, total: number) {
@@ -445,34 +451,18 @@ function getInitialPriorities(todayKey: string): DailyPriority[] {
     return [];
   }
 
-  const savedPriorities = localStorage.getItem(PRIORITIES_STORAGE_KEY);
+  const savedPriorities = getStorage<unknown>(PRIORITIES_STORAGE_KEY, null);
+  const normalizedPriorities = normalizePriorities(savedPriorities);
 
-  if (!savedPriorities) {
+  if (!normalizedPriorities || normalizedPriorities.date !== todayKey) {
     return [];
   }
 
-  try {
-    const parsedPriorities = JSON.parse(savedPriorities);
-    const normalizedPriorities = normalizePriorities(parsedPriorities);
-
-    if (!normalizedPriorities || normalizedPriorities.date !== todayKey) {
-      return [];
-    }
-
-    return normalizedPriorities.priorities.slice(0, 3);
-  } catch {
-    localStorage.removeItem(PRIORITIES_STORAGE_KEY);
-    return [];
-  }
+  return normalizedPriorities.priorities.slice(0, 3);
 }
 
-function getDashboardFromLocalStorage(): DashboardState {
-  const habitNames = getSavedData(
-    HABIT_LIST_STORAGE_KEY,
-    normalizeHabitNames,
-    [],
-  );
-  const habitsByDate = getSavedData(
+function getHabitsByDateFromLocalStorage(): HabitsByDate {
+  return getSavedData(
     HABITS_STORAGE_KEY,
     (savedData) => {
       const dailyHabits = normalizeDailyHabits(savedData);
@@ -495,6 +485,98 @@ function getDashboardFromLocalStorage(): DashboardState {
     },
     {},
   );
+}
+
+function getRelevantPlanningTask(tasks: PlannedTask[]): PlannedTask | null {
+  if (tasks.length === 0) {
+    return null;
+  }
+
+  const todayOrder = getTodayDayOrder();
+  const sortedTasks = [...tasks].sort((taskA, taskB) => {
+    const dayDifference = getDayOrder(taskA.day) - getDayOrder(taskB.day);
+
+    if (dayDifference !== 0) {
+      return dayDifference;
+    }
+
+    return getTimeValue(taskA.time) - getTimeValue(taskB.time);
+  });
+  const todayTask = sortedTasks.find(
+    (task) => getDayOrder(task.day) === todayOrder,
+  );
+
+  if (todayTask) {
+    return todayTask;
+  }
+
+  return (
+    sortedTasks.find((task) => getDayOrder(task.day) > todayOrder) ??
+    sortedTasks[0] ??
+    null
+  );
+}
+
+function getTodayActionsFromLocalStorage(todayKey: string): TodayAction[] {
+  const actions: TodayAction[] = [];
+  const priorities = getInitialPriorities(todayKey);
+  const firstUnfinishedPriority = priorities.find(
+    (priority) => !priority.completed,
+  );
+
+  if (firstUnfinishedPriority) {
+    actions.push({
+      id: "priority",
+      category: "Priorite",
+      title: firstUnfinishedPriority.label,
+      detail: "Premiere priorite du jour non terminee.",
+    });
+  }
+
+  const tasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
+  const relevantTask = getRelevantPlanningTask(tasks);
+
+  if (relevantTask) {
+    actions.push({
+      id: "planning",
+      category: "Planning",
+      title: relevantTask.label,
+      detail: `${relevantTask.day} a ${relevantTask.time}`,
+    });
+  }
+
+  const habitNames = getSavedData(
+    HABIT_LIST_STORAGE_KEY,
+    normalizeHabitNames,
+    [],
+  );
+  const habitsByDate = getHabitsByDateFromLocalStorage();
+  const todayHabitsState = habitsByDate[todayKey] ?? {};
+  const dashboardHabitNames =
+    habitNames.length > 0 ? habitNames : Object.keys(todayHabitsState);
+  const firstUnfinishedHabit = dashboardHabitNames.find(
+    (habitName) => !todayHabitsState[habitName],
+  );
+
+  if (firstUnfinishedHabit) {
+    actions.push({
+      id: "habit",
+      category: "Habitude",
+      title: firstUnfinishedHabit,
+      detail: "Habitude non cochee aujourd'hui.",
+    });
+  }
+
+  return actions.slice(0, 3);
+}
+
+function getDashboardFromLocalStorage(): DashboardState {
+  const habitNames = getSavedData(
+    HABIT_LIST_STORAGE_KEY,
+    normalizeHabitNames,
+    [],
+  );
+  const habitsByDate = getHabitsByDateFromLocalStorage();
   const goals = getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
   const tasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
   const trajectoryEntries = getSavedData(
@@ -580,10 +662,7 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
       priorities,
     };
 
-    localStorage.setItem(
-      PRIORITIES_STORAGE_KEY,
-      JSON.stringify(savedPriorities),
-    );
+    setStorage(PRIORITIES_STORAGE_KEY, savedPriorities);
   }, [priorities, todayKey]);
 
   function hasSamePriorityLabel(label: string) {
@@ -824,6 +903,38 @@ function PrioritiesLoadingCard() {
   );
 }
 
+function TodayActionsCard({ todayKey }: { todayKey: string }) {
+  const actions = getTodayActionsFromLocalStorage(todayKey);
+
+  return (
+    <article className={`${styles.card} ${styles.actionsCard}`}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.cardTitle}>Actions du jour</h2>
+          <p className={styles.cardText}>
+            Une selection simple des prochaines choses utiles a faire.
+          </p>
+        </div>
+        <span className={styles.counterBadge}>{actions.length}/3</span>
+      </div>
+
+      {actions.length === 0 ? (
+        <p className={styles.emptyText}>Tout est a jour pour aujourd&apos;hui.</p>
+      ) : (
+        <ul className={styles.list}>
+          {actions.map((action) => (
+            <li key={action.id} className={styles.actionItem}>
+              <span className={styles.actionCategory}>{action.category}</span>
+              <strong className={styles.itemTitle}>{action.title}</strong>
+              <p className={styles.itemMeta}>{action.detail}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
+}
+
 export default function HomePage() {
   const todayKey = getTodayKey();
   const isClient = useSyncExternalStore(
@@ -852,6 +963,10 @@ export default function HomePage() {
         ) : (
           <PrioritiesLoadingCard />
         )}
+
+        {isClient ? <DataBackupCard /> : null}
+
+        {isClient ? <TodayActionsCard todayKey={todayKey} /> : null}
 
         <article className={`${styles.card} ${styles.progressCard}`}>
           <div className={styles.sectionHeader}>
