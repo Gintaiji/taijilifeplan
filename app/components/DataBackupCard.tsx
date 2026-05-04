@@ -12,6 +12,7 @@ type BackupData = {
   planning: unknown;
   trajectory: unknown;
   priorities: unknown;
+  progressHistory?: unknown;
 };
 
 type BackupFile = {
@@ -40,7 +41,8 @@ function isBackupFile(value: unknown): value is BackupFile {
     Array.isArray(data.goals) &&
     Array.isArray(data.planning) &&
     isObject(data.trajectory) &&
-    (data.priorities === null || isObject(data.priorities))
+    (data.priorities === null || isObject(data.priorities)) &&
+    (data.progressHistory === undefined || Array.isArray(data.progressHistory))
   );
 }
 
@@ -53,6 +55,7 @@ function getBackupData(): BackupData {
     planning: getStorage<unknown>(STORAGE_KEYS.planning, []),
     trajectory: getStorage<unknown>(STORAGE_KEYS.trajectory, {}),
     priorities: getStorage<unknown | null>(STORAGE_KEYS.priorities, null),
+    progressHistory: getStorage<unknown>(STORAGE_KEYS.progressHistory, []),
   };
 }
 
@@ -76,6 +79,10 @@ function importBackupData(data: BackupData) {
   setStorage(STORAGE_KEYS.trajectory, data.trajectory);
   setStorage(STORAGE_KEYS.priorities, data.priorities);
   setStorage(STORAGE_KEYS.habitOrder, data.habitOrder);
+
+  if (data.progressHistory !== undefined) {
+    setStorage(STORAGE_KEYS.progressHistory, data.progressHistory);
+  }
 }
 
 export default function DataBackupCard() {

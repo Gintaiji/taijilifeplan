@@ -80,6 +80,10 @@
   grid-column: span 2;
 }
 
+.historyCard {
+  grid-column: span 2;
+}
+
 .compactCard {
   min-height: 220px;
 }
@@ -199,6 +203,7 @@
 .listItem,
 .priorityItem,
 .actionItem,
+.historyItem,
 .metricCard {
   border: 1px solid rgba(134, 239, 172, 0.12);
   border-radius: 18px;
@@ -206,8 +211,80 @@
 }
 
 .listItem,
-.actionItem {
+.actionItem,
+.historyItem {
   padding: 16px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.historyScore {
+  flex: 0 0 auto;
+  color: var(--dashboard-text-accent);
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.historyChart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(44px, 1fr));
+  align-items: end;
+  gap: 12px;
+  min-height: 210px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid rgba(134, 239, 172, 0.12);
+  border-radius: 18px;
+  background: rgba(7, 18, 13, 0.55);
+}
+
+.historyBarGroup {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 174px;
+}
+
+.historyBarTrack {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 42px;
+  height: 112px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(20, 83, 45, 0.38);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.34);
+}
+
+.historyBarFill {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #86efac 0%, #16a34a 100%);
+}
+
+.historyBarScore {
+  color: var(--dashboard-text-primary);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.historyBarDate {
+  color: var(--dashboard-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .itemTitle {
@@ -466,6 +543,7 @@
   .progressCard,
   .backupCard,
   .actionsCard,
+  .historyCard,
   .planningCard {
     grid-column: span 1;
   }
@@ -509,5 +587,26 @@
 
   .doneButton {
     width: 100%;
+  }
+
+  .historyChart {
+    grid-template-columns: repeat(7, minmax(34px, 1fr));
+    gap: 8px;
+    padding: 14px 10px;
+    overflow-x: auto;
+  }
+
+  .historyBarTrack {
+    max-width: 30px;
+  }
+
+  .historyBarScore,
+  .historyBarDate {
+    font-size: 0.72rem;
+  }
+
+  .historyItem {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

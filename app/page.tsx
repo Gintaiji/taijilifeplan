@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import DataBackupCard from "./components/DataBackupCard";
+import ProgressHistoryCard from "./components/ProgressHistoryCard";
 import { getStorage, setStorage, STORAGE_KEYS } from "./utils/storage";
 import styles from "./page.module.css";
 
@@ -1315,6 +1316,17 @@ export default function HomePage() {
             <p className={styles.emptyText}>Chargement de la progression...</p>
           )}
         </article>
+
+        {isClient ? (
+          <ProgressHistoryCard
+            todaySummary={{
+              date: todayKey,
+              score: dashboard.globalProgressScore,
+              habitsCompleted: dashboard.habitsCompleted,
+              planningCompleted: dashboard.planningCompleted,
+            }}
+          />
+        ) : null}
 
         <article className={`${styles.card} ${styles.compactCard}`}>
           <h2 className={styles.cardTitle}>Habitudes</h2>

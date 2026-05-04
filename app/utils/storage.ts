@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   planning: "taiji-life-plan-planning",
   trajectory: "taiji-life-plan-trajectory",
   priorities: "taiji-life-plan-priorities",
+  progressHistory: "taiji-life-plan-progress-history",
 } as const;
 
 export function setStorage<T>(key: string, value: T) {
