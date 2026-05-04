@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import DataBackupCard from "./components/DataBackupCard";
+import DailyRecommendationCard from "./components/DailyRecommendationCard";
 import ProgressHistoryCard from "./components/ProgressHistoryCard";
 import { getStorage, setStorage, STORAGE_KEYS } from "./utils/storage";
 import styles from "./page.module.css";
@@ -1212,6 +1213,17 @@ export default function HomePage() {
             onPlanningChange={() =>
               setPlanningRefreshKey((currentKey) => currentKey + 1)
             }
+          />
+        ) : null}
+
+        {isClient ? (
+          <DailyRecommendationCard
+            todayKey={todayKey}
+            globalScore={dashboard.globalProgressScore}
+            habitsCompleted={dashboard.habitsCompleted}
+            habitsTotal={dashboard.habitsTotal}
+            planningCompleted={dashboard.planningCompleted}
+            planningTotal={dashboard.planningTotal}
           />
         ) : null}
 
