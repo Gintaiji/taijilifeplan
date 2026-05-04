@@ -103,6 +103,21 @@
   word-break: break-word;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.editForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  width: 100%;
+  align-items: start;
+}
+
 .button {
   border-radius: 12px;
   padding: 10px 14px;
@@ -138,6 +153,18 @@
   .addButton,
   .deleteButton {
     width: 100%;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions .button {
+    flex: 1 1 140px;
+  }
+
+  .editForm {
+    grid-template-columns: 1fr;
   }
 
   .item {

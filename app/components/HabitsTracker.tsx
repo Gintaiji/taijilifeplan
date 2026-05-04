@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStorage, setStorage } from "../utils/storage";
+import { getStorage, setStorage, STORAGE_KEYS } from "../utils/storage";
 import styles from "./HabitsTracker.module.css";
 
-const STORAGE_KEY = "taiji-life-plan-habits";
-const HABIT_LIST_STORAGE_KEY = "taiji-life-plan-habit-list";
-const ORDER_STORAGE_KEY = "taiji-life-plan-habits-order";
+const STORAGE_KEY = STORAGE_KEYS.habits;
+const HABIT_LIST_STORAGE_KEY = STORAGE_KEYS.habitNames;
+const ORDER_STORAGE_KEY = STORAGE_KEYS.habitOrder;
 
 const defaultHabits = [
   "Boire de l'eau",
@@ -224,9 +224,42 @@ function getInitialHabitsData(): HabitsData {
   };
 }
 
+function renameHabitInState(
+  habitsState: HabitsState,
+  oldHabitName: string,
+  newHabitName: string,
+) {
+  if (!(oldHabitName in habitsState)) {
+    return habitsState;
+  }
+
+  const nextHabitsState = { ...habitsState };
+  nextHabitsState[newHabitName] = nextHabitsState[oldHabitName];
+  delete nextHabitsState[oldHabitName];
+
+  return nextHabitsState;
+}
+
+function renameHabitInSavedDates(oldHabitName: string, newHabitName: string) {
+  const habitsByDate = getSavedHabitsByDate();
+  const nextHabitsByDate: HabitsByDate = {};
+
+  for (const [dateKey, habitsState] of Object.entries(habitsByDate)) {
+    nextHabitsByDate[dateKey] = renameHabitInState(
+      habitsState,
+      oldHabitName,
+      newHabitName,
+    );
+  }
+
+  setStorage(STORAGE_KEY, nextHabitsByDate);
+}
+
 export default function HabitsTracker() {
   const [habitsData, setHabitsData] = useState<HabitsData>(getInitialHabitsData);
   const [newHabitName, setNewHabitName] = useState("");
+  const [editingHabitName, setEditingHabitName] = useState<string | null>(null);
+  const [editHabitName, setEditHabitName] = useState("");
 
   const completedHabitsCount = Object.values(habitsData.habitsState).filter(
     Boolean,
@@ -296,6 +329,57 @@ export default function HabitsTracker() {
     setNewHabitName("");
   }
 
+  function handleStartEditHabit(habitName: string) {
+    setEditingHabitName(habitName);
+    setEditHabitName(habitName);
+  }
+
+  function handleCancelEditHabit() {
+    setEditingHabitName(null);
+    setEditHabitName("");
+  }
+
+  function handleSaveEditHabit(
+    event: React.FormEvent<HTMLFormElement>,
+    oldHabitName: string,
+  ) {
+    event.preventDefault();
+
+    const cleanHabitName = editHabitName.trim();
+
+    if (cleanHabitName === "") {
+      return;
+    }
+
+    const habitAlreadyExists = habitsData.habitNames.some(
+      (habitName) =>
+        habitName !== oldHabitName &&
+        habitName.trim().toLowerCase() === cleanHabitName.toLowerCase(),
+    );
+
+    if (habitAlreadyExists) {
+      return;
+    }
+
+    if (cleanHabitName === oldHabitName) {
+      handleCancelEditHabit();
+      return;
+    }
+
+    renameHabitInSavedDates(oldHabitName, cleanHabitName);
+    setHabitsData((currentHabitsData) => ({
+      habitNames: currentHabitsData.habitNames.map((habitName) =>
+        habitName === oldHabitName ? cleanHabitName : habitName,
+      ),
+      habitsState: renameHabitInState(
+        currentHabitsData.habitsState,
+        oldHabitName,
+        cleanHabitName,
+      ),
+    }));
+    handleCancelEditHabit();
+  }
+
   function handleDeleteHabit(habitName: string) {
     const confirmed = window.confirm(
       `Supprimer l'habitude "${habitName}" ?`,
@@ -316,6 +400,10 @@ export default function HabitsTracker() {
         habitsState: nextHabitsState,
       };
     });
+
+    if (editingHabitName === habitName) {
+      handleCancelEditHabit();
+    }
   }
 
   return (
@@ -366,22 +454,66 @@ export default function HabitsTracker() {
       <ul className={styles.list}>
         {habitsData.habitNames.map((habit) => (
           <li key={habit} className={styles.item}>
-            <label className={styles.label}>
-              <input
-                type="checkbox"
-                checked={habitsData.habitsState[habit] ?? false}
-                onChange={() => handleHabitChange(habit)}
-              />
-              <span className={styles.habitName}>{habit}</span>
-            </label>
+            {editingHabitName === habit ? (
+              <form
+                className={styles.editForm}
+                onSubmit={(event) => handleSaveEditHabit(event, habit)}
+              >
+                <input
+                  type="text"
+                  value={editHabitName}
+                  onChange={(event) => setEditHabitName(event.target.value)}
+                  className={styles.input}
+                  aria-label={`Nouveau nom pour ${habit}`}
+                />
 
-            <button
-              type="button"
-              className={`control-button ${styles.button} ${styles.deleteButton}`}
-              onClick={() => handleDeleteHabit(habit)}
-            >
-              Supprimer
-            </button>
+                <div className={styles.actions}>
+                  <button
+                    type="submit"
+                    className={`control-button ${styles.button}`}
+                  >
+                    Enregistrer
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`control-button ${styles.button}`}
+                    onClick={handleCancelEditHabit}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <label className={styles.label}>
+                  <input
+                    type="checkbox"
+                    checked={habitsData.habitsState[habit] ?? false}
+                    onChange={() => handleHabitChange(habit)}
+                  />
+                  <span className={styles.habitName}>{habit}</span>
+                </label>
+
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={`control-button ${styles.button}`}
+                    onClick={() => handleStartEditHabit(habit)}
+                  >
+                    Modifier
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`control-button ${styles.button} ${styles.deleteButton}`}
+                    onClick={() => handleDeleteHabit(habit)}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>
