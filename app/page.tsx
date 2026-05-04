@@ -63,6 +63,12 @@ type TodayAction = {
   detail: string;
 };
 
+type ScheduleFields = {
+  day: string;
+  time: string;
+  message: string;
+};
+
 type DashboardState = {
   habitsCompleted: number;
   habitsTotal: number;
@@ -85,6 +91,16 @@ const weekdayOrder: Record<string, number> = {
   samedi: 6,
   dimanche: 7,
 };
+
+const weekdays = [
+  "Lundi",
+  "Mardi",
+  "Mercredi",
+  "Jeudi",
+  "Vendredi",
+  "Samedi",
+  "Dimanche",
+];
 
 const initialDashboardState: DashboardState = {
   habitsCompleted: 0,
@@ -329,6 +345,45 @@ function getTimeValue(time: string) {
   return hours * 60 + minutes;
 }
 
+function sortPlanningTasks(tasks: PlannedTask[]) {
+  return [...tasks].sort((taskA, taskB) => {
+    const dayDifference = getDayOrder(taskA.day) - getDayOrder(taskB.day);
+
+    if (dayDifference !== 0) {
+      return dayDifference;
+    }
+
+    return getTimeValue(taskA.time) - getTimeValue(taskB.time);
+  });
+}
+
+function hasSamePlannedTask(
+  tasks: PlannedTask[],
+  label: string,
+  day: string,
+  time: string,
+) {
+  const cleanLabel = label.trim().toLowerCase();
+  const cleanDay = day.trim().toLowerCase();
+  const cleanTime = time.trim();
+
+  return tasks.some(
+    (task) =>
+      task.label.trim().toLowerCase() === cleanLabel &&
+      task.day.trim().toLowerCase() === cleanDay &&
+      task.time.trim() === cleanTime,
+  );
+}
+
+function getNextTaskId(tasks: PlannedTask[]) {
+  const highestId = tasks.reduce(
+    (currentHighestId, task) => Math.max(currentHighestId, task.id),
+    0,
+  );
+
+  return Math.max(Date.now(), highestId + 1);
+}
+
 function formatTrajectoryDate(dateKey: string) {
   return new Date(`${dateKey}T12:00:00`).toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -353,6 +408,14 @@ function getTodayDayOrder() {
   });
 
   return getDayOrder(todayName);
+}
+
+function getTodayDayName() {
+  const todayName = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+  });
+
+  return todayName.charAt(0).toUpperCase() + todayName.slice(1);
 }
 
 function getRatio(completed: number, total: number) {
@@ -493,15 +556,7 @@ function getRelevantPlanningTask(tasks: PlannedTask[]): PlannedTask | null {
   }
 
   const todayOrder = getTodayDayOrder();
-  const sortedTasks = [...tasks].sort((taskA, taskB) => {
-    const dayDifference = getDayOrder(taskA.day) - getDayOrder(taskB.day);
-
-    if (dayDifference !== 0) {
-      return dayDifference;
-    }
-
-    return getTimeValue(taskA.time) - getTimeValue(taskB.time);
-  });
+  const sortedTasks = sortPlanningTasks(tasks);
   const todayTask = sortedTasks.find(
     (task) => getDayOrder(task.day) === todayOrder,
   );
@@ -597,17 +652,7 @@ function getDashboardFromLocalStorage(): DashboardState {
   const goalsCompleted = goals.filter((goal) => goal.completed).length;
   const goalsTotal = goals.length;
 
-  const nextTasks = [...tasks]
-    .sort((taskA, taskB) => {
-      const dayDifference = getDayOrder(taskA.day) - getDayOrder(taskB.day);
-
-      if (dayDifference !== 0) {
-        return dayDifference;
-      }
-
-      return getTimeValue(taskA.time) - getTimeValue(taskB.time);
-    })
-    .slice(0, 3);
+  const nextTasks = sortPlanningTasks(tasks).slice(0, 3);
 
   const savedTrajectoryDates = Object.keys(trajectoryEntries).sort((a, b) =>
     b.localeCompare(a),
@@ -903,8 +948,99 @@ function PrioritiesLoadingCard() {
   );
 }
 
-function TodayActionsCard({ todayKey }: { todayKey: string }) {
+function TodayActionsCard({
+  todayKey,
+  onPlanningChange,
+}: {
+  todayKey: string;
+  onPlanningChange: () => void;
+}) {
   const actions = getTodayActionsFromLocalStorage(todayKey);
+  const [scheduleByAction, setScheduleByAction] = useState<
+    Record<string, ScheduleFields>
+  >({});
+
+  function getScheduleFields(actionId: string): ScheduleFields {
+    return (
+      scheduleByAction[actionId] ?? {
+        day: getTodayDayName(),
+        time: "",
+        message: "",
+      }
+    );
+  }
+
+  function updateScheduleField(
+    actionId: string,
+    fieldName: "day" | "time",
+    value: string,
+  ) {
+    const currentFields = getScheduleFields(actionId);
+
+    setScheduleByAction((currentSchedules) => ({
+      ...currentSchedules,
+      [actionId]: {
+        ...currentFields,
+        [fieldName]: value,
+        message: "",
+      },
+    }));
+  }
+
+  function setScheduleMessage(actionId: string, message: string) {
+    const currentFields = getScheduleFields(actionId);
+
+    setScheduleByAction((currentSchedules) => ({
+      ...currentSchedules,
+      [actionId]: {
+        ...currentFields,
+        message,
+      },
+    }));
+  }
+
+  function handleScheduleAction(
+    event: React.FormEvent<HTMLFormElement>,
+    action: TodayAction,
+  ) {
+    event.preventDefault();
+
+    const fields = getScheduleFields(action.id);
+    const cleanDay = fields.day.trim();
+    const cleanTime = fields.time.trim();
+    const cleanLabel = action.title.trim();
+
+    if (cleanDay === "" || cleanTime === "" || cleanLabel === "") {
+      setScheduleMessage(action.id, "Choisis un jour et une heure.");
+      return;
+    }
+
+    const savedTasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
+
+    if (hasSamePlannedTask(savedTasks, cleanLabel, cleanDay, cleanTime)) {
+      setScheduleMessage(action.id, "Cette action est deja planifiee.");
+      return;
+    }
+
+    const newTask: PlannedTask = {
+      id: getNextTaskId(savedTasks),
+      day: cleanDay,
+      time: cleanTime,
+      label: cleanLabel,
+    };
+    const nextTasks = sortPlanningTasks([...savedTasks, newTask]);
+
+    setStorage(PLANNING_STORAGE_KEY, nextTasks);
+    setScheduleByAction((currentSchedules) => ({
+      ...currentSchedules,
+      [action.id]: {
+        day: cleanDay,
+        time: cleanTime,
+        message: "Action ajoutee au planning.",
+      },
+    }));
+    onPlanningChange();
+  }
 
   return (
     <article className={`${styles.card} ${styles.actionsCard}`}>
@@ -924,9 +1060,70 @@ function TodayActionsCard({ todayKey }: { todayKey: string }) {
         <ul className={styles.list}>
           {actions.map((action) => (
             <li key={action.id} className={styles.actionItem}>
-              <span className={styles.actionCategory}>{action.category}</span>
-              <strong className={styles.itemTitle}>{action.title}</strong>
-              <p className={styles.itemMeta}>{action.detail}</p>
+              <form
+                className={styles.scheduleForm}
+                onSubmit={(event) => handleScheduleAction(event, action)}
+              >
+                <div>
+                  <span className={styles.actionCategory}>
+                    {action.category}
+                  </span>
+                  <strong className={styles.itemTitle}>{action.title}</strong>
+                  <p className={styles.itemMeta}>{action.detail}</p>
+                </div>
+
+                <div className={styles.scheduleControls}>
+                  <label className={styles.scheduleField}>
+                    <span className={styles.scheduleLabel}>Jour</span>
+                    <select
+                      value={getScheduleFields(action.id).day}
+                      onChange={(event) =>
+                        updateScheduleField(
+                          action.id,
+                          "day",
+                          event.target.value,
+                        )
+                      }
+                      className={styles.textField}
+                    >
+                      {weekdays.map((weekday) => (
+                        <option key={weekday} value={weekday}>
+                          {weekday}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className={styles.scheduleField}>
+                    <span className={styles.scheduleLabel}>Heure</span>
+                    <input
+                      type="time"
+                      value={getScheduleFields(action.id).time}
+                      onChange={(event) =>
+                        updateScheduleField(
+                          action.id,
+                          "time",
+                          event.target.value,
+                        )
+                      }
+                      className={styles.textField}
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className={`control-button ${styles.button} ${styles.scheduleButton}`}
+                  >
+                    Planifier
+                  </button>
+                </div>
+
+                {getScheduleFields(action.id).message !== "" ? (
+                  <p className={styles.scheduleMessage}>
+                    {getScheduleFields(action.id).message}
+                  </p>
+                ) : null}
+              </form>
             </li>
           ))}
         </ul>
@@ -937,6 +1134,7 @@ function TodayActionsCard({ todayKey }: { todayKey: string }) {
 
 export default function HomePage() {
   const todayKey = getTodayKey();
+  const [planningRefreshKey, setPlanningRefreshKey] = useState(0);
   const isClient = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -957,7 +1155,7 @@ export default function HomePage() {
         </p>
       </section>
 
-      <section className={styles.grid}>
+      <section className={styles.grid} data-planning-refresh={planningRefreshKey}>
         {isClient ? (
           <PrioritiesCard todayKey={todayKey} />
         ) : (
@@ -966,7 +1164,14 @@ export default function HomePage() {
 
         {isClient ? <DataBackupCard /> : null}
 
-        {isClient ? <TodayActionsCard todayKey={todayKey} /> : null}
+        {isClient ? (
+          <TodayActionsCard
+            todayKey={todayKey}
+            onPlanningChange={() =>
+              setPlanningRefreshKey((currentKey) => currentKey + 1)
+            }
+          />
+        ) : null}
 
         <article className={`${styles.card} ${styles.progressCard}`}>
           <div className={styles.sectionHeader}>
