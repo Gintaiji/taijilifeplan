@@ -779,6 +779,12 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
   }
 
   function handleDeletePriority(priorityId: number) {
+    const confirmed = window.confirm("Supprimer cette priorite du jour ?");
+
+    if (!confirmed) {
+      return;
+    }
+
     setPriorities((currentPriorities) =>
       currentPriorities.filter((priority) => priority.id !== priorityId),
     );

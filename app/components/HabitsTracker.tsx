@@ -297,6 +297,14 @@ export default function HabitsTracker() {
   }
 
   function handleDeleteHabit(habitName: string) {
+    const confirmed = window.confirm(
+      `Supprimer l'habitude "${habitName}" ?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     setHabitsData((currentHabitsData) => {
       const nextHabitsState = { ...currentHabitsData.habitsState };
       delete nextHabitsState[habitName];

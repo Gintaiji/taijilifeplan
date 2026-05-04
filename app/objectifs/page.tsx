@@ -366,6 +366,12 @@ export default function ObjectifsPage() {
   }
 
   function handleDelete(goalId: number) {
+    const confirmed = window.confirm("Supprimer cet objectif ?");
+
+    if (!confirmed) {
+      return;
+    }
+
     setGoals((currentGoals) =>
       currentGoals.filter((goal) => goal.id !== goalId),
     );
@@ -473,6 +479,12 @@ export default function ObjectifsPage() {
   }
 
   function handleDeleteSubGoal(goalId: number, subGoalId: number) {
+    const confirmed = window.confirm("Supprimer ce sous-objectif ?");
+
+    if (!confirmed) {
+      return;
+    }
+
     setGoals((currentGoals) =>
       currentGoals.map((goal) =>
         goal.id === goalId

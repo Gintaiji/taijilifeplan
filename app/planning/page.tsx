@@ -365,6 +365,12 @@ export default function PlanningPage() {
   }
 
   function handleDelete(taskId: number) {
+    const confirmed = window.confirm("Supprimer cette tache du planning ?");
+
+    if (!confirmed) {
+      return;
+    }
+
     setTasks((currentTasks) =>
       currentTasks.filter((task) => task.id !== taskId),
     );
