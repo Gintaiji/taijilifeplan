@@ -1101,53 +1101,53 @@ function TodayActionsCard({
                   <p className={styles.itemMeta}>{action.detail}</p>
                 </div>
 
-                <div className={styles.scheduleControls}>
-                  <label className={styles.scheduleField}>
-                    <span className={styles.scheduleLabel}>Jour</span>
-                    <select
-                      value={getScheduleFields(action.id).day}
-                      onChange={(event) =>
-                        updateScheduleField(
-                          action.id,
-                          "day",
-                          event.target.value,
-                        )
-                      }
-                      className={styles.textField}
+                {action.planningTaskId === undefined ? (
+                  <div className={styles.scheduleControls}>
+                    <label className={styles.scheduleField}>
+                      <span className={styles.scheduleLabel}>Jour</span>
+                      <select
+                        value={getScheduleFields(action.id).day}
+                        onChange={(event) =>
+                          updateScheduleField(
+                            action.id,
+                            "day",
+                            event.target.value,
+                          )
+                        }
+                        className={styles.textField}
+                      >
+                        {weekdays.map((weekday) => (
+                          <option key={weekday} value={weekday}>
+                            {weekday}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className={styles.scheduleField}>
+                      <span className={styles.scheduleLabel}>Heure</span>
+                      <input
+                        type="time"
+                        value={getScheduleFields(action.id).time}
+                        onChange={(event) =>
+                          updateScheduleField(
+                            action.id,
+                            "time",
+                            event.target.value,
+                          )
+                        }
+                        className={styles.textField}
+                      />
+                    </label>
+
+                    <button
+                      type="submit"
+                      className={`control-button ${styles.button} ${styles.scheduleButton}`}
                     >
-                      {weekdays.map((weekday) => (
-                        <option key={weekday} value={weekday}>
-                          {weekday}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className={styles.scheduleField}>
-                    <span className={styles.scheduleLabel}>Heure</span>
-                    <input
-                      type="time"
-                      value={getScheduleFields(action.id).time}
-                      onChange={(event) =>
-                        updateScheduleField(
-                          action.id,
-                          "time",
-                          event.target.value,
-                        )
-                      }
-                      className={styles.textField}
-                    />
-                  </label>
-
-                  <button
-                    type="submit"
-                    className={`control-button ${styles.button} ${styles.scheduleButton}`}
-                  >
-                    Planifier
-                  </button>
-                </div>
-
-                {action.planningTaskId !== undefined ? (
+                      Planifier
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     className={`control-button ${styles.button} ${styles.doneButton}`}
@@ -1157,7 +1157,7 @@ function TodayActionsCard({
                   >
                     Marquer faite
                   </button>
-                ) : null}
+                )}
 
                 {getScheduleFields(action.id).message !== "" ? (
                   <p className={styles.scheduleMessage}>
