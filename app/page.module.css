@@ -263,6 +263,13 @@
   min-height: 46px;
 }
 
+.doneButton {
+  width: fit-content;
+  border-color: rgba(74, 222, 128, 0.34);
+  background: rgba(22, 163, 74, 0.18);
+  color: var(--dashboard-text-accent);
+}
+
 .scheduleMessage {
   margin: 0;
   color: var(--dashboard-text-accent);
@@ -497,6 +504,10 @@
   }
 
   .scheduleButton {
+    width: 100%;
+  }
+
+  .doneButton {
     width: 100%;
   }
 }

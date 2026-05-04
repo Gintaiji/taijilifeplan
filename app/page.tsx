@@ -62,6 +62,7 @@ type TodayAction = {
   category: string;
   title: string;
   detail: string;
+  planningTaskId?: number;
 };
 
 type ScheduleFields = {
@@ -602,10 +603,11 @@ function getTodayActionsFromLocalStorage(todayKey: string): TodayAction[] {
 
   if (relevantTask) {
     actions.push({
-      id: "planning",
+      id: `planning-${relevantTask.id}`,
       category: "Planning",
       title: relevantTask.label,
       detail: `${relevantTask.day} a ${relevantTask.time}`,
+      planningTaskId: relevantTask.id,
     });
   }
 
@@ -1054,6 +1056,21 @@ function TodayActionsCard({
     onPlanningChange();
   }
 
+  function handleCompletePlanningAction(taskId: number) {
+    const savedTasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
+    const nextTasks = savedTasks.map((task) =>
+      task.id === taskId
+        ? {
+            ...task,
+            completed: true,
+          }
+        : task,
+    );
+
+    setStorage(PLANNING_STORAGE_KEY, sortPlanningTasks(nextTasks));
+    onPlanningChange();
+  }
+
   return (
     <article className={`${styles.card} ${styles.actionsCard}`}>
       <div className={styles.sectionHeader}>
@@ -1129,6 +1146,18 @@ function TodayActionsCard({
                     Planifier
                   </button>
                 </div>
+
+                {action.planningTaskId !== undefined ? (
+                  <button
+                    type="button"
+                    className={`control-button ${styles.button} ${styles.doneButton}`}
+                    onClick={() =>
+                      handleCompletePlanningAction(action.planningTaskId!)
+                    }
+                  >
+                    Marquer faite
+                  </button>
+                ) : null}
 
                 {getScheduleFields(action.id).message !== "" ? (
                   <p className={styles.scheduleMessage}>
