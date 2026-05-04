@@ -20,10 +20,15 @@ type PlannedTask = {
   day: string;
   time: string;
   label: string;
+  completed: boolean;
 };
 
 const pageStyle = {
+  minHeight: "100vh",
   padding: "24px",
+  background:
+    "linear-gradient(180deg, #08110d 0%, #0a0a0a 100%)",
+  color: "#f0fdf4",
 };
 
 const sectionStyle = {
@@ -37,7 +42,7 @@ const planningSectionStyle = {
 
 const introStyle = {
   marginTop: "8px",
-  color: "#4b5563",
+  color: "#bbf7d0",
 };
 
 const formStyle = {
@@ -45,8 +50,9 @@ const formStyle = {
   gap: "16px",
   marginTop: "24px",
   padding: "16px",
-  border: "1px solid #e5e7eb",
+  border: "1px solid rgba(134, 239, 172, 0.18)",
   borderRadius: "8px",
+  backgroundColor: "rgba(15, 23, 42, 0.86)",
 };
 
 const fieldGroupStyle = {
@@ -56,14 +62,17 @@ const fieldGroupStyle = {
 
 const labelStyle = {
   fontWeight: 600,
+  color: "#dcfce7",
 };
 
 const inputStyle = {
   width: "100%",
   padding: "10px 12px",
-  border: "1px solid #d1d5db",
+  border: "1px solid rgba(134, 239, 172, 0.18)",
   borderRadius: "8px",
   font: "inherit",
+  color: "#f0fdf4",
+  backgroundColor: "rgba(8, 24, 15, 0.96)",
 };
 
 const addButtonStyle = {
@@ -72,6 +81,7 @@ const addButtonStyle = {
   padding: "10px 14px",
   cursor: "pointer",
   font: "inherit",
+  fontWeight: 700,
 };
 
 const listStyle = {
@@ -90,16 +100,23 @@ const dayGroupStyle = {
 const dayTitleStyle = {
   margin: 0,
   fontSize: "18px",
+  color: "#86efac",
 };
 
 const itemStyle = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) auto",
   gap: "16px",
-  border: "1px solid #e5e7eb",
+  border: "1px solid rgba(134, 239, 172, 0.16)",
   borderRadius: "8px",
   padding: "16px",
-  backgroundColor: "#ffffff",
+  backgroundColor: "rgba(19, 39, 29, 0.72)",
+};
+
+const completedItemStyle = {
+  ...itemStyle,
+  backgroundColor: "rgba(18, 34, 25, 0.92)",
+  opacity: 0.82,
 };
 
 const taskTextStyle = {
@@ -117,18 +134,24 @@ const taskInfoLabelStyle = {
   fontWeight: 700,
   letterSpacing: "0.04em",
   textTransform: "uppercase" as const,
-  color: "#4b5563",
+  color: "#86efac",
 };
 
 const taskInfoValueStyle = {
   fontSize: "16px",
-  color: "#111827",
+  color: "#dcfce7",
 };
 
 const taskLabelStyle = {
   fontWeight: 600,
   fontSize: "18px",
-  color: "#111827",
+  color: "#f0fdf4",
+};
+
+const completedTaskLabelStyle = {
+  ...taskLabelStyle,
+  color: "#9ca3af",
+  textDecoration: "line-through",
 };
 
 const taskMetaStyle = {
@@ -139,14 +162,14 @@ const taskMetaStyle = {
 const taskSummaryStyle = {
   padding: "12px 16px",
   borderRadius: "8px",
-  border: "1px solid #e5e7eb",
-  backgroundColor: "#f9fafb",
+  border: "1px solid rgba(134, 239, 172, 0.16)",
+  backgroundColor: "rgba(15, 23, 42, 0.86)",
 };
 
 const taskCountStyle = {
   margin: "8px 0 0 0",
   fontSize: "14px",
-  color: "#4b5563",
+  color: "#bbf7d0",
 };
 
 const deleteButtonStyle = {
@@ -159,7 +182,31 @@ const deleteButtonStyle = {
 
 const emptyTextStyle = {
   marginTop: "24px",
-  color: "#6b7280",
+  color: "#bbf7d0",
+};
+
+const doneControlStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  color: "#dcfce7",
+  fontWeight: 700,
+};
+
+const checkboxStyle = {
+  width: "18px",
+  height: "18px",
+  accentColor: "#22c55e",
+};
+
+const statusBadgeStyle = {
+  width: "fit-content",
+  padding: "4px 9px",
+  border: "1px solid rgba(134, 239, 172, 0.18)",
+  borderRadius: "999px",
+  color: "#86efac",
+  fontSize: "12px",
+  fontWeight: 700,
 };
 
 function getDayOrder(day: string) {
@@ -244,6 +291,10 @@ function normalizeTasks(savedTasks: unknown): PlannedTask[] {
         day: task.day,
         time: task.time,
         label: task.label,
+        completed:
+          "completed" in task && typeof task.completed === "boolean"
+            ? task.completed
+            : false,
       },
     ];
   });
@@ -304,6 +355,7 @@ export default function PlanningPage() {
       day: cleanDay,
       time: cleanTime,
       label: cleanLabel,
+      completed: false,
     };
 
     setTasks((currentTasks) => [...currentTasks, newTask]);
@@ -320,6 +372,19 @@ export default function PlanningPage() {
     if (editingTaskId === taskId) {
       handleCancelEdit();
     }
+  }
+
+  function handleToggleCompleted(taskId: number) {
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              completed: !task.completed,
+            }
+          : task,
+      ),
+    );
   }
 
   function handleStartEdit(task: PlannedTask) {
@@ -438,6 +503,10 @@ export default function PlanningPage() {
                 <p style={taskCountStyle}>
                   Les taches sont triees par jour puis par heure.
                 </p>
+                <p style={taskCountStyle}>
+                  {tasks.filter((task) => task.completed).length} /{" "}
+                  {tasks.length} taches faites.
+                </p>
               </div>
 
               <ul style={listStyle}>
@@ -447,7 +516,10 @@ export default function PlanningPage() {
 
                     <ul style={listStyle}>
                       {group.tasks.map((task) => (
-                        <li key={task.id} style={itemStyle}>
+                        <li
+                          key={task.id}
+                          style={task.completed ? completedItemStyle : itemStyle}
+                        >
                           {editingTaskId === task.id ? (
                             <>
                               <div style={taskTextStyle}>
@@ -537,11 +609,38 @@ export default function PlanningPage() {
 
                                 <div style={taskInfoRowStyle}>
                                   <span style={taskInfoLabelStyle}>Libelle</span>
-                                  <span style={taskLabelStyle}>{task.label}</span>
+                                  <span
+                                    style={
+                                      task.completed
+                                        ? completedTaskLabelStyle
+                                        : taskLabelStyle
+                                    }
+                                  >
+                                    {task.label}
+                                  </span>
+                                </div>
+
+                                <div style={taskInfoRowStyle}>
+                                  <span style={taskInfoLabelStyle}>Etat</span>
+                                  <span style={statusBadgeStyle}>
+                                    {task.completed ? "Fait" : "Non fait"}
+                                  </span>
                                 </div>
                               </div>
 
                               <div style={taskTextStyle}>
+                                <label style={doneControlStyle}>
+                                  <input
+                                    type="checkbox"
+                                    checked={task.completed}
+                                    onChange={() =>
+                                      handleToggleCompleted(task.id)
+                                    }
+                                    style={checkboxStyle}
+                                  />
+                                  {task.completed ? "Fait" : "Non fait"}
+                                </label>
+
                                 <button
                                   type="button"
                                   className="control-button"

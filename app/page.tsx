@@ -35,6 +35,7 @@ type PlannedTask = {
   day: string;
   time: string;
   label: string;
+  completed: boolean;
 };
 
 type TrajectoryState = {
@@ -74,6 +75,7 @@ type DashboardState = {
   habitsTotal: number;
   goalsCompleted: number;
   goalsTotal: number;
+  planningCompleted: number;
   planningTotal: number;
   nextTasks: PlannedTask[];
   lastTrajectoryDate: string | null;
@@ -107,6 +109,7 @@ const initialDashboardState: DashboardState = {
   habitsTotal: 0,
   goalsCompleted: 0,
   goalsTotal: 0,
+  planningCompleted: 0,
   planningTotal: 0,
   nextTasks: [],
   lastTrajectoryDate: null,
@@ -272,6 +275,10 @@ function normalizeTasks(savedTasks: unknown): PlannedTask[] {
         day: task.day,
         time: task.time,
         label: task.label,
+        completed:
+          "completed" in task && typeof task.completed === "boolean"
+            ? task.completed
+            : false,
       },
     ];
   });
@@ -551,12 +558,14 @@ function getHabitsByDateFromLocalStorage(): HabitsByDate {
 }
 
 function getRelevantPlanningTask(tasks: PlannedTask[]): PlannedTask | null {
-  if (tasks.length === 0) {
+  const unfinishedTasks = tasks.filter((task) => !task.completed);
+
+  if (unfinishedTasks.length === 0) {
     return null;
   }
 
   const todayOrder = getTodayDayOrder();
-  const sortedTasks = sortPlanningTasks(tasks);
+  const sortedTasks = sortPlanningTasks(unfinishedTasks);
   const todayTask = sortedTasks.find(
     (task) => getDayOrder(task.day) === todayOrder,
   );
@@ -652,6 +661,7 @@ function getDashboardFromLocalStorage(): DashboardState {
   const goalsCompleted = goals.filter((goal) => goal.completed).length;
   const goalsTotal = goals.length;
 
+  const planningCompleted = tasks.filter((task) => task.completed).length;
   const nextTasks = sortPlanningTasks(tasks).slice(0, 3);
 
   const savedTrajectoryDates = Object.keys(trajectoryEntries).sort((a, b) =>
@@ -662,7 +672,7 @@ function getDashboardFromLocalStorage(): DashboardState {
 
   const habitsRatio = getRatio(habitsCompleted, habitsTotal);
   const goalsRatio = getRatio(goalsCompleted, goalsTotal);
-  const planningRatio = tasks.length > 0 ? 1 : 0;
+  const planningRatio = getRatio(planningCompleted, tasks.length);
   const trajectoryRatio = hasTodayTrajectoryEntry ? 1 : 0;
   const globalProgressScore = Math.round(
     ((habitsRatio + goalsRatio + planningRatio + trajectoryRatio) / 4) * 100,
@@ -673,6 +683,7 @@ function getDashboardFromLocalStorage(): DashboardState {
     habitsTotal,
     goalsCompleted,
     goalsTotal,
+    planningCompleted,
     planningTotal: tasks.length,
     nextTasks,
     lastTrajectoryDate: savedTrajectoryDates[0] ?? null,
@@ -1027,6 +1038,7 @@ function TodayActionsCard({
       day: cleanDay,
       time: cleanTime,
       label: cleanLabel,
+      completed: false,
     };
     const nextTasks = sortPlanningTasks([...savedTasks, newTask]);
 
@@ -1225,7 +1237,7 @@ export default function HomePage() {
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>Planning</span>
                   <strong className={styles.metricValue}>
-                    {dashboard.planningTotal > 0 ? "Actif" : "Vide"}
+                    {dashboard.planningCompleted}/{dashboard.planningTotal}
                   </strong>
                 </div>
 
@@ -1254,7 +1266,7 @@ export default function HomePage() {
                   <span className={styles.progressDetailLabel}>Planning</span>
                   <span className={styles.progressDetailValue}>
                     {dashboard.planningTotal > 0
-                      ? "taches planifiees presentes"
+                      ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites`
                       : "aucune tache planifiee"}
                   </span>
                 </li>
@@ -1321,7 +1333,7 @@ export default function HomePage() {
               <h2 className={styles.cardTitle}>Planning</h2>
               <p className={styles.cardText}>
                 {isClient
-                  ? `${dashboard.planningTotal} taches planifiees.`
+                  ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites.`
                   : "Chargement du planning..."}
               </p>
             </div>
@@ -1344,7 +1356,8 @@ export default function HomePage() {
                 <li key={task.id} className={styles.listItem}>
                   <strong className={styles.itemTitle}>{task.label}</strong>
                   <p className={styles.itemMeta}>
-                    {task.day} a {task.time}
+                    {task.day} a {task.time} -{" "}
+                    {task.completed ? "fait" : "non fait"}
                   </p>
                 </li>
               ))}
