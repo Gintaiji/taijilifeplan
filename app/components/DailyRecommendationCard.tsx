@@ -172,7 +172,10 @@ function getCurrentStreak(history: ProgressHistoryEntry[], todayKey: string) {
 }
 
 function getUnfinishedPrioritiesCount(todayKey: string) {
-  const savedPriorities = getStorage<unknown>(STORAGE_KEYS.priorities, null);
+  const savedPriorities = getStorage<unknown>(
+    STORAGE_KEYS.dailyObjectives,
+    null,
+  );
   const priorities = normalizePriorities(savedPriorities);
 
   if (!priorities || priorities.date !== todayKey) {
@@ -205,9 +208,9 @@ function getRecommendation({
 
   if (unfinishedPriorities > 0) {
     return {
-      title: "Revenir a une priorite",
-      text: "Il reste au moins une priorite non faite aujourd'hui.",
-      detail: "Consacre un bloc court a cette priorite avant d'ouvrir autre chose.",
+      title: "Revenir a un objectif du jour",
+      text: "Il reste au moins un objectif du jour non fait aujourd'hui.",
+      detail: "Consacre un bloc court a cet objectif avant d'ouvrir autre chose.",
     };
   }
 
@@ -238,7 +241,7 @@ function getRecommendation({
   return {
     title: "Preparer demain",
     text: "Le jour est bien avance, tu peux passer en mode anticipation.",
-    detail: "Note une priorite simple pour demain pendant que l'elan est la.",
+    detail: "Note un objectif simple pour demain pendant que l'elan est la.",
   };
 }
 
@@ -294,7 +297,7 @@ export default function DailyRecommendationCard({
 
       <div className={styles.recommendationStats}>
         <span>Habitudes restantes : {habitsRemaining}</span>
-        <span>Priorites non faites : {unfinishedPriorities}</span>
+        <span>Objectifs du jour non faits : {unfinishedPriorities}</span>
         <span>Planning restant : {planningRemaining}</span>
         <span>Streak actuel : {currentStreak} jours</span>
       </div>

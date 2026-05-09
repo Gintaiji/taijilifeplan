@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   goals: "taiji-life-plan-objectifs",
   planning: "taiji-life-plan-planning",
   trajectory: "taiji-life-plan-trajectory",
+  dailyObjectives: "taiji-life-plan-priorities",
   priorities: "taiji-life-plan-priorities",
   progressHistory: "taiji-life-plan-progress-history",
 } as const;

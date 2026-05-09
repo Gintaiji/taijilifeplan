@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStorage, setStorage } from "../utils/storage";
+import { getStorage, setStorage, STORAGE_KEYS } from "../utils/storage";
 
-const STORAGE_KEY = "taiji-life-plan-objectifs";
+const STORAGE_KEY = STORAGE_KEYS.goals;
 
 const periods = ["Hebdomadaire", "Mensuel", "Annuel"] as const;
 

@@ -54,7 +54,7 @@ function getBackupData(): BackupData {
     goals: getStorage<unknown>(STORAGE_KEYS.goals, []),
     planning: getStorage<unknown>(STORAGE_KEYS.planning, []),
     trajectory: getStorage<unknown>(STORAGE_KEYS.trajectory, {}),
-    priorities: getStorage<unknown | null>(STORAGE_KEYS.priorities, null),
+    priorities: getStorage<unknown | null>(STORAGE_KEYS.dailyObjectives, null),
     progressHistory: getStorage<unknown>(STORAGE_KEYS.progressHistory, []),
   };
 }
@@ -77,7 +77,7 @@ function importBackupData(data: BackupData) {
   setStorage(STORAGE_KEYS.goals, data.goals);
   setStorage(STORAGE_KEYS.planning, data.planning);
   setStorage(STORAGE_KEYS.trajectory, data.trajectory);
-  setStorage(STORAGE_KEYS.priorities, data.priorities);
+  setStorage(STORAGE_KEYS.dailyObjectives, data.priorities);
   setStorage(STORAGE_KEYS.habitOrder, data.habitOrder);
 
   if (data.progressHistory !== undefined) {

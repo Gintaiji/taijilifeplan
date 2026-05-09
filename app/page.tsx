@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import DataBackupCard from "./components/DataBackupCard";
 import DailyRecommendationCard from "./components/DailyRecommendationCard";
 import ProgressHistoryCard from "./components/ProgressHistoryCard";
@@ -12,7 +12,7 @@ const HABIT_LIST_STORAGE_KEY = STORAGE_KEYS.habitNames;
 const GOALS_STORAGE_KEY = STORAGE_KEYS.goals;
 const PLANNING_STORAGE_KEY = STORAGE_KEYS.planning;
 const TRAJECTORY_STORAGE_KEY = STORAGE_KEYS.trajectory;
-const PRIORITIES_STORAGE_KEY = STORAGE_KEYS.priorities;
+const DAILY_OBJECTIVES_STORAGE_KEY = STORAGE_KEYS.dailyObjectives;
 
 type HabitsState = Record<string, boolean>;
 
@@ -76,6 +76,8 @@ type ScheduleFields = {
 type DashboardState = {
   habitsCompleted: number;
   habitsTotal: number;
+  dailyObjectivesCompleted: number;
+  dailyObjectivesTotal: number;
   goalsCompleted: number;
   goalsTotal: number;
   planningCompleted: number;
@@ -110,6 +112,8 @@ const weekdays = [
 const initialDashboardState: DashboardState = {
   habitsCompleted: 0,
   habitsTotal: 0,
+  dailyObjectivesCompleted: 0,
+  dailyObjectivesTotal: 0,
   goalsCompleted: 0,
   goalsTotal: 0,
   planningCompleted: 0,
@@ -498,12 +502,9 @@ function normalizePriorities(savedPriorities: unknown): SavedPriorities | null {
   };
 }
 
-function getInitialGoals(): Goal[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  return getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
+function getCompletedDailyObjectivesCount(dailyObjectives: DailyPriority[]) {
+  return dailyObjectives.filter((dailyObjective) => dailyObjective.completed)
+    .length;
 }
 
 function getNextPriorityId(currentPriorities: DailyPriority[]) {
@@ -524,7 +525,10 @@ function getInitialPriorities(todayKey: string): DailyPriority[] {
     return [];
   }
 
-  const savedPriorities = getStorage<unknown>(PRIORITIES_STORAGE_KEY, null);
+  const savedPriorities = getStorage<unknown>(
+    DAILY_OBJECTIVES_STORAGE_KEY,
+    null,
+  );
   const normalizedPriorities = normalizePriorities(savedPriorities);
 
   if (!normalizedPriorities || normalizedPriorities.date !== todayKey) {
@@ -594,9 +598,9 @@ function getTodayActionsFromLocalStorage(todayKey: string): TodayAction[] {
   if (firstUnfinishedPriority) {
     actions.push({
       id: "priority",
-      category: "Priorite",
+      category: "Objectif du jour",
       title: firstUnfinishedPriority.label,
-      detail: "Premiere priorite du jour non terminee.",
+      detail: "Premier objectif du jour non termine.",
     });
   }
 
@@ -646,6 +650,7 @@ function getDashboardFromLocalStorage(): DashboardState {
   );
   const habitsByDate = getHabitsByDateFromLocalStorage();
   const goals = getSavedData(GOALS_STORAGE_KEY, normalizeGoals, []);
+  const dailyObjectives = getInitialPriorities(getTodayKey());
   const tasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
   const trajectoryEntries = getSavedData(
     TRAJECTORY_STORAGE_KEY,
@@ -664,6 +669,9 @@ function getDashboardFromLocalStorage(): DashboardState {
 
   const goalsCompleted = goals.filter((goal) => goal.completed).length;
   const goalsTotal = goals.length;
+  const dailyObjectivesCompleted =
+    getCompletedDailyObjectivesCount(dailyObjectives);
+  const dailyObjectivesTotal = dailyObjectives.length;
 
   const planningCompleted = tasks.filter((task) => task.completed).length;
   const nextTasks = sortPlanningTasks(tasks).slice(0, 3);
@@ -675,16 +683,23 @@ function getDashboardFromLocalStorage(): DashboardState {
   const hasTodayTrajectoryEntry = todayKey in trajectoryEntries;
 
   const habitsRatio = getRatio(habitsCompleted, habitsTotal);
-  const goalsRatio = getRatio(goalsCompleted, goalsTotal);
+  const dailyObjectivesRatio = getRatio(
+    dailyObjectivesCompleted,
+    dailyObjectivesTotal,
+  );
   const planningRatio = getRatio(planningCompleted, tasks.length);
   const trajectoryRatio = hasTodayTrajectoryEntry ? 1 : 0;
   const globalProgressScore = Math.round(
-    ((habitsRatio + goalsRatio + planningRatio + trajectoryRatio) / 4) * 100,
+    ((habitsRatio + dailyObjectivesRatio + planningRatio + trajectoryRatio) /
+      4) *
+      100,
   );
 
   return {
     habitsCompleted,
     habitsTotal,
+    dailyObjectivesCompleted,
+    dailyObjectivesTotal,
     goalsCompleted,
     goalsTotal,
     planningCompleted,
@@ -697,24 +712,17 @@ function getDashboardFromLocalStorage(): DashboardState {
   };
 }
 
-function PrioritiesCard({ todayKey }: { todayKey: string }) {
+function DailyObjectivesCard({
+  todayKey,
+  onDailyObjectivesChange,
+}: {
+  todayKey: string;
+  onDailyObjectivesChange: () => void;
+}) {
   const [priorities, setPriorities] = useState<DailyPriority[]>(() =>
     getInitialPriorities(todayKey),
   );
-  const [goals] = useState<Goal[]>(getInitialGoals);
   const [priorityLabel, setPriorityLabel] = useState("");
-  const [selectedGoalId, setSelectedGoalId] = useState(() => {
-    const initialGoals = getInitialGoals();
-
-    if (initialGoals.length === 0) {
-      return "";
-    }
-
-    return String(initialGoals[0].id);
-  });
-
-  const selectedGoal =
-    goals.find((goal) => String(goal.id) === selectedGoalId) ?? null;
 
   useEffect(() => {
     const savedPriorities: SavedPriorities = {
@@ -722,8 +730,9 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
       priorities,
     };
 
-    setStorage(PRIORITIES_STORAGE_KEY, savedPriorities);
-  }, [priorities, todayKey]);
+    setStorage(DAILY_OBJECTIVES_STORAGE_KEY, savedPriorities);
+    onDailyObjectivesChange();
+  }, [priorities, todayKey, onDailyObjectivesChange]);
 
   function hasSamePriorityLabel(label: string) {
     const cleanLabel = label.trim().toLowerCase();
@@ -757,29 +766,8 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
     setPriorityLabel("");
   }
 
-  function handleAddGoalAsPriority() {
-    if (!selectedGoal || priorities.length >= 3) {
-      return;
-    }
-
-    const cleanLabel = selectedGoal.title.trim();
-
-    if (cleanLabel === "" || hasSamePriorityLabel(cleanLabel)) {
-      return;
-    }
-
-    setPriorities((currentPriorities) => [
-      ...currentPriorities,
-      {
-        id: getNextPriorityId(currentPriorities),
-        label: cleanLabel,
-        completed: false,
-      },
-    ]);
-  }
-
   function handleDeletePriority(priorityId: number) {
-    const confirmed = window.confirm("Supprimer cette priorite du jour ?");
+    const confirmed = window.confirm("Supprimer cet objectif du jour ?");
 
     if (!confirmed) {
       return;
@@ -804,9 +792,9 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
     <article className={`${styles.card} ${styles.primaryCard}`}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 className={styles.cardTitle}>Priorites du jour</h2>
+          <h2 className={styles.cardTitle}>Objectifs du jour</h2>
           <p className={styles.cardText}>
-            Choisis jusqu&apos;a 3 priorites importantes pour aujourd&apos;hui.
+            Choisis jusqu&apos;a 3 objectifs simples pour aujourd&apos;hui.
           </p>
         </div>
         <span className={styles.counterBadge}>{priorities.length}/3</span>
@@ -818,7 +806,7 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
             type="text"
             value={priorityLabel}
             onChange={(event) => setPriorityLabel(event.target.value)}
-            placeholder="Exemple : Finaliser mon objectif principal"
+            placeholder="Exemple : Faire 20 minutes de sport"
             className={styles.textField}
           />
 
@@ -832,44 +820,15 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
         </div>
 
         <p className={styles.helperText}>
-          Ou choisis un objectif existant pour l&apos;ajouter directement.
+          Ces objectifs servent au score de la journee. Les grands objectifs
+          restent suivis dans l&apos;onglet Objectifs.
         </p>
-
-        <div className={styles.inputRow}>
-          <select
-            value={selectedGoalId}
-            onChange={(event) => setSelectedGoalId(event.target.value)}
-            className={styles.textField}
-            disabled={goals.length === 0}
-          >
-            {goals.length === 0 ? (
-              <option value="">Aucun objectif disponible</option>
-            ) : (
-              goals.map((goal) => (
-                <option key={goal.id} value={goal.id}>
-                  {goal.title} ({goal.period})
-                </option>
-              ))
-            )}
-          </select>
-
-          <button
-            type="button"
-            className={`control-button ${styles.button} ${styles.addButton}`}
-            onClick={handleAddGoalAsPriority}
-            disabled={
-              priorities.length >= 3 ||
-              selectedGoal === null ||
-              hasSamePriorityLabel(selectedGoal.title)
-            }
-          >
-            Transformer en priorite
-          </button>
-        </div>
       </form>
 
       {priorities.length === 0 ? (
-        <p className={styles.emptyText}>Aucune priorite pour aujourd&apos;hui.</p>
+        <p className={styles.emptyText}>
+          Aucun objectif du jour pour aujourd&apos;hui.
+        </p>
       ) : (
         <ul className={styles.list}>
           {priorities.map((priority) => (
@@ -914,14 +873,14 @@ function PrioritiesCard({ todayKey }: { todayKey: string }) {
   );
 }
 
-function PrioritiesLoadingCard() {
+function DailyObjectivesLoadingCard() {
   return (
     <article className={`${styles.card} ${styles.primaryCard}`}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 className={styles.cardTitle}>Priorites du jour</h2>
+          <h2 className={styles.cardTitle}>Objectifs du jour</h2>
           <p className={styles.cardText}>
-            Choisis jusqu&apos;a 3 priorites importantes pour aujourd&apos;hui.
+            Choisis jusqu&apos;a 3 objectifs simples pour aujourd&apos;hui.
           </p>
         </div>
         <span className={styles.counterBadge}>0/3</span>
@@ -932,7 +891,7 @@ function PrioritiesLoadingCard() {
           <input
             type="text"
             value=""
-            placeholder="Exemple : Finaliser mon objectif principal"
+            placeholder="Exemple : Faire 20 minutes de sport"
             className={styles.textField}
             readOnly
           />
@@ -946,25 +905,13 @@ function PrioritiesLoadingCard() {
         </div>
 
         <p className={styles.helperText}>
-          Ou choisis un objectif existant pour l&apos;ajouter directement.
+          Ces objectifs servent au score de la journee.
         </p>
-
-        <div className={styles.inputRow}>
-          <select value="" className={styles.textField} disabled>
-            <option value="">Aucun objectif disponible</option>
-          </select>
-
-          <button
-            type="button"
-            className={`control-button ${styles.button} ${styles.addButton}`}
-            disabled
-          >
-            Transformer en priorite
-          </button>
-        </div>
       </form>
 
-      <p className={styles.emptyText}>Aucune priorite pour aujourd&apos;hui.</p>
+      <p className={styles.emptyText}>
+        Aucun objectif du jour pour aujourd&apos;hui.
+      </p>
     </article>
   );
 }
@@ -1184,6 +1131,10 @@ function TodayActionsCard({
 export default function HomePage() {
   const todayKey = getTodayKey();
   const [planningRefreshKey, setPlanningRefreshKey] = useState(0);
+  const [dailyObjectivesRefreshKey, setDailyObjectivesRefreshKey] = useState(0);
+  const handleDailyObjectivesChange = useCallback(() => {
+    setDailyObjectivesRefreshKey((currentKey) => currentKey + 1);
+  }, []);
   const isClient = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -1204,11 +1155,18 @@ export default function HomePage() {
         </p>
       </section>
 
-      <section className={styles.grid} data-planning-refresh={planningRefreshKey}>
+      <section
+        className={styles.grid}
+        data-planning-refresh={planningRefreshKey}
+        data-daily-objectives-refresh={dailyObjectivesRefreshKey}
+      >
         {isClient ? (
-          <PrioritiesCard todayKey={todayKey} />
+          <DailyObjectivesCard
+            todayKey={todayKey}
+            onDailyObjectivesChange={handleDailyObjectivesChange}
+          />
         ) : (
-          <PrioritiesLoadingCard />
+          <DailyObjectivesLoadingCard />
         )}
 
         {isClient ? <DataBackupCard /> : null}
@@ -1276,9 +1234,10 @@ export default function HomePage() {
                 </div>
 
                 <div className={styles.metricCard}>
-                  <span className={styles.metricLabel}>Objectifs</span>
+                  <span className={styles.metricLabel}>Objectifs du jour</span>
                   <strong className={styles.metricValue}>
-                    {dashboard.goalsCompleted}/{dashboard.goalsTotal}
+                    {dashboard.dailyObjectivesCompleted}/
+                    {dashboard.dailyObjectivesTotal}
                   </strong>
                 </div>
 
@@ -1305,9 +1264,12 @@ export default function HomePage() {
                   </span>
                 </li>
                 <li className={styles.progressDetailItem}>
-                  <span className={styles.progressDetailLabel}>Objectifs</span>
+                  <span className={styles.progressDetailLabel}>
+                    Objectifs du jour
+                  </span>
                   <span className={styles.progressDetailValue}>
-                    {dashboard.goalsCompleted}/{dashboard.goalsTotal}
+                    {dashboard.dailyObjectivesCompleted}/
+                    {dashboard.dailyObjectivesTotal}
                   </span>
                 </li>
                 <li className={styles.progressDetailItem}>
