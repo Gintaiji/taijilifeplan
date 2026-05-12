@@ -15,6 +15,7 @@ type ProgressHistoryEntry = {
 type DailyPriority = {
   id: number;
   label: string;
+  time: string;
   completed: boolean;
 };
 
@@ -22,6 +23,8 @@ type SavedPriorities = {
   date: string;
   priorities: DailyPriority[];
 };
+
+type PrioritiesByDate = Record<string, DailyPriority[]>;
 
 type Recommendation = {
   title: string;
@@ -105,6 +108,10 @@ function normalizePriorities(savedPriorities: unknown): SavedPriorities | null {
       {
         id: priority.id,
         label: priority.label,
+        time:
+          "time" in priority && typeof priority.time === "string"
+            ? priority.time
+            : "",
         completed: priority.completed,
       },
     ];
@@ -114,6 +121,72 @@ function normalizePriorities(savedPriorities: unknown): SavedPriorities | null {
     date: savedPriorities.date,
     priorities,
   };
+}
+
+function normalizePrioritiesList(savedPriorities: unknown): DailyPriority[] {
+  if (!Array.isArray(savedPriorities)) {
+    return [];
+  }
+
+  return savedPriorities
+    .flatMap((priority) => {
+      if (
+        typeof priority !== "object" ||
+        priority === null ||
+        !("id" in priority) ||
+        !("label" in priority) ||
+        !("completed" in priority)
+      ) {
+        return [];
+      }
+
+      if (
+        typeof priority.id !== "number" ||
+        typeof priority.label !== "string" ||
+        typeof priority.completed !== "boolean"
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          id: priority.id,
+          label: priority.label,
+          time:
+            "time" in priority && typeof priority.time === "string"
+              ? priority.time
+              : "",
+          completed: priority.completed,
+        },
+      ];
+    })
+    .slice(0, 3);
+}
+
+function normalizePrioritiesByDate(savedPriorities: unknown): PrioritiesByDate {
+  const oldSavedPriorities = normalizePriorities(savedPriorities);
+
+  if (oldSavedPriorities) {
+    return {
+      [oldSavedPriorities.date]: oldSavedPriorities.priorities.slice(0, 3),
+    };
+  }
+
+  if (typeof savedPriorities !== "object" || savedPriorities === null) {
+    return {};
+  }
+
+  const prioritiesByDate: PrioritiesByDate = {};
+
+  for (const [dateKey, priorities] of Object.entries(savedPriorities)) {
+    const cleanedPriorities = normalizePrioritiesList(priorities);
+
+    if (cleanedPriorities.length > 0) {
+      prioritiesByDate[dateKey] = cleanedPriorities;
+    }
+  }
+
+  return prioritiesByDate;
 }
 
 function sortNewestFirst(history: ProgressHistoryEntry[]) {
@@ -174,15 +247,12 @@ function getCurrentStreak(history: ProgressHistoryEntry[], todayKey: string) {
 function getUnfinishedPrioritiesCount(todayKey: string) {
   const savedPriorities = getStorage<unknown>(
     STORAGE_KEYS.dailyObjectives,
-    null,
+    {},
   );
-  const priorities = normalizePriorities(savedPriorities);
+  const prioritiesByDate = normalizePrioritiesByDate(savedPriorities);
+  const priorities = prioritiesByDate[todayKey] ?? [];
 
-  if (!priorities || priorities.date !== todayKey) {
-    return 0;
-  }
-
-  return priorities.priorities.filter((priority) => !priority.completed).length;
+  return priorities.filter((priority) => !priority.completed).length;
 }
 
 function getRecommendation({

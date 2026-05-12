@@ -51,6 +51,7 @@ type TrajectoryEntries = Record<string, TrajectoryState>;
 type DailyPriority = {
   id: number;
   label: string;
+  time: string;
   completed: boolean;
 };
 
@@ -58,6 +59,8 @@ type SavedPriorities = {
   date: string;
   priorities: DailyPriority[];
 };
+
+type PrioritiesByDate = Record<string, DailyPriority[]>;
 
 type TodayAction = {
   id: string;
@@ -491,6 +494,10 @@ function normalizePriorities(savedPriorities: unknown): SavedPriorities | null {
       {
         id: priority.id,
         label: priority.label,
+        time:
+          "time" in priority && typeof priority.time === "string"
+            ? priority.time
+            : "",
         completed: priority.completed,
       },
     ];
@@ -500,6 +507,81 @@ function normalizePriorities(savedPriorities: unknown): SavedPriorities | null {
     date: savedPriorities.date,
     priorities,
   };
+}
+
+function normalizePrioritiesList(savedPriorities: unknown): DailyPriority[] {
+  if (!Array.isArray(savedPriorities)) {
+    return [];
+  }
+
+  return savedPriorities
+    .flatMap((priority) => {
+      if (
+        typeof priority !== "object" ||
+        priority === null ||
+        !("id" in priority) ||
+        !("label" in priority) ||
+        !("completed" in priority)
+      ) {
+        return [];
+      }
+
+      if (
+        typeof priority.id !== "number" ||
+        typeof priority.label !== "string" ||
+        typeof priority.completed !== "boolean"
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          id: priority.id,
+          label: priority.label,
+          time:
+            "time" in priority && typeof priority.time === "string"
+              ? priority.time
+              : "",
+          completed: priority.completed,
+        },
+      ];
+    })
+    .slice(0, 3);
+}
+
+function normalizePrioritiesByDate(savedPriorities: unknown): PrioritiesByDate {
+  const oldSavedPriorities = normalizePriorities(savedPriorities);
+
+  if (oldSavedPriorities) {
+    return {
+      [oldSavedPriorities.date]: oldSavedPriorities.priorities.slice(0, 3),
+    };
+  }
+
+  if (typeof savedPriorities !== "object" || savedPriorities === null) {
+    return {};
+  }
+
+  const prioritiesByDate: PrioritiesByDate = {};
+
+  for (const [dateKey, priorities] of Object.entries(savedPriorities)) {
+    const cleanedPriorities = normalizePrioritiesList(priorities);
+
+    if (cleanedPriorities.length > 0) {
+      prioritiesByDate[dateKey] = cleanedPriorities;
+    }
+  }
+
+  return prioritiesByDate;
+}
+
+function getPrioritiesByDateFromLocalStorage(): PrioritiesByDate {
+  const savedPriorities = getStorage<unknown>(
+    DAILY_OBJECTIVES_STORAGE_KEY,
+    {},
+  );
+
+  return normalizePrioritiesByDate(savedPriorities);
 }
 
 function getCompletedDailyObjectivesCount(dailyObjectives: DailyPriority[]) {
@@ -525,17 +607,7 @@ function getInitialPriorities(todayKey: string): DailyPriority[] {
     return [];
   }
 
-  const savedPriorities = getStorage<unknown>(
-    DAILY_OBJECTIVES_STORAGE_KEY,
-    null,
-  );
-  const normalizedPriorities = normalizePriorities(savedPriorities);
-
-  if (!normalizedPriorities || normalizedPriorities.date !== todayKey) {
-    return [];
-  }
-
-  return normalizedPriorities.priorities.slice(0, 3);
+  return getPrioritiesByDateFromLocalStorage()[todayKey] ?? [];
 }
 
 function getHabitsByDateFromLocalStorage(): HabitsByDate {
@@ -600,7 +672,10 @@ function getTodayActionsFromLocalStorage(todayKey: string): TodayAction[] {
       id: "priority",
       category: "Objectif du jour",
       title: firstUnfinishedPriority.label,
-      detail: "Premier objectif du jour non termine.",
+      detail:
+        firstUnfinishedPriority.time === ""
+          ? "Premier objectif du jour non termine."
+          : `Prevu a ${firstUnfinishedPriority.time}.`,
     });
   }
 
@@ -719,20 +794,51 @@ function DailyObjectivesCard({
   todayKey: string;
   onDailyObjectivesChange: () => void;
 }) {
-  const [priorities, setPriorities] = useState<DailyPriority[]>(() =>
-    getInitialPriorities(todayKey),
-  );
+  const [prioritiesState, setPrioritiesState] = useState<{
+    date: string;
+    priorities: DailyPriority[];
+  }>(() => ({
+    date: todayKey,
+    priorities: getInitialPriorities(todayKey),
+  }));
   const [priorityLabel, setPriorityLabel] = useState("");
+  const [priorityTime, setPriorityTime] = useState("");
+  const priorities = prioritiesState.priorities;
 
   useEffect(() => {
-    const savedPriorities: SavedPriorities = {
-      date: todayKey,
-      priorities,
-    };
+    if (prioritiesState.date === todayKey) {
+      return;
+    }
 
-    setStorage(DAILY_OBJECTIVES_STORAGE_KEY, savedPriorities);
+    setPrioritiesState({
+      date: todayKey,
+      priorities: getInitialPriorities(todayKey),
+    });
+    setPriorityLabel("");
+    setPriorityTime("");
+  }, [prioritiesState.date, todayKey]);
+
+  useEffect(() => {
+    if (prioritiesState.date !== todayKey) {
+      return;
+    }
+
+    const prioritiesByDate = getPrioritiesByDateFromLocalStorage();
+
+    if (priorities.length === 0) {
+      delete prioritiesByDate[todayKey];
+    } else {
+      prioritiesByDate[todayKey] = priorities.slice(0, 3);
+    }
+
+    setStorage(DAILY_OBJECTIVES_STORAGE_KEY, prioritiesByDate);
     onDailyObjectivesChange();
-  }, [priorities, todayKey, onDailyObjectivesChange]);
+  }, [
+    priorities,
+    prioritiesState.date,
+    todayKey,
+    onDailyObjectivesChange,
+  ]);
 
   function hasSamePriorityLabel(label: string) {
     const cleanLabel = label.trim().toLowerCase();
@@ -755,15 +861,20 @@ function DailyObjectivesCard({
       return;
     }
 
-    setPriorities((currentPriorities) => [
-      ...currentPriorities,
-      {
-        id: getNextPriorityId(currentPriorities),
-        label: cleanLabel,
-        completed: false,
-      },
-    ]);
+    setPrioritiesState((currentState) => ({
+      ...currentState,
+      priorities: [
+        ...currentState.priorities,
+        {
+          id: getNextPriorityId(currentState.priorities),
+          label: cleanLabel,
+          time: priorityTime,
+          completed: false,
+        },
+      ],
+    }));
     setPriorityLabel("");
+    setPriorityTime("");
   }
 
   function handleDeletePriority(priorityId: number) {
@@ -773,19 +884,23 @@ function DailyObjectivesCard({
       return;
     }
 
-    setPriorities((currentPriorities) =>
-      currentPriorities.filter((priority) => priority.id !== priorityId),
-    );
+    setPrioritiesState((currentState) => ({
+      ...currentState,
+      priorities: currentState.priorities.filter(
+        (priority) => priority.id !== priorityId,
+      ),
+    }));
   }
 
   function handleTogglePriority(priorityId: number) {
-    setPriorities((currentPriorities) =>
-      currentPriorities.map((priority) =>
+    setPrioritiesState((currentState) => ({
+      ...currentState,
+      priorities: currentState.priorities.map((priority) =>
         priority.id === priorityId
           ? { ...priority, completed: !priority.completed }
           : priority,
       ),
-    );
+    }));
   }
 
   return (
@@ -807,6 +922,14 @@ function DailyObjectivesCard({
             value={priorityLabel}
             onChange={(event) => setPriorityLabel(event.target.value)}
             placeholder="Exemple : Faire 20 minutes de sport"
+            className={styles.textField}
+          />
+
+          <input
+            type="time"
+            value={priorityTime}
+            onChange={(event) => setPriorityTime(event.target.value)}
+            aria-label="Heure prevue"
             className={styles.textField}
           />
 
@@ -838,15 +961,21 @@ function DailyObjectivesCard({
                 priority.completed ? styles.priorityCompletedItem : ""
               }`}
             >
-              <span
-                className={
-                  priority.completed
-                    ? styles.priorityCompletedText
-                    : styles.priorityText
-                }
-              >
-                {priority.label}
-              </span>
+              <div className={styles.priorityContent}>
+                <span
+                  className={
+                    priority.completed
+                      ? styles.priorityCompletedText
+                      : styles.priorityText
+                  }
+                >
+                  {priority.label}
+                </span>
+
+                <span className={styles.priorityTime}>
+                  {priority.time === "" ? "Heure non definie" : priority.time}
+                </span>
+              </div>
 
               <div className={styles.actions}>
                 <button
@@ -892,6 +1021,14 @@ function DailyObjectivesLoadingCard() {
             type="text"
             value=""
             placeholder="Exemple : Faire 20 minutes de sport"
+            className={styles.textField}
+            readOnly
+          />
+
+          <input
+            type="time"
+            value=""
+            aria-label="Heure prevue"
             className={styles.textField}
             readOnly
           />
@@ -1129,7 +1266,7 @@ function TodayActionsCard({
 }
 
 export default function HomePage() {
-  const todayKey = getTodayKey();
+  const [todayKey, setTodayKey] = useState(getTodayKey);
   const [planningRefreshKey, setPlanningRefreshKey] = useState(0);
   const [dailyObjectivesRefreshKey, setDailyObjectivesRefreshKey] = useState(0);
   const handleDailyObjectivesChange = useCallback(() => {
@@ -1143,6 +1280,23 @@ export default function HomePage() {
   const dashboard = isClient
     ? getDashboardFromLocalStorage()
     : initialDashboardState;
+
+  useEffect(() => {
+    const refreshTodayKey = () => {
+      setTodayKey((currentTodayKey) => {
+        const nextTodayKey = getTodayKey();
+
+        return currentTodayKey === nextTodayKey
+          ? currentTodayKey
+          : nextTodayKey;
+      });
+    };
+    const intervalId = window.setInterval(refreshTodayKey, 60 * 1000);
+
+    refreshTodayKey();
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   return (
     <main className={styles.page}>
