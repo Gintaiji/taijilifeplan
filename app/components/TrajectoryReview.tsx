@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { getStorage, setStorage } from "../utils/storage";
+import { useEffect, useMemo, useState } from "react";
+import { getStorage, setStorage, STORAGE_KEYS } from "../utils/storage";
 
-const STORAGE_KEY = "taiji-life-plan-trajectory";
+const TRAJECTORY_STORAGE_KEY = STORAGE_KEYS.trajectory;
+const DAILY_OBJECTIVES_STORAGE_KEY = STORAGE_KEYS.dailyObjectives;
 
 const sectionStyle = {
   marginTop: "24px",
@@ -12,7 +13,90 @@ const sectionStyle = {
 
 const dateStyle = {
   margin: "8px 0 0 0",
-  color: "#4b5563",
+  color: "var(--dashboard-text-muted)",
+};
+
+const objectivesSectionStyle = {
+  marginTop: "24px",
+  border: "1px solid rgba(134, 239, 172, 0.16)",
+  borderRadius: "8px",
+  padding: "16px",
+  backgroundColor: "rgba(15, 23, 42, 0.86)",
+};
+
+const objectivesHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+  flexWrap: "wrap" as const,
+};
+
+const objectivesTitleStyle = {
+  margin: 0,
+  color: "var(--dashboard-text-primary)",
+  fontSize: "20px",
+};
+
+const objectiveCounterStyle = {
+  width: "fit-content",
+  padding: "4px 9px",
+  border: "1px solid rgba(134, 239, 172, 0.18)",
+  borderRadius: "999px",
+  color: "var(--dashboard-text-accent)",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const objectivesListStyle = {
+  listStyle: "none",
+  padding: 0,
+  margin: "16px 0 0 0",
+  display: "grid",
+  gap: "12px",
+};
+
+const objectiveItemStyle = {
+  display: "grid",
+  gridTemplateColumns: "80px minmax(0, 1fr) auto",
+  gap: "12px",
+  alignItems: "center",
+  border: "1px solid rgba(134, 239, 172, 0.12)",
+  borderRadius: "8px",
+  padding: "12px",
+  backgroundColor: "rgba(19, 39, 29, 0.72)",
+};
+
+const objectiveCompletedItemStyle = {
+  ...objectiveItemStyle,
+  backgroundColor: "rgba(18, 34, 25, 0.92)",
+};
+
+const objectiveTimeStyle = {
+  color: "var(--dashboard-text-muted)",
+  fontWeight: 700,
+};
+
+const objectiveTextStyle = {
+  color: "var(--dashboard-text-primary)",
+  fontWeight: 700,
+  lineHeight: 1.4,
+};
+
+const objectiveCompletedTextStyle = {
+  ...objectiveTextStyle,
+  color: "var(--dashboard-text-muted)",
+  textDecoration: "line-through",
+};
+
+const objectiveStatusStyle = {
+  width: "fit-content",
+  padding: "4px 9px",
+  border: "1px solid rgba(134, 239, 172, 0.18)",
+  borderRadius: "999px",
+  color: "var(--dashboard-text-accent)",
+  fontSize: "12px",
+  fontWeight: 700,
 };
 
 const formStyle = {
@@ -22,15 +106,17 @@ const formStyle = {
 };
 
 const fieldStyle = {
-  border: "1px solid #e5e7eb",
+  border: "1px solid rgba(134, 239, 172, 0.16)",
   borderRadius: "8px",
   padding: "16px",
+  backgroundColor: "rgba(15, 23, 42, 0.86)",
 };
 
 const labelStyle = {
   display: "block",
   fontWeight: 600,
   marginBottom: "8px",
+  color: "var(--dashboard-text-primary)",
 };
 
 const textareaStyle = {
@@ -45,6 +131,7 @@ const textareaStyle = {
 
 const historySectionStyle = {
   marginTop: "32px",
+  color: "var(--dashboard-text-primary)",
 };
 
 const historyListStyle = {
@@ -71,7 +158,7 @@ const activeHistoryButtonStyle = {
 
 const emptyTextStyle = {
   marginTop: "16px",
-  color: "#6b7280",
+  color: "var(--dashboard-text-muted)",
 };
 
 const consultationTitleStyle = {
@@ -79,12 +166,13 @@ const consultationTitleStyle = {
 };
 
 const consultationBoxStyle = {
-  border: "1px solid #e5e7eb",
+  border: "1px solid rgba(134, 239, 172, 0.16)",
   borderRadius: "8px",
   padding: "16px",
   marginTop: "16px",
   display: "grid",
   gap: "16px",
+  backgroundColor: "rgba(15, 23, 42, 0.86)",
 };
 
 const consultationTextStyle = {
@@ -100,6 +188,20 @@ type TrajectoryState = {
 
 type TrajectoryEntries = Record<string, TrajectoryState>;
 
+type DailyObjective = {
+  id: number;
+  label: string;
+  time: string;
+  completed: boolean;
+};
+
+type SavedDailyObjectives = {
+  date: string;
+  priorities: DailyObjective[];
+};
+
+type DailyObjectivesByDate = Record<string, DailyObjective[]>;
+
 function getInitialTrajectoryState(): TrajectoryState {
   return {
     accomplishedToday: "",
@@ -109,7 +211,12 @@ function getInitialTrajectoryState(): TrajectoryState {
 }
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function isTrajectoryEmpty(trajectory: TrajectoryState) {
@@ -153,7 +260,10 @@ function formatDate(dateKey: string) {
 }
 
 function getEntriesFromLocalStorage(todayKey: string): TrajectoryEntries {
-  const savedTrajectory = getStorage<unknown | null>(STORAGE_KEY, null);
+  const savedTrajectory = getStorage<unknown | null>(
+    TRAJECTORY_STORAGE_KEY,
+    null,
+  );
 
   if (savedTrajectory === null) {
     return {};
@@ -191,31 +301,120 @@ function getEntriesFromLocalStorage(todayKey: string): TrajectoryEntries {
   return cleanedEntries;
 }
 
+function normalizeDailyObjectives(
+  savedObjectives: unknown,
+): SavedDailyObjectives | null {
+  if (typeof savedObjectives !== "object" || savedObjectives === null) {
+    return null;
+  }
+
+  if (!("date" in savedObjectives) || !("priorities" in savedObjectives)) {
+    return null;
+  }
+
+  if (
+    typeof savedObjectives.date !== "string" ||
+    !Array.isArray(savedObjectives.priorities)
+  ) {
+    return null;
+  }
+
+  return {
+    date: savedObjectives.date,
+    priorities: normalizeDailyObjectivesList(savedObjectives.priorities),
+  };
+}
+
+function normalizeDailyObjectivesList(savedObjectives: unknown): DailyObjective[] {
+  if (!Array.isArray(savedObjectives)) {
+    return [];
+  }
+
+  return savedObjectives
+    .flatMap((objective) => {
+      if (
+        typeof objective !== "object" ||
+        objective === null ||
+        !("id" in objective) ||
+        !("label" in objective) ||
+        !("completed" in objective)
+      ) {
+        return [];
+      }
+
+      if (
+        typeof objective.id !== "number" ||
+        typeof objective.label !== "string" ||
+        typeof objective.completed !== "boolean"
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          id: objective.id,
+          label: objective.label,
+          time:
+            "time" in objective && typeof objective.time === "string"
+              ? objective.time
+              : "",
+          completed: objective.completed,
+        },
+      ];
+    })
+    .slice(0, 3);
+}
+
+function normalizeDailyObjectivesByDate(
+  savedObjectives: unknown,
+): DailyObjectivesByDate {
+  const oldSavedObjectives = normalizeDailyObjectives(savedObjectives);
+
+  if (oldSavedObjectives) {
+    return {
+      [oldSavedObjectives.date]: oldSavedObjectives.priorities,
+    };
+  }
+
+  if (typeof savedObjectives !== "object" || savedObjectives === null) {
+    return {};
+  }
+
+  const objectivesByDate: DailyObjectivesByDate = {};
+
+  for (const [dateKey, objectives] of Object.entries(savedObjectives)) {
+    const cleanedObjectives = normalizeDailyObjectivesList(objectives);
+
+    if (cleanedObjectives.length > 0) {
+      objectivesByDate[dateKey] = cleanedObjectives;
+    }
+  }
+
+  return objectivesByDate;
+}
+
+function getTodayObjectivesFromLocalStorage(todayKey: string): DailyObjective[] {
+  const savedObjectives = getStorage<unknown>(
+    DAILY_OBJECTIVES_STORAGE_KEY,
+    {},
+  );
+  const objectivesByDate = normalizeDailyObjectivesByDate(savedObjectives);
+
+  return objectivesByDate[todayKey] ?? [];
+}
+
 export default function TrajectoryReview() {
   const todayKey = useMemo(() => getTodayKey(), []);
   const today = useMemo(() => formatDate(todayKey), [todayKey]);
-  const isClient = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-  const [entries, setEntries] = useState<TrajectoryEntries>(() => {
-    if (typeof window === "undefined") {
-      return {};
-    }
-
-    return getEntriesFromLocalStorage(todayKey);
-  });
-  const [selectedDate, setSelectedDate] = useState(() => {
-    if (typeof window === "undefined") {
-      return todayKey;
-    }
-
-    const savedEntries = getEntriesFromLocalStorage(todayKey);
-    return Object.keys(savedEntries).sort((a, b) => b.localeCompare(a))[0] ?? todayKey;
-  });
+  const [entries, setEntries] = useState<TrajectoryEntries>({});
+  const [dailyObjectives, setDailyObjectives] = useState<DailyObjective[]>([]);
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [isStorageLoaded, setIsStorageLoaded] = useState(false);
 
   const todayEntry = entries[todayKey] ?? getInitialTrajectoryState();
+  const completedObjectivesCount = dailyObjectives.filter(
+    (objective) => objective.completed,
+  ).length;
 
   const savedDates = Object.keys(entries).sort((a, b) => b.localeCompare(a));
   const consultationDate = savedDates.includes(selectedDate)
@@ -224,12 +423,24 @@ export default function TrajectoryReview() {
   const consultationEntry = entries[consultationDate] ?? getInitialTrajectoryState();
 
   useEffect(() => {
-    if (!isClient) {
+    const savedEntries = getEntriesFromLocalStorage(todayKey);
+    const latestSavedDate =
+      Object.keys(savedEntries).sort((a, b) => b.localeCompare(a))[0] ??
+      todayKey;
+
+    setEntries(savedEntries);
+    setSelectedDate(latestSavedDate);
+    setDailyObjectives(getTodayObjectivesFromLocalStorage(todayKey));
+    setIsStorageLoaded(true);
+  }, [todayKey]);
+
+  useEffect(() => {
+    if (!isStorageLoaded) {
       return;
     }
 
-    setStorage(STORAGE_KEY, entries);
-  }, [entries, isClient]);
+    setStorage(TRAJECTORY_STORAGE_KEY, entries);
+  }, [entries, isStorageLoaded]);
 
   function handleFieldChange(fieldName: keyof TrajectoryState, value: string) {
     setEntries((currentEntries) => {
@@ -256,6 +467,54 @@ export default function TrajectoryReview() {
   return (
     <section style={sectionStyle}>
       <p style={dateStyle}>Aujourd&apos;hui : {today}</p>
+
+      <section style={objectivesSectionStyle}>
+        <div style={objectivesHeaderStyle}>
+          <h2 style={objectivesTitleStyle}>Objectifs du jour</h2>
+          {isStorageLoaded ? (
+            <span style={objectiveCounterStyle}>
+              {completedObjectivesCount}/{dailyObjectives.length} faits
+            </span>
+          ) : null}
+        </div>
+
+        {!isStorageLoaded ? (
+          <p style={emptyTextStyle}>Chargement des objectifs du jour...</p>
+        ) : dailyObjectives.length === 0 ? (
+          <p style={emptyTextStyle}>
+            Aucun objectif du jour enregistre pour aujourd&apos;hui.
+          </p>
+        ) : (
+          <ul style={objectivesListStyle}>
+            {dailyObjectives.map((objective) => (
+              <li
+                key={objective.id}
+                style={
+                  objective.completed
+                    ? objectiveCompletedItemStyle
+                    : objectiveItemStyle
+                }
+              >
+                <span style={objectiveTimeStyle}>
+                  {objective.time || "Sans heure"}
+                </span>
+                <span
+                  style={
+                    objective.completed
+                      ? objectiveCompletedTextStyle
+                      : objectiveTextStyle
+                  }
+                >
+                  {objective.label}
+                </span>
+                <span style={objectiveStatusStyle}>
+                  {objective.completed ? "Fait" : "Non fait"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div style={formStyle}>
         <div style={fieldStyle}>
@@ -302,7 +561,7 @@ export default function TrajectoryReview() {
       <section style={historySectionStyle}>
         <h2>Derniers jours enregistres</h2>
 
-        {!isClient ? (
+        {!isStorageLoaded ? (
           <p style={emptyTextStyle}>Chargement des jours enregistres...</p>
         ) : savedDates.length === 0 ? (
           <p style={emptyTextStyle}>Aucune journee enregistree pour le moment.</p>
@@ -331,7 +590,7 @@ export default function TrajectoryReview() {
           </ul>
         )}
 
-        {isClient && savedDates.length > 0 && (
+        {isStorageLoaded && savedDates.length > 0 && (
           <>
             <h3 style={consultationTitleStyle}>Consultation du {formatDate(consultationDate)}</h3>
 
