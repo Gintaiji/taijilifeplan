@@ -37,6 +37,7 @@ const links = [
   { href: "/habitudes", label: "Habitudes" },
   { href: "/planning", label: "Planning" },
   { href: "/trajectoire", label: "Correcteur de trajectoire" },
+  { href: "/bilan", label: "Bilan" },
 ];
 
 export default function MainNavigation() {
