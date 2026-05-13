@@ -119,6 +119,25 @@ const labelStyle = {
   color: "var(--dashboard-text-primary)",
 };
 
+const fieldHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap" as const,
+  marginBottom: "8px",
+};
+
+const fieldHeaderLabelStyle = {
+  ...labelStyle,
+  marginBottom: 0,
+};
+
+const prefillButtonStyle = {
+  fontSize: "14px",
+  padding: "8px 12px",
+};
+
 const textareaStyle = {
   width: "100%",
   minHeight: "140px",
@@ -188,6 +207,8 @@ type TrajectoryState = {
 
 type TrajectoryEntries = Record<string, TrajectoryState>;
 
+type PrefillFieldName = "accomplishedToday" | "notDoneToday";
+
 type DailyObjective = {
   id: number;
   label: string;
@@ -225,6 +246,24 @@ function isTrajectoryEmpty(trajectory: TrajectoryState) {
     trajectory.notDoneToday.trim() === "" &&
     trajectory.decideForTomorrow.trim() === ""
   );
+}
+
+function formatObjectiveForReview(objective: DailyObjective) {
+  const cleanLabel = objective.label.trim();
+
+  if (objective.time.trim() === "") {
+    return `- ${cleanLabel}`;
+  }
+
+  return `- ${objective.time} - ${cleanLabel}`;
+}
+
+function appendTextToField(currentText: string, textToAdd: string) {
+  if (currentText.trim() === "") {
+    return textToAdd;
+  }
+
+  return `${currentText.trimEnd()}\n\n${textToAdd}`;
 }
 
 function normalizeTrajectoryEntry(savedEntry: unknown): TrajectoryState {
@@ -412,9 +451,13 @@ export default function TrajectoryReview() {
   const [isStorageLoaded, setIsStorageLoaded] = useState(false);
 
   const todayEntry = entries[todayKey] ?? getInitialTrajectoryState();
-  const completedObjectivesCount = dailyObjectives.filter(
+  const completedObjectives = dailyObjectives.filter(
     (objective) => objective.completed,
-  ).length;
+  );
+  const unfinishedObjectives = dailyObjectives.filter(
+    (objective) => !objective.completed,
+  );
+  const completedObjectivesCount = completedObjectives.length;
 
   const savedDates = Object.keys(entries).sort((a, b) => b.localeCompare(a));
   const consultationDate = savedDates.includes(selectedDate)
@@ -423,15 +466,27 @@ export default function TrajectoryReview() {
   const consultationEntry = entries[consultationDate] ?? getInitialTrajectoryState();
 
   useEffect(() => {
-    const savedEntries = getEntriesFromLocalStorage(todayKey);
-    const latestSavedDate =
-      Object.keys(savedEntries).sort((a, b) => b.localeCompare(a))[0] ??
-      todayKey;
+    let shouldUpdateState = true;
 
-    setEntries(savedEntries);
-    setSelectedDate(latestSavedDate);
-    setDailyObjectives(getTodayObjectivesFromLocalStorage(todayKey));
-    setIsStorageLoaded(true);
+    queueMicrotask(() => {
+      if (!shouldUpdateState) {
+        return;
+      }
+
+      const savedEntries = getEntriesFromLocalStorage(todayKey);
+      const latestSavedDate =
+        Object.keys(savedEntries).sort((a, b) => b.localeCompare(a))[0] ??
+        todayKey;
+
+      setEntries(savedEntries);
+      setSelectedDate(latestSavedDate);
+      setDailyObjectives(getTodayObjectivesFromLocalStorage(todayKey));
+      setIsStorageLoaded(true);
+    });
+
+    return () => {
+      shouldUpdateState = false;
+    };
   }, [todayKey]);
 
   useEffect(() => {
@@ -462,6 +517,24 @@ export default function TrajectoryReview() {
     });
 
     setSelectedDate(todayKey);
+  }
+
+  function handlePrefillField(
+    fieldName: PrefillFieldName,
+    objectivesToAdd: DailyObjective[],
+  ) {
+    const prefilledText = objectivesToAdd
+      .map(formatObjectiveForReview)
+      .join("\n");
+
+    if (prefilledText === "") {
+      return;
+    }
+
+    handleFieldChange(
+      fieldName,
+      appendTextToField(todayEntry[fieldName], prefilledText),
+    );
   }
 
   return (
@@ -518,9 +591,22 @@ export default function TrajectoryReview() {
 
       <div style={formStyle}>
         <div style={fieldStyle}>
-          <label htmlFor="accomplishedToday" style={labelStyle}>
-            Ce que j&apos;ai accompli aujourd&apos;hui
-          </label>
+          <div style={fieldHeaderStyle}>
+            <label htmlFor="accomplishedToday" style={fieldHeaderLabelStyle}>
+              Ce que j&apos;ai accompli aujourd&apos;hui
+            </label>
+            <button
+              type="button"
+              className="control-button"
+              style={prefillButtonStyle}
+              disabled={!isStorageLoaded || completedObjectives.length === 0}
+              onClick={() =>
+                handlePrefillField("accomplishedToday", completedObjectives)
+              }
+            >
+              Pr&eacute;remplir les accomplissements
+            </button>
+          </div>
           <textarea
             id="accomplishedToday"
             style={textareaStyle}
@@ -532,9 +618,22 @@ export default function TrajectoryReview() {
         </div>
 
         <div style={fieldStyle}>
-          <label htmlFor="notDoneToday" style={labelStyle}>
-            Ce que je n&apos;ai pas fait
-          </label>
+          <div style={fieldHeaderStyle}>
+            <label htmlFor="notDoneToday" style={fieldHeaderLabelStyle}>
+              Ce que je n&apos;ai pas fait
+            </label>
+            <button
+              type="button"
+              className="control-button"
+              style={prefillButtonStyle}
+              disabled={!isStorageLoaded || unfinishedObjectives.length === 0}
+              onClick={() =>
+                handlePrefillField("notDoneToday", unfinishedObjectives)
+              }
+            >
+              Pr&eacute;remplir les non faits
+            </button>
+          </div>
           <textarea
             id="notDoneToday"
             style={textareaStyle}
