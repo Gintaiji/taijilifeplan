@@ -35,6 +35,7 @@ type Goal = {
 type PlannedTask = {
   id: number;
   day: string;
+  date?: string;
   time: string;
   label: string;
   completed: boolean;
@@ -283,6 +284,10 @@ function normalizeTasks(savedTasks: unknown): PlannedTask[] {
       {
         id: task.id,
         day: task.day,
+        date:
+          "date" in task && typeof task.date === "string"
+            ? task.date
+            : undefined,
         time: task.time,
         label: task.label,
         completed:
@@ -433,6 +438,14 @@ function getTodayDayName() {
   });
 
   return todayName.charAt(0).toUpperCase() + todayName.slice(1);
+}
+
+function isTaskPlannedForToday(task: PlannedTask, todayKey: string) {
+  if (task.date !== undefined && task.date.trim() !== "") {
+    return task.date === todayKey;
+  }
+
+  return getDayOrder(task.day) === getTodayDayOrder();
 }
 
 function getRatio(completed: number, total: number) {
@@ -748,13 +761,17 @@ function getDashboardFromLocalStorage(): DashboardState {
     getCompletedDailyObjectivesCount(dailyObjectives);
   const dailyObjectivesTotal = dailyObjectives.length;
 
-  const planningCompleted = tasks.filter((task) => task.completed).length;
+  const todayKey = getTodayKey();
+  const todayPlanningTasks = tasks.filter((task) =>
+    isTaskPlannedForToday(task, todayKey),
+  );
+  const planningCompleted = todayPlanningTasks.filter((task) => task.completed)
+    .length;
   const nextTasks = sortPlanningTasks(tasks).slice(0, 3);
 
   const savedTrajectoryDates = Object.keys(trajectoryEntries).sort((a, b) =>
     b.localeCompare(a),
   );
-  const todayKey = getTodayKey();
   const hasTodayTrajectoryEntry = todayKey in trajectoryEntries;
 
   const habitsRatio = getRatio(habitsCompleted, habitsTotal);
@@ -762,7 +779,10 @@ function getDashboardFromLocalStorage(): DashboardState {
     dailyObjectivesCompleted,
     dailyObjectivesTotal,
   );
-  const planningRatio = getRatio(planningCompleted, tasks.length);
+  const planningRatio =
+    todayPlanningTasks.length === 0
+      ? 1
+      : getRatio(planningCompleted, todayPlanningTasks.length);
   const trajectoryRatio = hasTodayTrajectoryEntry ? 1 : 0;
   const globalProgressScore = Math.round(
     ((habitsRatio + dailyObjectivesRatio + planningRatio + trajectoryRatio) /
@@ -778,7 +798,7 @@ function getDashboardFromLocalStorage(): DashboardState {
     goalsCompleted,
     goalsTotal,
     planningCompleted,
-    planningTotal: tasks.length,
+    planningTotal: todayPlanningTasks.length,
     nextTasks,
     lastTrajectoryDate: savedTrajectoryDates[0] ?? null,
     hasTodayTrajectoryEntry,
@@ -1431,7 +1451,7 @@ export default function HomePage() {
                   <span className={styles.progressDetailValue}>
                     {dashboard.planningTotal > 0
                       ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites`
-                      : "aucune tache planifiee"}
+                      : "aucune tache prevue aujourd'hui"}
                   </span>
                 </li>
                 <li className={styles.progressDetailItem}>
@@ -1508,7 +1528,9 @@ export default function HomePage() {
               <h2 className={styles.cardTitle}>Planning</h2>
               <p className={styles.cardText}>
                 {isClient
-                  ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites.`
+                  ? dashboard.planningTotal > 0
+                    ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites aujourd'hui.`
+                    : "Aucune tache prevue aujourd'hui."
                   : "Chargement du planning..."}
               </p>
             </div>
