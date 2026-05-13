@@ -180,6 +180,12 @@ const emptyTextStyle = {
   color: "var(--dashboard-text-muted)",
 };
 
+const helperTextStyle = {
+  margin: "10px 0 0 0",
+  color: "var(--dashboard-text-muted)",
+  fontSize: "14px",
+};
+
 const consultationTitleStyle = {
   margin: "24px 0 0 0",
 };
@@ -236,6 +242,18 @@ function getTodayKey() {
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getDateKeyWithDayOffset(dateKey: string, dayOffset: number) {
+  const date = new Date(`${dateKey}T12:00:00`);
+
+  date.setDate(date.getDate() + dayOffset);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -442,13 +460,48 @@ function getTodayObjectivesFromLocalStorage(todayKey: string): DailyObjective[] 
   return objectivesByDate[todayKey] ?? [];
 }
 
+function getDailyObjectivesByDateFromLocalStorage(): DailyObjectivesByDate {
+  const savedObjectives = getStorage<unknown>(
+    DAILY_OBJECTIVES_STORAGE_KEY,
+    {},
+  );
+
+  return normalizeDailyObjectivesByDate(savedObjectives);
+}
+
+function getNextDailyObjectiveId(objectives: DailyObjective[]) {
+  if (objectives.length === 0) {
+    return 1;
+  }
+
+  return (
+    objectives.reduce(
+      (highestId, objective) => Math.max(highestId, objective.id),
+      0,
+    ) + 1
+  );
+}
+
+function getTomorrowObjectiveLines(decideForTomorrow: string) {
+  return decideForTomorrow
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+}
+
 export default function TrajectoryReview() {
   const todayKey = useMemo(() => getTodayKey(), []);
+  const tomorrowKey = useMemo(
+    () => getDateKeyWithDayOffset(todayKey, 1),
+    [todayKey],
+  );
   const today = useMemo(() => formatDate(todayKey), [todayKey]);
   const [entries, setEntries] = useState<TrajectoryEntries>({});
   const [dailyObjectives, setDailyObjectives] = useState<DailyObjective[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [isStorageLoaded, setIsStorageLoaded] = useState(false);
+  const [tomorrowPreparationMessage, setTomorrowPreparationMessage] =
+    useState("");
 
   const todayEntry = entries[todayKey] ?? getInitialTrajectoryState();
   const completedObjectives = dailyObjectives.filter(
@@ -534,6 +587,78 @@ export default function TrajectoryReview() {
     handleFieldChange(
       fieldName,
       appendTextToField(todayEntry[fieldName], prefilledText),
+    );
+  }
+
+  function handlePrepareTomorrowObjectives() {
+    const lines = getTomorrowObjectiveLines(todayEntry.decideForTomorrow);
+    const linesToPrepare = lines.slice(0, 3);
+
+    if (lines.length === 0) {
+      setTomorrowPreparationMessage(
+        "Ajoute au moins une ligne dans ce champ pour preparer demain.",
+      );
+      return;
+    }
+
+    const objectivesByDate = getDailyObjectivesByDateFromLocalStorage();
+    const tomorrowObjectives = objectivesByDate[tomorrowKey] ?? [];
+
+    if (tomorrowObjectives.length >= 3) {
+      setTomorrowPreparationMessage(
+        "Demain a deja 3 objectifs. Aucun objectif n'a ete ajoute.",
+      );
+      return;
+    }
+
+    const objectiveLabels = new Set(
+      tomorrowObjectives.map((objective) => objective.label),
+    );
+    const newObjectives: DailyObjective[] = [];
+    let nextId = getNextDailyObjectiveId(tomorrowObjectives);
+
+    for (const line of linesToPrepare) {
+      if (tomorrowObjectives.length + newObjectives.length >= 3) {
+        break;
+      }
+
+      if (objectiveLabels.has(line)) {
+        continue;
+      }
+
+      objectiveLabels.add(line);
+      newObjectives.push({
+        id: nextId,
+        label: line,
+        time: "",
+        completed: false,
+      });
+      nextId += 1;
+    }
+
+    if (newObjectives.length === 0) {
+      setTomorrowPreparationMessage(
+        "Aucun nouvel objectif ajoute : doublons ou limite de 3 deja atteinte.",
+      );
+      return;
+    }
+
+    const updatedTomorrowObjectives = [
+      ...tomorrowObjectives,
+      ...newObjectives,
+    ].slice(0, 3);
+
+    objectivesByDate[tomorrowKey] = updatedTomorrowObjectives;
+    setStorage(DAILY_OBJECTIVES_STORAGE_KEY, objectivesByDate);
+
+    const skippedLinesCount = lines.length - newObjectives.length;
+    const limitMessage =
+      skippedLinesCount > 0
+        ? " Certaines lignes n'ont pas ete ajoutees (doublon ou limite de 3)."
+        : "";
+
+    setTomorrowPreparationMessage(
+      `${newObjectives.length} objectif(s) prepare(s) pour demain.${limitMessage}`,
     );
   }
 
@@ -643,17 +768,34 @@ export default function TrajectoryReview() {
         </div>
 
         <div style={fieldStyle}>
-          <label htmlFor="decideForTomorrow" style={labelStyle}>
-            Ce que je decide pour demain
-          </label>
+          <div style={fieldHeaderStyle}>
+            <label htmlFor="decideForTomorrow" style={fieldHeaderLabelStyle}>
+              Ce que je decide pour demain
+            </label>
+            <button
+              type="button"
+              className="control-button"
+              style={prefillButtonStyle}
+              disabled={
+                !isStorageLoaded || todayEntry.decideForTomorrow.trim() === ""
+              }
+              onClick={handlePrepareTomorrowObjectives}
+            >
+              Pr&eacute;parer les objectifs de demain
+            </button>
+          </div>
           <textarea
             id="decideForTomorrow"
             style={textareaStyle}
             value={todayEntry.decideForTomorrow}
-            onChange={(event) =>
-              handleFieldChange("decideForTomorrow", event.target.value)
-            }
+            onChange={(event) => {
+              setTomorrowPreparationMessage("");
+              handleFieldChange("decideForTomorrow", event.target.value);
+            }}
           />
+          {tomorrowPreparationMessage !== "" ? (
+            <p style={helperTextStyle}>{tomorrowPreparationMessage}</p>
+          ) : null}
         </div>
       </div>
 
