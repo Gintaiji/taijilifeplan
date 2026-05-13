@@ -72,6 +72,18 @@ const objectiveCompletedItemStyle = {
   backgroundColor: "rgba(18, 34, 25, 0.92)",
 };
 
+const tomorrowObjectiveItemStyle = {
+  ...objectiveItemStyle,
+  display: "flex",
+  flexWrap: "wrap" as const,
+  justifyContent: "space-between",
+};
+
+const tomorrowObjectiveTextStyle = {
+  flex: "1 1 180px",
+  minWidth: 0,
+};
+
 const objectiveTimeStyle = {
   color: "var(--dashboard-text-muted)",
   fontWeight: 700,
@@ -97,6 +109,14 @@ const objectiveStatusStyle = {
   color: "var(--dashboard-text-accent)",
   fontSize: "12px",
   fontWeight: 700,
+};
+
+const timeInputStyle = {
+  width: "130px",
+  padding: "10px 12px",
+  border: "1px solid rgba(134, 239, 172, 0.15)",
+  borderRadius: "8px",
+  font: "inherit",
 };
 
 const formStyle = {
@@ -276,12 +296,30 @@ function formatObjectiveForReview(objective: DailyObjective) {
   return `- ${objective.time} - ${cleanLabel}`;
 }
 
-function appendTextToField(currentText: string, textToAdd: string) {
-  if (currentText.trim() === "") {
-    return textToAdd;
+function getFilledLines(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+}
+
+function appendMissingLinesToField(currentText: string, linesToAdd: string[]) {
+  const existingLines = new Set(getFilledLines(currentText));
+  const missingLines = linesToAdd.filter(
+    (line) => !existingLines.has(line.trim()),
+  );
+
+  if (missingLines.length === 0) {
+    return currentText;
   }
 
-  return `${currentText.trimEnd()}\n\n${textToAdd}`;
+  const missingText = missingLines.join("\n");
+
+  if (currentText.trim() === "") {
+    return missingText;
+  }
+
+  return `${currentText.trimEnd()}\n\n${missingText}`;
 }
 
 function normalizeTrajectoryEntry(savedEntry: unknown): TrajectoryState {
@@ -460,6 +498,12 @@ function getTodayObjectivesFromLocalStorage(todayKey: string): DailyObjective[] 
   return objectivesByDate[todayKey] ?? [];
 }
 
+function getObjectivesForDateFromLocalStorage(dateKey: string): DailyObjective[] {
+  const objectivesByDate = getDailyObjectivesByDateFromLocalStorage();
+
+  return objectivesByDate[dateKey] ?? [];
+}
+
 function getDailyObjectivesByDateFromLocalStorage(): DailyObjectivesByDate {
   const savedObjectives = getStorage<unknown>(
     DAILY_OBJECTIVES_STORAGE_KEY,
@@ -498,6 +542,9 @@ export default function TrajectoryReview() {
   const today = useMemo(() => formatDate(todayKey), [todayKey]);
   const [entries, setEntries] = useState<TrajectoryEntries>({});
   const [dailyObjectives, setDailyObjectives] = useState<DailyObjective[]>([]);
+  const [tomorrowObjectives, setTomorrowObjectives] = useState<
+    DailyObjective[]
+  >([]);
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [isStorageLoaded, setIsStorageLoaded] = useState(false);
   const [tomorrowPreparationMessage, setTomorrowPreparationMessage] =
@@ -534,13 +581,14 @@ export default function TrajectoryReview() {
       setEntries(savedEntries);
       setSelectedDate(latestSavedDate);
       setDailyObjectives(getTodayObjectivesFromLocalStorage(todayKey));
+      setTomorrowObjectives(getObjectivesForDateFromLocalStorage(tomorrowKey));
       setIsStorageLoaded(true);
     });
 
     return () => {
       shouldUpdateState = false;
     };
-  }, [todayKey]);
+  }, [todayKey, tomorrowKey]);
 
   useEffect(() => {
     if (!isStorageLoaded) {
@@ -576,18 +624,36 @@ export default function TrajectoryReview() {
     fieldName: PrefillFieldName,
     objectivesToAdd: DailyObjective[],
   ) {
-    const prefilledText = objectivesToAdd
-      .map(formatObjectiveForReview)
-      .join("\n");
+    const prefilledLines = objectivesToAdd.map(formatObjectiveForReview);
 
-    if (prefilledText === "") {
+    if (prefilledLines.length === 0) {
       return;
     }
 
-    handleFieldChange(
-      fieldName,
-      appendTextToField(todayEntry[fieldName], prefilledText),
+    const nextFieldValue = appendMissingLinesToField(
+      todayEntry[fieldName],
+      prefilledLines,
     );
+
+    if (nextFieldValue === todayEntry[fieldName]) {
+      return;
+    }
+
+    handleFieldChange(fieldName, nextFieldValue);
+  }
+
+  function saveTomorrowObjectives(nextTomorrowObjectives: DailyObjective[]) {
+    const objectivesByDate = getDailyObjectivesByDateFromLocalStorage();
+    const limitedObjectives = nextTomorrowObjectives.slice(0, 3);
+
+    if (limitedObjectives.length === 0) {
+      delete objectivesByDate[tomorrowKey];
+    } else {
+      objectivesByDate[tomorrowKey] = limitedObjectives;
+    }
+
+    setStorage(DAILY_OBJECTIVES_STORAGE_KEY, objectivesByDate);
+    setTomorrowObjectives(limitedObjectives);
   }
 
   function handlePrepareTomorrowObjectives() {
@@ -650,6 +716,7 @@ export default function TrajectoryReview() {
 
     objectivesByDate[tomorrowKey] = updatedTomorrowObjectives;
     setStorage(DAILY_OBJECTIVES_STORAGE_KEY, objectivesByDate);
+    setTomorrowObjectives(updatedTomorrowObjectives);
 
     const skippedLinesCount = lines.length - newObjectives.length;
     const limitMessage =
@@ -660,6 +727,36 @@ export default function TrajectoryReview() {
     setTomorrowPreparationMessage(
       `${newObjectives.length} objectif(s) prepare(s) pour demain.${limitMessage}`,
     );
+  }
+
+  function handleTomorrowObjectiveTimeChange(
+    objectiveId: number,
+    nextTime: string,
+  ) {
+    const updatedTomorrowObjectives = tomorrowObjectives.map((objective) =>
+      objective.id === objectiveId
+        ? {
+            ...objective,
+            time: nextTime,
+          }
+        : objective,
+    );
+
+    saveTomorrowObjectives(updatedTomorrowObjectives);
+  }
+
+  function handleDeleteTomorrowObjective(objectiveId: number) {
+    const confirmed = window.confirm("Supprimer cet objectif de demain ?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    const updatedTomorrowObjectives = tomorrowObjectives.filter(
+      (objective) => objective.id !== objectiveId,
+    );
+
+    saveTomorrowObjectives(updatedTomorrowObjectives);
   }
 
   return (
@@ -708,6 +805,73 @@ export default function TrajectoryReview() {
                 <span style={objectiveStatusStyle}>
                   {objective.completed ? "Fait" : "Non fait"}
                 </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section style={objectivesSectionStyle}>
+        <div style={objectivesHeaderStyle}>
+          <div>
+            <h2 style={objectivesTitleStyle}>Objectifs de demain</h2>
+            <p style={dateStyle}>{formatDate(tomorrowKey)}</p>
+          </div>
+          {isStorageLoaded ? (
+            <span style={objectiveCounterStyle}>
+              {tomorrowObjectives.length}/3 prevus
+            </span>
+          ) : null}
+        </div>
+
+        {!isStorageLoaded ? (
+          <p style={emptyTextStyle}>Chargement des objectifs de demain...</p>
+        ) : tomorrowObjectives.length === 0 ? (
+          <p style={emptyTextStyle}>
+            Aucun objectif de demain prepare pour le moment.
+          </p>
+        ) : (
+          <ul style={objectivesListStyle}>
+            {tomorrowObjectives.map((objective) => (
+              <li key={objective.id} style={tomorrowObjectiveItemStyle}>
+                <input
+                  type="time"
+                  value={objective.time}
+                  onChange={(event) =>
+                    handleTomorrowObjectiveTimeChange(
+                      objective.id,
+                      event.target.value,
+                    )
+                  }
+                  aria-label={`Heure prevue pour ${objective.label}`}
+                  style={timeInputStyle}
+                />
+                <span
+                  style={
+                    objective.completed
+                      ? {
+                          ...objectiveCompletedTextStyle,
+                          ...tomorrowObjectiveTextStyle,
+                        }
+                      : {
+                          ...objectiveTextStyle,
+                          ...tomorrowObjectiveTextStyle,
+                        }
+                  }
+                >
+                  {objective.label}
+                </span>
+                <span style={objectiveStatusStyle}>
+                  {objective.completed ? "Fait" : "Non fait"}
+                </span>
+                <button
+                  type="button"
+                  className="control-button"
+                  style={prefillButtonStyle}
+                  onClick={() => handleDeleteTomorrowObjective(objective.id)}
+                >
+                  Supprimer
+                </button>
               </li>
             ))}
           </ul>
