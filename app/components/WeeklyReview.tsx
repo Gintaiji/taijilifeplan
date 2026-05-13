@@ -11,6 +11,7 @@ const sectionStyle = {
   gap: "20px",
   marginTop: "24px",
   maxWidth: "960px",
+  width: "100%",
 };
 
 const cardStyle = {
@@ -22,7 +23,7 @@ const cardStyle = {
 
 const gridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(180px, 100%), 1fr))",
   gap: "14px",
 };
 
@@ -74,11 +75,13 @@ const listItemStyle = {
   borderRadius: "8px",
   padding: "12px",
   backgroundColor: "rgba(19, 39, 29, 0.72)",
+  minWidth: 0,
 };
 
 const scoreStyle = {
   color: "var(--dashboard-text-accent)",
   fontWeight: 800,
+  flex: "0 0 auto",
 };
 
 const controlsStyle = {

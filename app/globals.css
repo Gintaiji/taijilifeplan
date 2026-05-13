@@ -32,6 +32,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -68,6 +87,8 @@ body {
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
+  max-width: 100%;
+  min-width: 0;
   background: var(--field-background);
   color: var(--field-foreground);
   border-color: var(--field-border);
@@ -87,9 +108,11 @@ select:focus {
 }
 
 .control-button {
+  max-width: 100%;
   background: var(--control-button-background);
   color: var(--control-button-foreground);
   border: 1px solid var(--control-button-border);
+  white-space: normal;
 }
 
 .control-button:hover {
@@ -105,4 +128,17 @@ select:focus {
   background: var(--control-button-background-active);
   color: var(--control-button-foreground);
   border: 1px solid var(--control-button-border);
+}
+
+@media (max-width: 640px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }

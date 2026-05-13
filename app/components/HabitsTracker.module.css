@@ -1,5 +1,8 @@
 .section {
   margin-top: 24px;
+  width: min(860px, 100%);
+  margin-left: auto;
+  margin-right: auto;
   border: 1px solid rgba(34, 197, 94, 0.2);
   border-radius: 22px;
   padding: 22px;
@@ -86,6 +89,7 @@
   border: 1px solid rgba(134, 239, 172, 0.12);
   border-radius: 18px;
   background: rgba(19, 39, 29, 0.72);
+  min-width: 0;
 }
 
 .label {
@@ -108,6 +112,7 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  max-width: 100%;
 }
 
 .editForm {
@@ -161,6 +166,10 @@
 
   .actions .button {
     flex: 1 1 140px;
+  }
+
+  .button {
+    width: 100%;
   }
 
   .editForm {

@@ -24,17 +24,22 @@ type SubGoal = {
 };
 
 const pageStyle = {
-  padding: "24px",
+  minHeight: "100vh",
+  padding: "clamp(16px, 5vw, 24px)",
+  background: "linear-gradient(180deg, #08110d 0%, #0a0a0a 100%)",
+  color: "var(--dashboard-text-primary)",
 };
 
 const sectionStyle = {
   marginTop: "24px",
   maxWidth: "720px",
+  width: "100%",
 };
 
 const introStyle = {
   marginTop: "8px",
-  color: "#4b5563",
+  color: "var(--dashboard-text-secondary)",
+  lineHeight: 1.6,
 };
 
 const formStyle = {
@@ -42,8 +47,9 @@ const formStyle = {
   gap: "16px",
   marginTop: "24px",
   padding: "16px",
-  border: "1px solid #e5e7eb",
+  border: "1px solid rgba(134, 239, 172, 0.18)",
   borderRadius: "8px",
+  backgroundColor: "rgba(15, 23, 42, 0.86)",
 };
 
 const fieldGroupStyle = {
@@ -53,12 +59,14 @@ const fieldGroupStyle = {
 
 const labelStyle = {
   fontWeight: 600,
+  color: "var(--dashboard-text-primary)",
 };
 
 const inputStyle = {
   width: "100%",
+  minWidth: 0,
   padding: "10px 12px",
-  border: "1px solid #d1d5db",
+  border: "1px solid rgba(134, 239, 172, 0.18)",
   borderRadius: "8px",
   font: "inherit",
 };
@@ -68,7 +76,7 @@ const selectStyle = {
 };
 
 const addButtonStyle = {
-  width: "fit-content",
+  width: "min(100%, fit-content)",
   borderRadius: "8px",
   padding: "10px 14px",
   cursor: "pointer",
@@ -86,14 +94,16 @@ const listStyle = {
 const itemStyle = {
   display: "grid",
   gap: "12px",
-  border: "1px solid #e5e7eb",
+  minWidth: 0,
+  border: "1px solid rgba(134, 239, 172, 0.16)",
   borderRadius: "8px",
   padding: "16px",
+  backgroundColor: "rgba(19, 39, 29, 0.72)",
 };
 
 const itemCompletedStyle = {
   ...itemStyle,
-  backgroundColor: "#f9fafb",
+  backgroundColor: "rgba(18, 34, 25, 0.92)",
 };
 
 const goalTextStyle = {
@@ -112,20 +122,22 @@ const goalHeaderStyle = {
 
 const goalTitleStyle = {
   fontWeight: 600,
+  color: "var(--dashboard-text-primary)",
+  overflowWrap: "anywhere" as const,
 };
 
 const goalTitleCompletedStyle = {
   ...goalTitleStyle,
   textDecoration: "line-through",
-  color: "#6b7280",
+  color: "var(--dashboard-text-muted)",
 };
 
 const periodBadgeStyle = {
   width: "fit-content",
   padding: "4px 10px",
   borderRadius: "999px",
-  backgroundColor: "#e5e7eb",
-  color: "#1f2937",
+  backgroundColor: "rgba(20, 83, 45, 0.45)",
+  color: "var(--dashboard-text-accent)",
   fontSize: "14px",
 };
 
@@ -140,6 +152,7 @@ const actionsStyle = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap" as const,
+  maxWidth: "100%",
 };
 
 const editFormStyle = {
@@ -149,7 +162,7 @@ const editFormStyle = {
 
 const editFieldsStyle = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) minmax(160px, 220px)",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(180px, 100%), 1fr))",
   gap: "10px",
 };
 
@@ -159,7 +172,7 @@ const periodSectionTitleStyle = {
 
 const emptyTextStyle = {
   marginTop: "24px",
-  color: "#6b7280",
+  color: "var(--dashboard-text-muted)",
 };
 
 const subGoalsAreaStyle = {
@@ -171,7 +184,7 @@ const subGoalsAreaStyle = {
 
 const subGoalFormStyle = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))",
   gap: "8px",
 };
 
@@ -239,6 +252,8 @@ const subGoalTextStyle = {
   alignItems: "center",
   gap: "8px",
   flex: "1 1 220px",
+  minWidth: 0,
+  overflowWrap: "anywhere" as const,
 };
 
 const subGoalTitleCompletedStyle = {

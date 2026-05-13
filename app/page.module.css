@@ -50,6 +50,7 @@
 }
 
 .card {
+  min-width: 0;
   border: 1px solid rgba(34, 197, 94, 0.2);
   border-radius: 22px;
   padding: 22px;
@@ -98,6 +99,7 @@
   align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .cardTitle {
@@ -105,6 +107,7 @@
   color: var(--dashboard-text-primary);
   font-size: 1.2rem;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .cardText {
@@ -143,7 +146,7 @@
 
 .inputRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px auto;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 150px) auto;
   gap: 10px;
   align-items: start;
 }
@@ -218,6 +221,7 @@
 .actionItem,
 .historyItem {
   padding: 16px;
+  min-width: 0;
 }
 
 .historyItem {
@@ -361,6 +365,7 @@
   color: var(--dashboard-text-primary);
   font-size: 1rem;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .itemMeta {
@@ -388,7 +393,7 @@
 
 .scheduleControls {
   display: grid;
-  grid-template-columns: minmax(110px, 1fr) minmax(110px, 1fr) auto;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: 10px;
   align-items: end;
 }
@@ -634,12 +639,12 @@
 
 @media (max-width: 640px) {
   .page {
-    padding: 20px 14px 40px;
+    padding: 18px 12px 40px;
   }
 
   .hero,
   .card {
-    padding: 18px;
+    padding: 16px;
     border-radius: 18px;
   }
 
@@ -662,6 +667,14 @@
 
   .scheduleControls {
     grid-template-columns: 1fr;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .actions {
+    width: 100%;
   }
 
   .scheduleButton {

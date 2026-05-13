@@ -25,7 +25,7 @@ type PlannedTask = {
 
 const pageStyle = {
   minHeight: "100vh",
-  padding: "24px",
+  padding: "clamp(16px, 5vw, 24px)",
   background:
     "linear-gradient(180deg, #08110d 0%, #0a0a0a 100%)",
   color: "#f0fdf4",
@@ -34,6 +34,7 @@ const pageStyle = {
 const sectionStyle = {
   marginTop: "24px",
   maxWidth: "720px",
+  width: "100%",
 };
 
 const planningSectionStyle = {
@@ -43,6 +44,7 @@ const planningSectionStyle = {
 const introStyle = {
   marginTop: "8px",
   color: "#bbf7d0",
+  lineHeight: 1.6,
 };
 
 const formStyle = {
@@ -67,6 +69,7 @@ const labelStyle = {
 
 const inputStyle = {
   width: "100%",
+  minWidth: 0,
   padding: "10px 12px",
   border: "1px solid rgba(134, 239, 172, 0.18)",
   borderRadius: "8px",
@@ -76,7 +79,7 @@ const inputStyle = {
 };
 
 const addButtonStyle = {
-  width: "fit-content",
+  width: "min(100%, fit-content)",
   borderRadius: "8px",
   padding: "10px 14px",
   cursor: "pointer",
@@ -104,9 +107,12 @@ const dayTitleStyle = {
 };
 
 const itemStyle = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
+  display: "flex",
+  flexWrap: "wrap" as const,
+  alignItems: "flex-start",
+  justifyContent: "space-between",
   gap: "16px",
+  minWidth: 0,
   border: "1px solid rgba(134, 239, 172, 0.16)",
   borderRadius: "8px",
   padding: "16px",
@@ -122,6 +128,8 @@ const completedItemStyle = {
 const taskTextStyle = {
   display: "grid",
   gap: "10px",
+  minWidth: 0,
+  flex: "1 1 220px",
 };
 
 const taskInfoRowStyle = {
@@ -140,12 +148,14 @@ const taskInfoLabelStyle = {
 const taskInfoValueStyle = {
   fontSize: "16px",
   color: "#dcfce7",
+  overflowWrap: "anywhere" as const,
 };
 
 const taskLabelStyle = {
   fontWeight: 600,
   fontSize: "18px",
   color: "#f0fdf4",
+  overflowWrap: "anywhere" as const,
 };
 
 const completedTaskLabelStyle = {
@@ -178,6 +188,7 @@ const deleteButtonStyle = {
   cursor: "pointer",
   font: "inherit",
   alignSelf: "start",
+  maxWidth: "100%",
 };
 
 const emptyTextStyle = {

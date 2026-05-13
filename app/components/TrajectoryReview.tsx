@@ -9,6 +9,7 @@ const DAILY_OBJECTIVES_STORAGE_KEY = STORAGE_KEYS.dailyObjectives;
 const sectionStyle = {
   marginTop: "24px",
   maxWidth: "720px",
+  width: "100%",
 };
 
 const dateStyle = {
@@ -57,10 +58,11 @@ const objectivesListStyle = {
 };
 
 const objectiveItemStyle = {
-  display: "grid",
-  gridTemplateColumns: "80px minmax(0, 1fr) auto",
+  display: "flex",
+  flexWrap: "wrap" as const,
   gap: "12px",
   alignItems: "center",
+  justifyContent: "space-between",
   border: "1px solid rgba(134, 239, 172, 0.12)",
   borderRadius: "8px",
   padding: "12px",
@@ -87,12 +89,16 @@ const tomorrowObjectiveTextStyle = {
 const objectiveTimeStyle = {
   color: "var(--dashboard-text-muted)",
   fontWeight: 700,
+  flex: "0 1 90px",
 };
 
 const objectiveTextStyle = {
   color: "var(--dashboard-text-primary)",
   fontWeight: 700,
   lineHeight: 1.4,
+  flex: "1 1 180px",
+  minWidth: 0,
+  overflowWrap: "anywhere" as const,
 };
 
 const objectiveCompletedTextStyle = {
@@ -112,7 +118,7 @@ const objectiveStatusStyle = {
 };
 
 const timeInputStyle = {
-  width: "130px",
+  width: "min(130px, 100%)",
   padding: "10px 12px",
   border: "1px solid rgba(134, 239, 172, 0.15)",
   borderRadius: "8px",
@@ -160,6 +166,7 @@ const prefillButtonStyle = {
 
 const textareaStyle = {
   width: "100%",
+  minWidth: 0,
   minHeight: "140px",
   padding: "12px",
   border: "1px solid #d1d5db",
