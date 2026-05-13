@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import DataBackupCard from "./components/DataBackupCard";
 import DailyRecommendationCard from "./components/DailyRecommendationCard";
 import ProgressHistoryCard from "./components/ProgressHistoryCard";
 import { getStorage, setStorage, STORAGE_KEYS } from "./utils/storage";
@@ -1342,8 +1341,6 @@ export default function HomePage() {
         ) : (
           <DailyObjectivesLoadingCard />
         )}
-
-        {isClient ? <DataBackupCard /> : null}
 
         {isClient ? (
           <TodayActionsCard

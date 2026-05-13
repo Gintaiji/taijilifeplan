@@ -10,6 +10,16 @@ export const STORAGE_KEYS = {
   progressHistory: "taiji-life-plan-progress-history",
 } as const;
 
+export function clearAppStorage() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  Object.values(STORAGE_KEYS).forEach((key) => {
+    localStorage.removeItem(key);
+  });
+}
+
 export function setStorage<T>(key: string, value: T) {
   if (typeof window === "undefined") {
     return;

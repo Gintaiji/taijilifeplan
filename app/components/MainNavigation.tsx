@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navStyle = {
-  borderBottom: "1px solid #e5e7eb",
+  borderBottom: "1px solid rgba(34, 197, 94, 0.22)",
   padding: "16px 24px",
+  background:
+    "linear-gradient(90deg, rgba(8, 17, 13, 0.98), rgba(15, 23, 42, 0.98))",
 };
 
 const listStyle = {
@@ -22,12 +24,13 @@ const linkStyle = {
   padding: "8px 12px",
   borderRadius: "8px",
   textDecoration: "none",
-  color: "#1f2937",
+  color: "#d1fae5",
 };
 
 const activeLinkStyle = {
   ...linkStyle,
-  backgroundColor: "#e5e7eb",
+  backgroundColor: "rgba(20, 83, 45, 0.74)",
+  color: "#f0fdf4",
   fontWeight: 600,
 };
 
@@ -38,6 +41,7 @@ const links = [
   { href: "/planning", label: "Planning" },
   { href: "/trajectoire", label: "Correcteur de trajectoire" },
   { href: "/bilan", label: "Bilan" },
+  { href: "/parametres", label: "Paramètres" },
 ];
 
 export default function MainNavigation() {
