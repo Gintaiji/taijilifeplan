@@ -533,6 +533,12 @@ function getTomorrowObjectiveLines(decideForTomorrow: string) {
     .filter((line) => line !== "");
 }
 
+function hasSameObjectiveLabel(objectives: DailyObjective[], label: string) {
+  const cleanLabel = label.trim();
+
+  return objectives.some((objective) => objective.label.trim() === cleanLabel);
+}
+
 export default function TrajectoryReview() {
   const todayKey = useMemo(() => getTodayKey(), []);
   const tomorrowKey = useMemo(
@@ -668,37 +674,38 @@ export default function TrajectoryReview() {
     }
 
     const objectivesByDate = getDailyObjectivesByDateFromLocalStorage();
-    const tomorrowObjectives = objectivesByDate[tomorrowKey] ?? [];
+    const savedTomorrowObjectives = objectivesByDate[tomorrowKey] ?? [];
+    const updatedTomorrowObjectives = [...savedTomorrowObjectives];
 
-    if (tomorrowObjectives.length >= 3) {
+    if (updatedTomorrowObjectives.length >= 3) {
+      setTomorrowObjectives(updatedTomorrowObjectives.slice(0, 3));
       setTomorrowPreparationMessage(
         "Demain a deja 3 objectifs. Aucun objectif n'a ete ajoute.",
       );
       return;
     }
 
-    const objectiveLabels = new Set(
-      tomorrowObjectives.map((objective) => objective.label),
-    );
     const newObjectives: DailyObjective[] = [];
-    let nextId = getNextDailyObjectiveId(tomorrowObjectives);
+    let nextId = getNextDailyObjectiveId(updatedTomorrowObjectives);
 
     for (const line of linesToPrepare) {
-      if (tomorrowObjectives.length + newObjectives.length >= 3) {
+      if (updatedTomorrowObjectives.length >= 3) {
         break;
       }
 
-      if (objectiveLabels.has(line)) {
+      if (hasSameObjectiveLabel(updatedTomorrowObjectives, line)) {
         continue;
       }
 
-      objectiveLabels.add(line);
-      newObjectives.push({
+      const newObjective = {
         id: nextId,
         label: line,
         time: "",
         completed: false,
-      });
+      };
+
+      newObjectives.push(newObjective);
+      updatedTomorrowObjectives.push(newObjective);
       nextId += 1;
     }
 
@@ -708,11 +715,6 @@ export default function TrajectoryReview() {
       );
       return;
     }
-
-    const updatedTomorrowObjectives = [
-      ...tomorrowObjectives,
-      ...newObjectives,
-    ].slice(0, 3);
 
     objectivesByDate[tomorrowKey] = updatedTomorrowObjectives;
     setStorage(DAILY_OBJECTIVES_STORAGE_KEY, objectivesByDate);
