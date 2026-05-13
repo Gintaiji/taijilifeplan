@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getStorage, STORAGE_KEYS } from "../utils/storage";
 
 const STREAK_MIN_SCORE = 60;
-const DAYS_COUNT = 7;
+const PERIOD_OPTIONS = [7, 14, 30] as const;
 
 const sectionStyle = {
   display: "grid",
@@ -80,6 +80,27 @@ const scoreStyle = {
   color: "var(--dashboard-text-accent)",
   fontWeight: 800,
 };
+
+const controlsStyle = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+  marginTop: "16px",
+};
+
+const periodButtonStyle = {
+  borderRadius: "8px",
+  padding: "9px 12px",
+  cursor: "pointer",
+  font: "inherit",
+};
+
+const activePeriodButtonStyle = {
+  ...periodButtonStyle,
+  fontWeight: 700,
+};
+
+type PeriodOption = (typeof PERIOD_OPTIONS)[number];
 
 type ProgressHistoryEntry = {
   date: string;
@@ -164,9 +185,9 @@ function formatDate(dateKey: string) {
   });
 }
 
-function getLastSevenDateKeys(todayKey: string) {
-  return Array.from({ length: DAYS_COUNT }, (_, index) =>
-    getDateKeyWithDayOffset(todayKey, index - (DAYS_COUNT - 1)),
+function getPeriodDateKeys(todayKey: string, periodDays: PeriodOption) {
+  return Array.from({ length: periodDays }, (_, index) =>
+    getDateKeyWithDayOffset(todayKey, index - (periodDays - 1)),
   );
 }
 
@@ -197,9 +218,12 @@ function getWeeklyMessage(averageScore: number) {
   return "Recentrage utile : choisis peu d'actions, mais termine-les vraiment.";
 }
 
-function getWeeklyStats(history: ProgressHistoryEntry[]): WeeklyStats {
+function getWeeklyStats(
+  history: ProgressHistoryEntry[],
+  periodDays: PeriodOption,
+): WeeklyStats {
   const todayKey = getTodayKey();
-  const periodDates = getLastSevenDateKeys(todayKey);
+  const periodDates = getPeriodDateKeys(todayKey, periodDays);
   const periodDateSet = new Set(periodDates);
   const entries = history
     .filter((entry) => periodDateSet.has(entry.date))
@@ -233,7 +257,9 @@ function getWeeklyStats(history: ProgressHistoryEntry[]): WeeklyStats {
 
 export default function WeeklyReview() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [stats, setStats] = useState<WeeklyStats | null>(null);
+  const [history, setHistory] = useState<ProgressHistoryEntry[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(7);
+  const stats = getWeeklyStats(history, selectedPeriod);
 
   useEffect(() => {
     let shouldUpdateState = true;
@@ -247,9 +273,9 @@ export default function WeeklyReview() {
         STORAGE_KEYS.progressHistory,
         [],
       );
-      const history = normalizeProgressHistory(savedHistory);
+      const savedProgressHistory = normalizeProgressHistory(savedHistory);
 
-      setStats(getWeeklyStats(history));
+      setHistory(savedProgressHistory);
       setIsLoaded(true);
     });
 
@@ -258,7 +284,7 @@ export default function WeeklyReview() {
     };
   }, []);
 
-  if (!isLoaded || stats === null) {
+  if (!isLoaded) {
     return (
       <section style={sectionStyle}>
         <article style={cardStyle}>
@@ -271,10 +297,33 @@ export default function WeeklyReview() {
   return (
     <section style={sectionStyle}>
       <article style={cardStyle}>
-        <h2 style={titleStyle}>Synthese des 7 derniers jours</h2>
+        <h2 style={titleStyle}>Synthese des {selectedPeriod} derniers jours</h2>
         <p style={{ ...textStyle, marginTop: "8px" }}>
           {getWeeklyMessage(stats.averageScore)}
         </p>
+        <div style={controlsStyle} aria-label="Choix de la periode">
+          {PERIOD_OPTIONS.map((periodOption) => {
+            const isActive = selectedPeriod === periodOption;
+
+            return (
+              <button
+                key={periodOption}
+                type="button"
+                className={
+                  isActive
+                    ? "control-button control-button-active"
+                    : "control-button"
+                }
+                style={
+                  isActive ? activePeriodButtonStyle : periodButtonStyle
+                }
+                onClick={() => setSelectedPeriod(periodOption)}
+              >
+                {periodOption} jours
+              </button>
+            );
+          })}
+        </div>
       </article>
 
       <div style={gridStyle}>
@@ -290,7 +339,9 @@ export default function WeeklyReview() {
 
         <article style={metricCardStyle}>
           <span style={labelStyle}>Jours valides</span>
-          <strong style={valueStyle}>{stats.validatedDays}/7</strong>
+          <strong style={valueStyle}>
+            {stats.validatedDays}/{selectedPeriod}
+          </strong>
         </article>
 
         <article style={metricCardStyle}>
@@ -314,7 +365,7 @@ export default function WeeklyReview() {
 
         {stats.entries.length === 0 ? (
           <p style={{ ...textStyle, marginTop: "12px" }}>
-            Aucun jour enregistre sur les 7 derniers jours.
+            Aucun jour enregistre sur les {selectedPeriod} derniers jours.
           </p>
         ) : (
           <ul style={listStyle}>
