@@ -344,7 +344,8 @@ function getInitialGoals(): Goal[] {
 }
 
 export default function ObjectifsPage() {
-  const [goals, setGoals] = useState<Goal[]>(getInitialGoals);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [isStorageLoaded, setIsStorageLoaded] = useState(false);
   const [title, setTitle] = useState("");
   const [period, setPeriod] = useState<GoalPeriod>("Hebdomadaire");
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
@@ -355,8 +356,29 @@ export default function ObjectifsPage() {
   >({});
 
   useEffect(() => {
+    let shouldUpdateState = true;
+
+    queueMicrotask(() => {
+      if (!shouldUpdateState) {
+        return;
+      }
+
+      setGoals(getInitialGoals());
+      setIsStorageLoaded(true);
+    });
+
+    return () => {
+      shouldUpdateState = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isStorageLoaded) {
+      return;
+    }
+
     setStorage(STORAGE_KEY, goals);
-  }, [goals]);
+  }, [goals, isStorageLoaded]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

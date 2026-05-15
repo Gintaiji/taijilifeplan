@@ -829,12 +829,24 @@ function DailyObjectivesCard({
       return;
     }
 
-    setPrioritiesState({
-      date: todayKey,
-      priorities: getInitialPriorities(todayKey),
+    let shouldUpdateState = true;
+
+    queueMicrotask(() => {
+      if (!shouldUpdateState) {
+        return;
+      }
+
+      setPrioritiesState({
+        date: todayKey,
+        priorities: getInitialPriorities(todayKey),
+      });
+      setPriorityLabel("");
+      setPriorityTime("");
     });
-    setPriorityLabel("");
-    setPriorityTime("");
+
+    return () => {
+      shouldUpdateState = false;
+    };
   }, [prioritiesState.date, todayKey]);
 
   useEffect(() => {

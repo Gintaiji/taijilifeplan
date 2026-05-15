@@ -19,7 +19,17 @@ export default function ParametresPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setIsClient(true);
+    let shouldUpdateState = true;
+
+    queueMicrotask(() => {
+      if (shouldUpdateState) {
+        setIsClient(true);
+      }
+    });
+
+    return () => {
+      shouldUpdateState = false;
+    };
   }, []);
 
   function handleExport() {

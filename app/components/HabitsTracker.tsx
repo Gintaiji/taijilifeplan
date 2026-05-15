@@ -209,10 +209,7 @@ function getSavedHabitsState(habitNames: string[]): HabitsState {
 
 function getInitialHabitsData(): HabitsData {
   if (typeof window === "undefined") {
-    return {
-      habitNames: defaultHabits,
-      habitsState: getEmptyHabitsState(defaultHabits),
-    };
+    return getDefaultHabitsData();
   }
 
   const savedHabitNames = getSavedHabitNames();
@@ -221,6 +218,13 @@ function getInitialHabitsData(): HabitsData {
   return {
     habitNames,
     habitsState: getSavedHabitsState(habitNames),
+  };
+}
+
+function getDefaultHabitsData(): HabitsData {
+  return {
+    habitNames: defaultHabits,
+    habitsState: getEmptyHabitsState(defaultHabits),
   };
 }
 
@@ -256,7 +260,10 @@ function renameHabitInSavedDates(oldHabitName: string, newHabitName: string) {
 }
 
 export default function HabitsTracker() {
-  const [habitsData, setHabitsData] = useState<HabitsData>(getInitialHabitsData);
+  const [habitsData, setHabitsData] =
+    useState<HabitsData>(getDefaultHabitsData);
+  const [isStorageLoaded, setIsStorageLoaded] = useState(false);
+  const [today, setToday] = useState("chargement");
   const [newHabitName, setNewHabitName] = useState("");
   const [editingHabitName, setEditingHabitName] = useState<string | null>(null);
   const [editHabitName, setEditHabitName] = useState("");
@@ -264,14 +271,37 @@ export default function HabitsTracker() {
   const completedHabitsCount = Object.values(habitsData.habitsState).filter(
     Boolean,
   ).length;
-  const today = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 
   useEffect(() => {
+    let shouldUpdateState = true;
+
+    queueMicrotask(() => {
+      if (!shouldUpdateState) {
+        return;
+      }
+
+      setHabitsData(getInitialHabitsData());
+      setToday(
+        new Date().toLocaleDateString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+      );
+      setIsStorageLoaded(true);
+    });
+
+    return () => {
+      shouldUpdateState = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isStorageLoaded) {
+      return;
+    }
+
     const habitsByDate = getSavedHabitsByDate();
 
     setStorage(HABIT_LIST_STORAGE_KEY, habitsData.habitNames);
@@ -279,7 +309,7 @@ export default function HabitsTracker() {
       ...habitsByDate,
       [getTodayKey()]: habitsData.habitsState,
     });
-  }, [habitsData]);
+  }, [habitsData, isStorageLoaded]);
 
   function handleHabitChange(habitName: string) {
     setHabitsData((currentHabitsData) => ({
