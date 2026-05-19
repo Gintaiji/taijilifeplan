@@ -190,57 +190,10 @@ export default function ParametresPage() {
         <article className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.cardTitle}>Donnees</h2>
+              <h2 className={styles.cardTitle}>Sauvegarde et securite</h2>
               <p className={styles.cardText}>
-                Exporte ou importe toutes les donnees enregistrees sur cet
-                appareil.
-              </p>
-            </div>
-          </div>
-
-          {isClient ? (
-            <>
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={`control-button ${styles.button}`}
-                  onClick={handleExport}
-                >
-                  Exporter mes donnees
-                </button>
-
-                <button
-                  type="button"
-                  className={`control-button ${styles.button}`}
-                  onClick={handleImportClick}
-                >
-                  Importer mes donnees
-                </button>
-              </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json,.json"
-                className={styles.hiddenFileInput}
-                onChange={handleImport}
-              />
-            </>
-          ) : (
-            <p className={styles.cardText}>Chargement des parametres...</p>
-          )}
-
-          {message ? <p className={styles.successText}>{message}</p> : null}
-          {error ? <p className={styles.errorText}>{error}</p> : null}
-        </article>
-
-        <article className={styles.card}>
-          <div className={styles.sectionHeader}>
-            <div>
-              <h2 className={styles.cardTitle}>Securite des donnees</h2>
-              <p className={styles.cardText}>
-                Demande au navigateur de mieux proteger les donnees locales et
-                garde une sauvegarde JSON recente hors de l'application.
+                Exporte tes donnees, importe une sauvegarde et demande au
+                navigateur de mieux proteger le stockage local.
               </p>
             </div>
           </div>
@@ -304,23 +257,76 @@ export default function ParametresPage() {
                 <button
                   type="button"
                   className={`control-button ${styles.button}`}
-                  onClick={handleProtectStorage}
+                  onClick={handleExport}
                 >
-                  Proteger le stockage
+                  Exporter mes donnees
                 </button>
 
                 <button
                   type="button"
                   className={`control-button ${styles.button}`}
-                  onClick={handleExport}
+                  onClick={handleImportClick}
                 >
-                  Exporter une sauvegarde maintenant
+                  Importer mes donnees
+                </button>
+
+                <button
+                  type="button"
+                  className={`control-button ${styles.button}`}
+                  onClick={handleProtectStorage}
+                >
+                  Proteger le stockage
                 </button>
               </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className={styles.hiddenFileInput}
+                onChange={handleImport}
+              />
             </>
           ) : (
-            <p className={styles.cardText}>Chargement de la securite...</p>
+            <p className={styles.cardText}>Chargement des parametres...</p>
           )}
+
+          {message ? <p className={styles.successText}>{message}</p> : null}
+          {error ? <p className={styles.errorText}>{error}</p> : null}
+        </article>
+
+        <article className={styles.card}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Application</h2>
+              <p className={styles.cardText}>
+                Verifie la version affichee sur cet appareil et recharge la
+                page pour recuperer la derniere version disponible.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.appVersion}>
+            <span className={styles.versionLabel}>Version de l'application</span>
+            <strong className={styles.versionNumber}>
+              Taiji Life Plan {APP_VERSION}
+            </strong>
+            <span className={styles.versionDate}>
+              Derniere mise a jour : {APP_UPDATED_AT}
+            </span>
+          </div>
+
+          {isClient ? (
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={`control-button ${styles.reloadButton}`}
+                onClick={handleReloadApp}
+              >
+                Recharger l'application
+              </button>
+            </div>
+          ) : null}
         </article>
 
         <article className={styles.dangerCard}>
@@ -346,25 +352,6 @@ export default function ParametresPage() {
             </div>
           ) : null}
         </article>
-
-        <aside className={styles.versionPanel} aria-label="Version de l'application">
-          <span className={styles.versionLabel}>Version de l'application</span>
-          <strong className={styles.versionNumber}>
-            Taiji Life Plan {APP_VERSION}
-          </strong>
-          <span className={styles.versionDate}>
-            Derniere mise a jour : {APP_UPDATED_AT}
-          </span>
-          {isClient ? (
-            <button
-              type="button"
-              className={`control-button ${styles.reloadButton}`}
-              onClick={handleReloadApp}
-            >
-              Recharger l'application
-            </button>
-          ) : null}
-        </aside>
       </section>
     </main>
   );
