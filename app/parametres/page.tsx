@@ -153,6 +153,10 @@ export default function ParametresPage() {
     window.location.reload();
   }
 
+  function handleReloadApp() {
+    window.location.reload();
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
@@ -313,6 +317,15 @@ export default function ParametresPage() {
           <span className={styles.versionDate}>
             Derniere mise a jour : {APP_UPDATED_AT}
           </span>
+          {isClient ? (
+            <button
+              type="button"
+              className={`control-button ${styles.reloadButton}`}
+              onClick={handleReloadApp}
+            >
+              Recharger l'application
+            </button>
+          ) : null}
         </aside>
       </section>
     </main>
