@@ -17,13 +17,13 @@ import {
 import styles from "./page.module.css";
 
 const RESET_CONFIRMATION_TEXT = "SUPPRIMER";
-const RECENT_BACKUP_DAYS = 30;
+const BACKUP_WARNING_DAYS = 3;
 const APP_VERSION = "V1.1.0";
 const APP_UPDATED_AT = "19 mai 2026";
 
 function formatBackupDate(dateValue: string | null) {
   if (!dateValue) {
-    return "Aucun export enregistre";
+    return "Aucune sauvegarde exportee pour le moment";
   }
 
   const date = new Date(dateValue);
@@ -38,20 +38,36 @@ function formatBackupDate(dateValue: string | null) {
   }).format(date);
 }
 
-function hasRecentBackup(dateValue: string | null) {
+function getDaysSinceBackup(dateValue: string | null) {
   if (!dateValue) {
-    return false;
+    return null;
   }
 
   const date = new Date(dateValue);
 
   if (Number.isNaN(date.getTime())) {
-    return false;
+    return null;
   }
 
-  const recentLimit = RECENT_BACKUP_DAYS * 24 * 60 * 60 * 1000;
+  const oneDay = 24 * 60 * 60 * 1000;
 
-  return Date.now() - date.getTime() <= recentLimit;
+  return Math.floor((Date.now() - date.getTime()) / oneDay);
+}
+
+function formatDaysSinceBackup(daysSinceBackup: number | null) {
+  if (daysSinceBackup === null) {
+    return "Aucune sauvegarde";
+  }
+
+  if (daysSinceBackup <= 0) {
+    return "Aujourd'hui";
+  }
+
+  if (daysSinceBackup === 1) {
+    return "1 jour";
+  }
+
+  return `${daysSinceBackup} jours`;
 }
 
 export default function ParametresPage() {
@@ -63,6 +79,9 @@ export default function ParametresPage() {
     null,
   );
   const [lastBackupExport, setLastBackupExport] = useState<string | null>(null);
+  const daysSinceBackup = getDaysSinceBackup(lastBackupExport);
+  const shouldShowBackupWarning =
+    daysSinceBackup !== null && daysSinceBackup > BACKUP_WARNING_DAYS;
 
   useEffect(() => {
     let shouldUpdateState = true;
@@ -248,17 +267,36 @@ export default function ParametresPage() {
 
                 <div className={styles.statusItem}>
                   <span className={styles.statusLabel}>Dernier export</span>
-                  <strong className={styles.statusValue}>
+                  <strong
+                    className={
+                      lastBackupExport
+                        ? styles.statusValue
+                        : styles.statusWarning
+                    }
+                  >
                     {formatBackupDate(lastBackupExport)}
+                  </strong>
+                </div>
+
+                <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>
+                    Depuis la sauvegarde
+                  </span>
+                  <strong
+                    className={
+                      shouldShowBackupWarning
+                        ? styles.statusWarning
+                        : styles.statusValue
+                    }
+                  >
+                    {formatDaysSinceBackup(daysSinceBackup)}
                   </strong>
                 </div>
               </div>
 
-              {!hasRecentBackup(lastBackupExport) ? (
+              {shouldShowBackupWarning ? (
                 <p className={styles.warningText}>
-                  Aucun export recent n'a ete fait. Fais une sauvegarde au
-                  moins tous les {RECENT_BACKUP_DAYS} jours, surtout sur mobile
-                  ou PWA.
+                  Pense a exporter une sauvegarde recente.
                 </p>
               ) : null}
 
