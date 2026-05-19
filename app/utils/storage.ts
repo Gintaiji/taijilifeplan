@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   dailyObjectives: "taiji-life-plan-priorities",
   priorities: "taiji-life-plan-priorities",
   progressHistory: "taiji-life-plan-progress-history",
+  lastBackupExport: "taiji-life-plan-last-backup-export",
 } as const;
 
 export function clearAppStorage() {
@@ -45,4 +46,24 @@ export function getStorage<T>(key: string, defaultValue: T): T {
     setStorage(key, defaultValue);
     return defaultValue;
   }
+}
+
+function hasStorageManager() {
+  return typeof navigator !== "undefined" && "storage" in navigator;
+}
+
+export async function isPersistentStorageGranted() {
+  if (!hasStorageManager() || !navigator.storage.persisted) {
+    return false;
+  }
+
+  return navigator.storage.persisted();
+}
+
+export async function requestPersistentStorage() {
+  if (!hasStorageManager() || !navigator.storage.persist) {
+    return false;
+  }
+
+  return navigator.storage.persist();
 }

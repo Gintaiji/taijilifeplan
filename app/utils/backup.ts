@@ -63,6 +63,14 @@ export function createBackupFile(): BackupFile {
   };
 }
 
+export function getLastBackupExportDate() {
+  return getStorage<string | null>(STORAGE_KEYS.lastBackupExport, null);
+}
+
+export function saveLastBackupExportDate(exportedAt: string) {
+  setStorage(STORAGE_KEYS.lastBackupExport, exportedAt);
+}
+
 export function downloadJsonFile(fileName: string, content: BackupFile) {
   const jsonContent = JSON.stringify(content, null, 2);
   const blob = new Blob([jsonContent], { type: "application/json" });
