@@ -18,6 +18,8 @@ import styles from "./page.module.css";
 
 const RESET_CONFIRMATION_TEXT = "SUPPRIMER";
 const RECENT_BACKUP_DAYS = 30;
+const APP_VERSION = "V1.1.0";
+const APP_UPDATED_AT = "19 mai 2026";
 
 function formatBackupDate(dateValue: string | null) {
   if (!dateValue) {
@@ -303,7 +305,15 @@ export default function ParametresPage() {
           ) : null}
         </article>
 
-        <p className={styles.version}>Taiji Life Plan - V1</p>
+        <aside className={styles.versionPanel} aria-label="Version de l'application">
+          <span className={styles.versionLabel}>Version de l'application</span>
+          <strong className={styles.versionNumber}>
+            Taiji Life Plan {APP_VERSION}
+          </strong>
+          <span className={styles.versionDate}>
+            Derniere mise a jour : {APP_UPDATED_AT}
+          </span>
+        </aside>
       </section>
     </main>
   );
