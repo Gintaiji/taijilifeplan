@@ -5,14 +5,6 @@ import { getSupabaseBrowserClient } from "./client";
 
 type AuthChangeCallback = (session: Session | null) => void;
 
-function getAuthRedirectUrl() {
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  return window.location.origin;
-}
-
 export async function getSupabaseSession(): Promise<Session | null> {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase.auth.getSession();
@@ -35,18 +27,32 @@ export async function getSupabaseUser(): Promise<User | null> {
   return data.user;
 }
 
-export async function signInWithEmail(email: string) {
+export async function signUpWithPassword(email: string, password: string) {
   const supabase = getSupabaseBrowserClient();
-  const { error } = await supabase.auth.signInWithOtp({
+  const { data, error } = await supabase.auth.signUp({
     email,
-    options: {
-      emailRedirectTo: getAuthRedirectUrl(),
-    },
+    password,
   });
 
   if (error) {
     throw error;
   }
+
+  return data.session;
+}
+
+export async function signInWithPassword(email: string, password: string) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data.session;
 }
 
 export async function signOutFromSupabase() {

@@ -4,6 +4,7 @@ export {
   getSupabaseSession,
   getSupabaseUser,
   onSupabaseAuthChange,
-  signInWithEmail,
+  signInWithPassword,
+  signUpWithPassword,
   signOutFromSupabase,
 } from "./auth";

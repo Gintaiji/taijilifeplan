@@ -46,6 +46,7 @@ const links = [
   { href: "/trajectoire", label: "Correcteur de trajectoire" },
   { href: "/bilan", label: "Bilan" },
   { href: "/parametres", label: "Parametres" },
+  { href: "/connexion", label: "Connexion" },
 ];
 
 export default function MainNavigation() {
