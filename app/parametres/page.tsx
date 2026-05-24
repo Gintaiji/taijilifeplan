@@ -1,11 +1,13 @@
 "use client";
 
+import type { Session } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import {
   createBackupFile,
   downloadJsonFile,
   getLastBackupExportDate,
   importBackupData,
+  isBackupData,
   isBackupFile,
   saveLastBackupExportDate,
 } from "../utils/backup";
@@ -14,12 +16,18 @@ import {
   isPersistentStorageGranted,
   requestPersistentStorage,
 } from "../utils/storage";
+import {
+  getSupabaseBrowserClient,
+  getSupabaseSession,
+  onSupabaseAuthChange,
+} from "../utils/supabase";
 import styles from "./page.module.css";
 
 const RESET_CONFIRMATION_TEXT = "SUPPRIMER";
 const BACKUP_WARNING_DAYS = 3;
 const APP_VERSION = "V1.1.0";
 const APP_UPDATED_AT = "19 mai 2026";
+const CLOUD_BACKUP_TABLE = "taiji_app_data";
 
 function formatBackupDate(dateValue: string | null) {
   if (!dateValue) {
@@ -75,6 +83,10 @@ export default function ParametresPage() {
   const [isClient, setIsClient] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [isCloudBusy, setIsCloudBusy] = useState(false);
+  const [lastCloudBackup, setLastCloudBackup] = useState<string | null>(null);
   const [persistentStorage, setPersistentStorage] = useState<boolean | null>(
     null,
   );
@@ -82,22 +94,69 @@ export default function ParametresPage() {
   const daysSinceBackup = getDaysSinceBackup(lastBackupExport);
   const shouldShowBackupWarning =
     daysSinceBackup !== null && daysSinceBackup > BACKUP_WARNING_DAYS;
+  const userEmail = session?.user.email;
+
+  async function loadLastCloudBackup(userId: string) {
+    const supabase = getSupabaseBrowserClient();
+    const { data, error: selectError } = await supabase
+      .from(CLOUD_BACKUP_TABLE)
+      .select("updated_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (selectError) {
+      throw selectError;
+    }
+
+    setLastCloudBackup(
+      typeof data?.updated_at === "string" ? data.updated_at : null,
+    );
+  }
 
   useEffect(() => {
     let shouldUpdateState = true;
 
     async function loadClientSettings() {
-      if (shouldUpdateState) {
+      try {
+        const currentSession = await getSupabaseSession();
+
+        if (!shouldUpdateState) {
+          return;
+        }
+
         setIsClient(true);
+        setSession(currentSession);
         setLastBackupExport(getLastBackupExportDate());
         setPersistentStorage(await isPersistentStorageGranted());
+
+        if (currentSession) {
+          await loadLastCloudBackup(currentSession.user.id);
+        }
+      } catch {
+        if (shouldUpdateState) {
+          setError("Impossible de charger la session Supabase.");
+        }
+      } finally {
+        if (shouldUpdateState) {
+          setIsLoadingSession(false);
+        }
       }
     }
 
     void loadClientSettings();
 
+    const unsubscribe = onSupabaseAuthChange((newSession) => {
+      setSession(newSession);
+      setLastCloudBackup(null);
+
+      if (newSession) {
+        void loadLastCloudBackup(newSession.user.id);
+      }
+    });
+
     return () => {
       shouldUpdateState = false;
+      unsubscribe();
     };
   }, []);
 
@@ -152,6 +211,107 @@ export default function ParametresPage() {
     } catch {
       setMessage("");
       setError("Impossible de lire ce fichier JSON.");
+    }
+  }
+
+  async function handleCloudSave() {
+    setMessage("");
+    setError("");
+
+    if (!session) {
+      setError("Tu dois etre connecte pour sauvegarder dans le cloud.");
+      return;
+    }
+
+    setIsCloudBusy(true);
+
+    try {
+      const backupFile = createBackupFile();
+      const supabase = getSupabaseBrowserClient();
+      const { data, error: upsertError } = await supabase
+        .from(CLOUD_BACKUP_TABLE)
+        .upsert(
+          {
+            user_id: session.user.id,
+            data: backupFile.data,
+            updated_at: backupFile.exportedAt,
+          },
+          { onConflict: "user_id" },
+        )
+        .select("updated_at")
+        .single();
+
+      if (upsertError) {
+        throw upsertError;
+      }
+
+      const savedAt =
+        typeof data?.updated_at === "string"
+          ? data.updated_at
+          : backupFile.exportedAt;
+
+      setLastCloudBackup(savedAt);
+      setMessage("Sauvegarde cloud reussie.");
+    } catch {
+      setError("Impossible de sauvegarder dans le cloud pour le moment.");
+    } finally {
+      setIsCloudBusy(false);
+    }
+  }
+
+  async function handleCloudRestore() {
+    setMessage("");
+    setError("");
+
+    if (!session) {
+      setError("Tu dois etre connecte pour restaurer depuis le cloud.");
+      return;
+    }
+
+    const shouldRestore = window.confirm(
+      "Restaurer depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+    );
+
+    if (!shouldRestore) {
+      setError("Restauration annulee.");
+      return;
+    }
+
+    setIsCloudBusy(true);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error: selectError } = await supabase
+        .from(CLOUD_BACKUP_TABLE)
+        .select("data, updated_at")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (selectError) {
+        throw selectError;
+      }
+
+      if (!data) {
+        setError("Aucune sauvegarde cloud trouvee.");
+        return;
+      }
+
+      if (!isBackupData(data.data)) {
+        setError("La sauvegarde cloud trouvee n'est pas valide.");
+        return;
+      }
+
+      importBackupData(data.data);
+      setLastCloudBackup(
+        typeof data.updated_at === "string" ? data.updated_at : null,
+      );
+      setError("");
+      setMessage("Restauration cloud reussie. La page va se recharger.");
+      window.location.reload();
+    } catch {
+      setError("Impossible de restaurer depuis le cloud pour le moment.");
+    } finally {
+      setIsCloudBusy(false);
     }
   }
 
@@ -293,6 +453,83 @@ export default function ParametresPage() {
 
           {message ? <p className={styles.successText}>{message}</p> : null}
           {error ? <p className={styles.errorText}>{error}</p> : null}
+        </article>
+
+        <article className={styles.card}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Sauvegarde cloud</h2>
+              <p className={styles.cardText}>
+                Garde localStorage comme stockage principal et utilise Supabase
+                comme copie de secours liee a ton compte.
+              </p>
+            </div>
+          </div>
+
+          {isClient ? (
+            <>
+              <div className={styles.statusGrid}>
+                <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>Connexion</span>
+                  {isLoadingSession ? (
+                    <strong className={styles.statusValue}>Chargement...</strong>
+                  ) : userEmail ? (
+                    <strong className={styles.statusOk}>Connecte</strong>
+                  ) : (
+                    <strong className={styles.statusWarning}>Non connecte</strong>
+                  )}
+                </div>
+
+                <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>Email</span>
+                  <strong
+                    className={
+                      userEmail ? styles.statusValue : styles.statusWarning
+                    }
+                  >
+                    {userEmail ?? "Aucun utilisateur connecte"}
+                  </strong>
+                </div>
+
+                <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>
+                    Derniere sauvegarde cloud
+                  </span>
+                  <strong
+                    className={
+                      lastCloudBackup ? styles.statusValue : styles.statusWarning
+                    }
+                  >
+                    {lastCloudBackup
+                      ? formatBackupDate(lastCloudBackup)
+                      : "Aucune sauvegarde cloud trouvee"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={`control-button ${styles.button}`}
+                  onClick={handleCloudSave}
+                  disabled={isCloudBusy || isLoadingSession}
+                >
+                  Sauvegarder dans le cloud
+                </button>
+
+                <button
+                  type="button"
+                  className={`control-button ${styles.button}`}
+                  onClick={handleCloudRestore}
+                  disabled={isCloudBusy || isLoadingSession}
+                >
+                  Restaurer depuis le cloud
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className={styles.cardText}>Chargement de la sauvegarde cloud...</p>
+          )}
         </article>
 
         <article className={styles.card}>

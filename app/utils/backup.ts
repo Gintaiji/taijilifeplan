@@ -26,19 +26,27 @@ export function isBackupFile(value: unknown): value is BackupFile {
     return false;
   }
 
-  const data = value.data;
-
   return (
     typeof value.version === "number" &&
     typeof value.exportedAt === "string" &&
-    isObject(data.habits) &&
-    Array.isArray(data.habitNames) &&
-    (data.habitOrder === null || Array.isArray(data.habitOrder)) &&
-    Array.isArray(data.goals) &&
-    Array.isArray(data.planning) &&
-    isObject(data.trajectory) &&
-    (data.priorities === null || isObject(data.priorities)) &&
-    (data.progressHistory === undefined || Array.isArray(data.progressHistory))
+    isBackupData(value.data)
+  );
+}
+
+export function isBackupData(value: unknown): value is BackupData {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    isObject(value.habits) &&
+    Array.isArray(value.habitNames) &&
+    (value.habitOrder === null || Array.isArray(value.habitOrder)) &&
+    Array.isArray(value.goals) &&
+    Array.isArray(value.planning) &&
+    isObject(value.trajectory) &&
+    (value.priorities === null || isObject(value.priorities)) &&
+    (value.progressHistory === undefined || Array.isArray(value.progressHistory))
   );
 }
 
