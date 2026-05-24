@@ -9,7 +9,41 @@ export const STORAGE_KEYS = {
   priorities: "taiji-life-plan-priorities",
   progressHistory: "taiji-life-plan-progress-history",
   lastBackupExport: "taiji-life-plan-last-backup-export",
+  localDataUpdatedAt: "taiji-life-plan-local-data-updated-at",
 } as const;
+
+export const APP_STORAGE_CHANGED_EVENT = "taiji-life-plan-storage-changed";
+
+const APP_DATA_STORAGE_KEYS = new Set<string>([
+  STORAGE_KEYS.habits,
+  STORAGE_KEYS.habitNames,
+  STORAGE_KEYS.habitOrder,
+  STORAGE_KEYS.goals,
+  STORAGE_KEYS.planning,
+  STORAGE_KEYS.trajectory,
+  STORAGE_KEYS.dailyObjectives,
+  STORAGE_KEYS.progressHistory,
+]);
+
+export type AppStorageChangedDetail = {
+  key: string;
+};
+
+export function isAppDataStorageKey(key: string) {
+  return APP_DATA_STORAGE_KEYS.has(key);
+}
+
+export function getLocalDataUpdatedAt() {
+  return getStorage<string | null>(STORAGE_KEYS.localDataUpdatedAt, null);
+}
+
+export function saveLocalDataUpdatedAt(updatedAt = new Date().toISOString()) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.localDataUpdatedAt, JSON.stringify(updatedAt));
+}
 
 export function clearAppStorage() {
   if (typeof window === "undefined") {
@@ -27,6 +61,16 @@ export function setStorage<T>(key: string, value: T) {
   }
 
   localStorage.setItem(key, JSON.stringify(value));
+
+  if (isAppDataStorageKey(key)) {
+    saveLocalDataUpdatedAt();
+  }
+
+  window.dispatchEvent(
+    new CustomEvent<AppStorageChangedDetail>(APP_STORAGE_CHANGED_EVENT, {
+      detail: { key },
+    }),
+  );
 }
 
 export function getStorage<T>(key: string, defaultValue: T): T {

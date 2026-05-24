@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import AutoCloudBackup from "./components/AutoCloudBackup";
 import MainNavigation from "./components/MainNavigation";
 import "./globals.css";
 
@@ -65,6 +66,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <MainNavigation />
+        <AutoCloudBackup />
         {children}
       </body>
     </html>

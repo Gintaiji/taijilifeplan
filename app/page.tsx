@@ -9,8 +9,18 @@ import {
   isBackupData,
   isBackupDataEmptyOrAlmostEmpty,
 } from "./utils/backup";
-import { getCloudBackup, type CloudBackup } from "./utils/cloudBackup";
-import { getStorage, setStorage, STORAGE_KEYS } from "./utils/storage";
+import {
+  getCloudBackup,
+  isCloudBackupNewerThanLocal,
+  type CloudBackup,
+} from "./utils/cloudBackup";
+import {
+  getLocalDataUpdatedAt,
+  getStorage,
+  saveLocalDataUpdatedAt,
+  setStorage,
+  STORAGE_KEYS,
+} from "./utils/storage";
 import { getSupabaseSession } from "./utils/supabase";
 import styles from "./page.module.css";
 
@@ -1352,6 +1362,7 @@ function CloudRestoreNotice({
 
     setIsRestoring(true);
     importBackupData(cloudBackup.data);
+    saveLocalDataUpdatedAt(cloudBackup.updated_at ?? undefined);
     setMessage("Restauration cloud reussie. La page va se recharger.");
     onRestored();
     window.location.reload();
@@ -1389,11 +1400,100 @@ function CloudRestoreNotice({
   );
 }
 
+function CloudNewerNotice({
+  cloudBackup,
+  onResolved,
+}: {
+  cloudBackup: CloudBackup;
+  onResolved: () => void;
+}) {
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  function handleRestore() {
+    setMessage("");
+    setError("");
+
+    const shouldRestore = window.confirm(
+      "Restaurer depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+    );
+
+    if (!shouldRestore) {
+      setError("Restauration annulee.");
+      return;
+    }
+
+    if (!isBackupData(cloudBackup.data)) {
+      setError("La version cloud trouvee n'est pas valide.");
+      return;
+    }
+
+    setIsRestoring(true);
+    importBackupData(cloudBackup.data);
+    saveLocalDataUpdatedAt(cloudBackup.updated_at ?? undefined);
+    setMessage("Restauration cloud reussie. La page va se recharger.");
+    onResolved();
+    window.location.reload();
+  }
+
+  function handleKeepLocalData() {
+    saveLocalDataUpdatedAt();
+    setError("");
+    setMessage("Donnees locales conservees.");
+    onResolved();
+  }
+
+  return (
+    <article className={`${styles.card} ${styles.cloudRestoreCard}`}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.cardTitle}>
+            Une version cloud plus recente existe
+          </h2>
+          <p className={styles.cardText}>
+            Cet appareil semble avoir des donnees plus anciennes que la
+            sauvegarde Supabase.
+          </p>
+        </div>
+        <span className={styles.counterBadge}>
+          {formatCloudBackupDate(cloudBackup.updated_at)}
+        </span>
+      </div>
+
+      <div className={styles.backupActions}>
+        <button
+          type="button"
+          className={`control-button ${styles.button} ${styles.addButton}`}
+          onClick={handleRestore}
+          disabled={isRestoring}
+        >
+          Restaurer depuis le cloud
+        </button>
+
+        <button
+          type="button"
+          className={`control-button ${styles.button} ${styles.addButton}`}
+          onClick={handleKeepLocalData}
+          disabled={isRestoring}
+        >
+          Garder mes donnees locales
+        </button>
+      </div>
+
+      {message ? <p className={styles.successText}>{message}</p> : null}
+      {error ? <p className={styles.errorText}>{error}</p> : null}
+    </article>
+  );
+}
+
 export default function HomePage() {
   const [todayKey, setTodayKey] = useState(getTodayKey);
   const [planningRefreshKey, setPlanningRefreshKey] = useState(0);
   const [dailyObjectivesRefreshKey, setDailyObjectivesRefreshKey] = useState(0);
   const [availableCloudBackup, setAvailableCloudBackup] =
+    useState<CloudBackup | null>(null);
+  const [newerCloudBackup, setNewerCloudBackup] =
     useState<CloudBackup | null>(null);
   const handleDailyObjectivesChange = useCallback(() => {
     setDailyObjectivesRefreshKey((currentKey) => currentKey + 1);
@@ -1412,10 +1512,11 @@ export default function HomePage() {
 
     async function checkCloudRestoreSuggestion() {
       const localBackupData = getBackupData();
+      const localDataIsEmpty =
+        isBackupDataEmptyOrAlmostEmpty(localBackupData);
 
-      if (!isBackupDataEmptyOrAlmostEmpty(localBackupData)) {
+      if (!localDataIsEmpty) {
         setAvailableCloudBackup(null);
-        return;
       }
 
       try {
@@ -1429,14 +1530,36 @@ export default function HomePage() {
 
         if (
           shouldUpdateState &&
+          localDataIsEmpty &&
           cloudBackup &&
           isBackupData(cloudBackup.data)
         ) {
           setAvailableCloudBackup(cloudBackup);
+          setNewerCloudBackup(null);
+          return;
+        }
+
+        if (
+          shouldUpdateState &&
+          !localDataIsEmpty &&
+          cloudBackup &&
+          isBackupData(cloudBackup.data) &&
+          isCloudBackupNewerThanLocal(
+            cloudBackup.updated_at,
+            getLocalDataUpdatedAt(),
+          )
+        ) {
+          setNewerCloudBackup(cloudBackup);
+          return;
+        }
+
+        if (shouldUpdateState) {
+          setNewerCloudBackup(null);
         }
       } catch {
         if (shouldUpdateState) {
           setAvailableCloudBackup(null);
+          setNewerCloudBackup(null);
         }
       }
     }
@@ -1487,6 +1610,13 @@ export default function HomePage() {
           <CloudRestoreNotice
             cloudBackup={availableCloudBackup}
             onRestored={() => setAvailableCloudBackup(null)}
+          />
+        ) : null}
+
+        {newerCloudBackup ? (
+          <CloudNewerNotice
+            cloudBackup={newerCloudBackup}
+            onResolved={() => setNewerCloudBackup(null)}
           />
         ) : null}
 

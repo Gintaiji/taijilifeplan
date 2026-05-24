@@ -3,6 +3,10 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import {
+  CLOUD_AUTO_BACKUP_EVENT,
+  type CloudAutoBackupDetail,
+} from "../components/AutoCloudBackup";
+import {
   createBackupFile,
   downloadJsonFile,
   getBackupData,
@@ -16,6 +20,7 @@ import {
   clearAppStorage,
   isPersistentStorageGranted,
   requestPersistentStorage,
+  saveLocalDataUpdatedAt,
 } from "../utils/storage";
 import {
   getSupabaseSession,
@@ -87,6 +92,8 @@ export default function ParametresPage() {
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isCloudBusy, setIsCloudBusy] = useState(false);
   const [lastCloudBackup, setLastCloudBackup] = useState<string | null>(null);
+  const [autoBackupMessage, setAutoBackupMessage] = useState("");
+  const [autoBackupError, setAutoBackupError] = useState("");
   const [persistentStorage, setPersistentStorage] = useState<boolean | null>(
     null,
   );
@@ -148,6 +155,33 @@ export default function ParametresPage() {
     return () => {
       shouldUpdateState = false;
       unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleAutoBackup(event: Event) {
+      const customEvent = event as CustomEvent<CloudAutoBackupDetail>;
+      const detail = customEvent.detail;
+
+      if (detail.status === "success") {
+        setAutoBackupError("");
+        setAutoBackupMessage(detail.message);
+
+        if (detail.updatedAt) {
+          setLastCloudBackup(detail.updatedAt);
+        }
+
+        return;
+      }
+
+      setAutoBackupMessage("");
+      setAutoBackupError(detail.message);
+    }
+
+    window.addEventListener(CLOUD_AUTO_BACKUP_EVENT, handleAutoBackup);
+
+    return () => {
+      window.removeEventListener(CLOUD_AUTO_BACKUP_EVENT, handleAutoBackup);
     };
   }, []);
 
@@ -261,6 +295,7 @@ export default function ParametresPage() {
       }
 
       importBackupData(data.data);
+      saveLocalDataUpdatedAt(data.updated_at ?? undefined);
       setLastCloudBackup(
         typeof data.updated_at === "string" ? data.updated_at : null,
       );
@@ -485,6 +520,13 @@ export default function ParametresPage() {
                   Restaurer depuis le cloud
                 </button>
               </div>
+
+              {autoBackupMessage ? (
+                <p className={styles.autoBackupStatus}>{autoBackupMessage}</p>
+              ) : null}
+              {autoBackupError ? (
+                <p className={styles.autoBackupError}>{autoBackupError}</p>
+              ) : null}
             </>
           ) : (
             <p className={styles.cardText}>Chargement de la sauvegarde cloud...</p>

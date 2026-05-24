@@ -177,7 +177,9 @@
 
 .successText,
 .errorText,
-.warningText {
+.warningText,
+.autoBackupStatus,
+.autoBackupError {
   margin: 16px 0 0;
   line-height: 1.5;
   font-weight: 600;
@@ -189,6 +191,20 @@
 
 .errorText {
   color: #fecaca;
+}
+
+.autoBackupStatus,
+.autoBackupError {
+  margin-top: 12px;
+  font-size: 0.92rem;
+}
+
+.autoBackupStatus {
+  color: var(--dashboard-text-muted);
+}
+
+.autoBackupError {
+  color: #fde68a;
 }
 
 .warningText {

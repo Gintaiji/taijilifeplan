@@ -8,6 +8,28 @@ export type CloudBackup = {
   updated_at: string | null;
 };
 
+export function isCloudBackupNewerThanLocal(
+  cloudUpdatedAt: string | null,
+  localUpdatedAt: string | null,
+) {
+  if (!cloudUpdatedAt || !localUpdatedAt) {
+    return Boolean(cloudUpdatedAt);
+  }
+
+  const cloudDate = new Date(cloudUpdatedAt);
+  const localDate = new Date(localUpdatedAt);
+
+  if (Number.isNaN(cloudDate.getTime())) {
+    return false;
+  }
+
+  if (Number.isNaN(localDate.getTime())) {
+    return true;
+  }
+
+  return cloudDate.getTime() > localDate.getTime();
+}
+
 export async function getCloudBackup(userId: string) {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase

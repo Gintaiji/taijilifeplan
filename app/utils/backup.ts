@@ -1,4 +1,10 @@
-import { getStorage, setStorage, STORAGE_KEYS } from "./storage";
+import {
+  getLocalDataUpdatedAt,
+  getStorage,
+  saveLocalDataUpdatedAt,
+  setStorage,
+  STORAGE_KEYS,
+} from "./storage";
 
 export type BackupData = {
   habits: unknown;
@@ -9,6 +15,10 @@ export type BackupData = {
   trajectory: unknown;
   priorities: unknown;
   progressHistory?: unknown;
+  settings?: {
+    lastBackupExport?: string | null;
+    localDataUpdatedAt?: string | null;
+  };
 };
 
 export type BackupFile = {
@@ -46,7 +56,9 @@ export function isBackupData(value: unknown): value is BackupData {
     Array.isArray(value.planning) &&
     isObject(value.trajectory) &&
     (value.priorities === null || isObject(value.priorities)) &&
-    (value.progressHistory === undefined || Array.isArray(value.progressHistory))
+    (value.progressHistory === undefined ||
+      Array.isArray(value.progressHistory)) &&
+    (value.settings === undefined || isObject(value.settings))
   );
 }
 
@@ -60,6 +72,13 @@ export function getBackupData(): BackupData {
     trajectory: getStorage<unknown>(STORAGE_KEYS.trajectory, {}),
     priorities: getStorage<unknown | null>(STORAGE_KEYS.dailyObjectives, null),
     progressHistory: getStorage<unknown>(STORAGE_KEYS.progressHistory, []),
+    settings: {
+      lastBackupExport: getStorage<string | null>(
+        STORAGE_KEYS.lastBackupExport,
+        null,
+      ),
+      localDataUpdatedAt: getLocalDataUpdatedAt(),
+    },
   };
 }
 
@@ -131,5 +150,13 @@ export function importBackupData(data: BackupData) {
 
   if (data.progressHistory !== undefined) {
     setStorage(STORAGE_KEYS.progressHistory, data.progressHistory);
+  }
+
+  if (typeof data.settings?.lastBackupExport === "string") {
+    setStorage(STORAGE_KEYS.lastBackupExport, data.settings.lastBackupExport);
+  }
+
+  if (typeof data.settings?.localDataUpdatedAt === "string") {
+    saveLocalDataUpdatedAt(data.settings.localDataUpdatedAt);
   }
 }
