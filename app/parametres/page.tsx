@@ -307,7 +307,7 @@ export default function ParametresPage() {
           </div>
 
           <div className={styles.appVersion}>
-            <span className={styles.versionLabel}>Version de l'application</span>
+            <span className={styles.versionLabel}>Version de l&apos;application</span>
             <strong className={styles.versionNumber}>
               Taiji Life Plan {APP_VERSION}
             </strong>
@@ -323,7 +323,7 @@ export default function ParametresPage() {
                 className={`control-button ${styles.reloadButton}`}
                 onClick={handleReloadApp}
               >
-                Recharger l'application
+                Recharger l&apos;application
               </button>
             </div>
           ) : null}
