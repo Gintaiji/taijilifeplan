@@ -37,6 +37,14 @@ import {
   hasLocalBackupDataToSync,
   saveCloudBackupSafely,
 } from "../utils/cloudSyncStatus";
+import {
+  addSyncLogEvent,
+  clearSyncLogEvents,
+  getSyncLogEvents,
+  SYNC_LOG_CHANGED_EVENT,
+  SYNC_LOG_TYPE_LABELS,
+  type SyncLogEvent,
+} from "../utils/syncLog";
 import styles from "./page.module.css";
 
 const RESET_CONFIRMATION_TEXT = "SUPPRIMER";
@@ -93,6 +101,19 @@ function formatDaysSinceBackup(daysSinceBackup: number | null) {
   return `${daysSinceBackup} jours`;
 }
 
+function formatSyncLogDate(dateValue: string) {
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date inconnue";
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
 export default function ParametresPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sessionRef = useRef<Session | null>(null);
@@ -116,6 +137,7 @@ export default function ParametresPage() {
     null,
   );
   const [lastBackupExport, setLastBackupExport] = useState<string | null>(null);
+  const [syncLogEvents, setSyncLogEvents] = useState<SyncLogEvent[]>([]);
   const daysSinceBackup = getDaysSinceBackup(lastBackupExport);
   const shouldShowBackupWarning =
     daysSinceBackup !== null && daysSinceBackup > BACKUP_WARNING_DAYS;
@@ -160,6 +182,7 @@ export default function ParametresPage() {
         sessionRef.current = currentSession;
         setSession(currentSession);
         setLastBackupExport(getLastBackupExportDate());
+        setSyncLogEvents(getSyncLogEvents());
         setLocalDataUpdatedAt(getLocalDataUpdatedAt());
         setPersistentStorage(await isPersistentStorageGranted());
 
@@ -220,10 +243,17 @@ export default function ParametresPage() {
 
     window.addEventListener(APP_STORAGE_CHANGED_EVENT, handleStorageChanged);
 
+    function handleSyncLogChanged() {
+      setSyncLogEvents(getSyncLogEvents());
+    }
+
+    window.addEventListener(SYNC_LOG_CHANGED_EVENT, handleSyncLogChanged);
+
     return () => {
       shouldUpdateState = false;
       unsubscribe();
       window.removeEventListener(APP_STORAGE_CHANGED_EVENT, handleStorageChanged);
+      window.removeEventListener(SYNC_LOG_CHANGED_EVENT, handleSyncLogChanged);
     };
   }, []);
 
@@ -265,6 +295,7 @@ export default function ParametresPage() {
       setIsCloudSaving(false);
 
       if (detail.status === "success") {
+        setSyncLogEvents(getSyncLogEvents());
         setHasCloudSyncError(false);
         setIsLocalOnly(false);
         setHasPendingCloudChanges(false);
@@ -283,11 +314,13 @@ export default function ParametresPage() {
       setAutoBackupError(detail.message);
 
       if (detail.status === "error") {
+        setSyncLogEvents(getSyncLogEvents());
         setHasCloudSyncError(true);
         setHasPendingCloudChanges(false);
       }
 
       if (detail.status === "conflict" && detail.updatedAt) {
+        setSyncLogEvents(getSyncLogEvents());
         setLastCloudBackup(detail.updatedAt);
         setHasPendingCloudChanges(false);
       }
@@ -363,6 +396,11 @@ export default function ParametresPage() {
       return;
     }
 
+    addSyncLogEvent(
+      "manual-save-started",
+      "Synchronisation manuelle lancee.",
+    );
+    setSyncLogEvents(getSyncLogEvents());
     setIsCloudBusy(true);
     setIsCloudSaving(true);
     setHasPendingCloudChanges(false);
@@ -371,6 +409,11 @@ export default function ParametresPage() {
       const result = await saveCloudBackupSafely(session.user.id);
 
       if (result.status === "conflict") {
+        addSyncLogEvent(
+          "cloud-newer",
+          "Synchronisation manuelle bloquee : une version cloud plus recente existe.",
+        );
+        setSyncLogEvents(getSyncLogEvents());
         setLastCloudBackup(result.cloudUpdatedAt);
         setError(
           "Synchronisation bloquee : une version cloud plus recente existe.",
@@ -383,6 +426,8 @@ export default function ParametresPage() {
         return;
       }
 
+      addSyncLogEvent("manual-save-success", "Sauvegarde cloud manuelle reussie.");
+      setSyncLogEvents(getSyncLogEvents());
       setLastCloudBackup(result.updatedAt);
       setLocalDataUpdatedAt(getLocalDataUpdatedAt());
       setHasCloudSyncError(false);
@@ -390,6 +435,8 @@ export default function ParametresPage() {
       setHasPendingCloudChanges(false);
       setMessage("Synchronisation cloud reussie.");
     } catch {
+      addSyncLogEvent("save-error", "Erreur pendant la sauvegarde cloud.");
+      setSyncLogEvents(getSyncLogEvents());
       setHasCloudSyncError(true);
       setError("Impossible de sauvegarder dans le cloud pour le moment.");
     } finally {
@@ -433,6 +480,8 @@ export default function ParametresPage() {
 
       importBackupData(data.data);
       saveLocalDataUpdatedAt(data.updated_at ?? undefined);
+      addSyncLogEvent("restore-success", "Restauration cloud reussie.");
+      setSyncLogEvents(getSyncLogEvents());
       setLastCloudBackup(
         typeof data.updated_at === "string" ? data.updated_at : null,
       );
@@ -443,6 +492,8 @@ export default function ParametresPage() {
       setMessage("Restauration cloud reussie. La page va se recharger.");
       window.location.reload();
     } catch {
+      addSyncLogEvent("restore-error", "Erreur pendant la restauration cloud.");
+      setSyncLogEvents(getSyncLogEvents());
       setHasCloudSyncError(true);
       setError("Impossible de restaurer depuis le cloud pour le moment.");
     } finally {
@@ -469,6 +520,21 @@ export default function ParametresPage() {
 
   function handleReloadApp() {
     window.location.reload();
+  }
+
+  function handleClearSyncLog() {
+    const shouldClearLog = window.confirm(
+      "Vider le journal de synchronisation ?",
+    );
+
+    if (!shouldClearLog) {
+      return;
+    }
+
+    clearSyncLogEvents();
+    setSyncLogEvents([]);
+    setError("");
+    setMessage("Journal de synchronisation vide.");
   }
 
   return (
@@ -588,6 +654,58 @@ export default function ParametresPage() {
 
           {message ? <p className={styles.successText}>{message}</p> : null}
           {error ? <p className={styles.errorText}>{error}</p> : null}
+        </article>
+
+        <article className={styles.card}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>Journal de synchronisation</h2>
+              <p className={styles.cardText}>
+                Les 10 derniers evenements importants de synchronisation.
+              </p>
+            </div>
+
+            {isClient && syncLogEvents.length > 0 ? (
+              <button
+                type="button"
+                className={`control-button ${styles.secondaryButton}`}
+                onClick={handleClearSyncLog}
+              >
+                Vider le journal
+              </button>
+            ) : null}
+          </div>
+
+          {isClient ? (
+            syncLogEvents.length > 0 ? (
+              <ul className={styles.syncLogList}>
+                {syncLogEvents.map((event) => (
+                  <li key={event.id} className={styles.syncLogItem}>
+                    <div>
+                      <strong className={styles.syncLogType}>
+                        {SYNC_LOG_TYPE_LABELS[event.type]}
+                      </strong>
+                      <p className={styles.syncLogMessage}>{event.message}</p>
+                    </div>
+                    <time
+                      className={styles.syncLogDate}
+                      dateTime={event.createdAt}
+                    >
+                      {formatSyncLogDate(event.createdAt)}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.cardText}>
+                Aucun evenement de synchronisation pour le moment.
+              </p>
+            )
+          ) : (
+            <p className={styles.cardText}>
+              Chargement du journal de synchronisation...
+            </p>
+          )}
         </article>
 
         <article className={styles.card}>

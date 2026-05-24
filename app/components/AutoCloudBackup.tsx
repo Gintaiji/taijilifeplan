@@ -12,6 +12,7 @@ import {
   isAppDataStorageKey,
   type AppStorageChangedDetail,
 } from "../utils/storage";
+import { addSyncLogEvent } from "../utils/syncLog";
 import { getSupabaseSession, onSupabaseAuthChange } from "../utils/supabase";
 
 export const CLOUD_AUTO_BACKUP_EVENT = "taiji-life-plan-cloud-auto-backup";
@@ -84,6 +85,10 @@ export default function AutoCloudBackup() {
         !isBackupData(backupData) ||
         isBackupDataEmptyOrAlmostEmpty(backupData)
       ) {
+        addSyncLogEvent(
+          "auto-save-skipped-empty",
+          "Sauvegarde automatique ignoree : les donnees locales sont vides.",
+        );
         return;
       }
 
@@ -109,6 +114,10 @@ export default function AutoCloudBackup() {
         const result = await saveCloudBackupSafely(userId);
 
         if (result.status === "conflict") {
+          addSyncLogEvent(
+            "cloud-newer",
+            "Sauvegarde automatique bloquee : une version cloud plus recente existe.",
+          );
           notifyAutoBackup({
             status: "conflict",
             message: "Une version cloud plus recente existe.",
@@ -118,16 +127,28 @@ export default function AutoCloudBackup() {
         }
 
         if (result.status === "empty") {
+          addSyncLogEvent(
+            "auto-save-skipped-empty",
+            "Sauvegarde automatique ignoree : les donnees locales sont vides.",
+          );
           return;
         }
 
         lastSavedSnapshotRef.current = snapshot;
+        addSyncLogEvent(
+          "auto-save-success",
+          "Sauvegarde automatique cloud reussie.",
+        );
         notifyAutoBackup({
           status: "success",
           message: "Sauvegarde automatique cloud reussie.",
           updatedAt: result.updatedAt,
         });
       } catch {
+        addSyncLogEvent(
+          "save-error",
+          "Erreur pendant la sauvegarde automatique cloud.",
+        );
         notifyAutoBackup({
           status: "error",
           message: "Sauvegarde automatique cloud impossible pour le moment.",
@@ -166,6 +187,10 @@ export default function AutoCloudBackup() {
         !isBackupData(backupData) ||
         isBackupDataEmptyOrAlmostEmpty(backupData)
       ) {
+        addSyncLogEvent(
+          "auto-save-skipped-empty",
+          "Sauvegarde automatique ignoree : les donnees locales sont vides.",
+        );
         return;
       }
 

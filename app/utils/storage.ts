@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   progressHistory: "taiji-life-plan-progress-history",
   lastBackupExport: "taiji-life-plan-last-backup-export",
   localDataUpdatedAt: "taiji-life-plan-local-data-updated-at",
+  syncLog: "taiji-life-plan-sync-log",
 } as const;
 
 export const APP_STORAGE_CHANGED_EVENT = "taiji-life-plan-storage-changed";
