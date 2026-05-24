@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import CloudSyncDashboardSummary from "./components/CloudSyncDashboardSummary";
 import DailyRecommendationCard from "./components/DailyRecommendationCard";
 import ProgressHistoryCard from "./components/ProgressHistoryCard";
 import {
@@ -1619,6 +1620,8 @@ export default function HomePage() {
             onResolved={() => setNewerCloudBackup(null)}
           />
         ) : null}
+
+        {isClient ? <CloudSyncDashboardSummary /> : null}
 
         {isClient ? (
           <DailyObjectivesCard

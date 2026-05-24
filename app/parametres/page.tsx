@@ -9,7 +9,6 @@ import {
 import {
   createBackupFile,
   downloadJsonFile,
-  getBackupData,
   getLastBackupExportDate,
   importBackupData,
   isBackupData,
@@ -18,6 +17,8 @@ import {
 } from "../utils/backup";
 import {
   clearAppStorage,
+  APP_STORAGE_CHANGED_EVENT,
+  getLocalDataUpdatedAt,
   isPersistentStorageGranted,
   requestPersistentStorage,
   saveLocalDataUpdatedAt,
@@ -26,7 +27,13 @@ import {
   getSupabaseSession,
   onSupabaseAuthChange,
 } from "../utils/supabase";
-import { getCloudBackup, saveCloudBackup } from "../utils/cloudBackup";
+import { getCloudBackup } from "../utils/cloudBackup";
+import {
+  CLOUD_SYNC_LABELS,
+  formatSyncDate,
+  getCloudSyncSnapshot,
+  saveCloudBackupSafely,
+} from "../utils/cloudSyncStatus";
 import styles from "./page.module.css";
 
 const RESET_CONFIRMATION_TEXT = "SUPPRIMER";
@@ -91,7 +98,13 @@ export default function ParametresPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isCloudBusy, setIsCloudBusy] = useState(false);
+  const [isCloudSaving, setIsCloudSaving] = useState(false);
   const [lastCloudBackup, setLastCloudBackup] = useState<string | null>(null);
+  const [localDataUpdatedAt, setLocalDataUpdatedAt] = useState<string | null>(
+    null,
+  );
+  const [hasCloudSyncError, setHasCloudSyncError] = useState(false);
+  const [isLocalOnly, setIsLocalOnly] = useState(false);
   const [autoBackupMessage, setAutoBackupMessage] = useState("");
   const [autoBackupError, setAutoBackupError] = useState("");
   const [persistentStorage, setPersistentStorage] = useState<boolean | null>(
@@ -102,13 +115,27 @@ export default function ParametresPage() {
   const shouldShowBackupWarning =
     daysSinceBackup !== null && daysSinceBackup > BACKUP_WARNING_DAYS;
   const userEmail = session?.user.email;
+  const cloudSyncSnapshot = getCloudSyncSnapshot({
+    session,
+    localUpdatedAt: localDataUpdatedAt,
+    cloudUpdatedAt: lastCloudBackup,
+    isSaving: isCloudSaving,
+    hasError: hasCloudSyncError,
+    localOnly: isLocalOnly,
+  });
 
   async function loadLastCloudBackup(userId: string) {
-    const data = await getCloudBackup(userId);
+    try {
+      const data = await getCloudBackup(userId);
 
-    setLastCloudBackup(
-      typeof data?.updated_at === "string" ? data.updated_at : null,
-    );
+      setLastCloudBackup(
+        typeof data?.updated_at === "string" ? data.updated_at : null,
+      );
+      setHasCloudSyncError(false);
+      setIsLocalOnly(false);
+    } catch {
+      setHasCloudSyncError(true);
+    }
   }
 
   useEffect(() => {
@@ -125,6 +152,7 @@ export default function ParametresPage() {
         setIsClient(true);
         setSession(currentSession);
         setLastBackupExport(getLastBackupExportDate());
+        setLocalDataUpdatedAt(getLocalDataUpdatedAt());
         setPersistentStorage(await isPersistentStorageGranted());
 
         if (currentSession) {
@@ -132,7 +160,8 @@ export default function ParametresPage() {
         }
       } catch {
         if (shouldUpdateState) {
-          setError("Impossible de charger la session Supabase.");
+          setIsLocalOnly(true);
+          setError("Mode local actif : Supabase n'est pas disponible.");
         }
       } finally {
         if (shouldUpdateState) {
@@ -146,15 +175,24 @@ export default function ParametresPage() {
     const unsubscribe = onSupabaseAuthChange((newSession) => {
       setSession(newSession);
       setLastCloudBackup(null);
+      setHasCloudSyncError(false);
+      setIsLocalOnly(false);
 
       if (newSession) {
         void loadLastCloudBackup(newSession.user.id);
       }
     });
 
+    function handleStorageChanged() {
+      setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+    }
+
+    window.addEventListener(APP_STORAGE_CHANGED_EVENT, handleStorageChanged);
+
     return () => {
       shouldUpdateState = false;
       unsubscribe();
+      window.removeEventListener(APP_STORAGE_CHANGED_EVENT, handleStorageChanged);
     };
   }, []);
 
@@ -163,9 +201,22 @@ export default function ParametresPage() {
       const customEvent = event as CustomEvent<CloudAutoBackupDetail>;
       const detail = customEvent.detail;
 
-      if (detail.status === "success") {
+      if (detail.status === "saving") {
+        setIsCloudSaving(true);
         setAutoBackupError("");
         setAutoBackupMessage(detail.message);
+        setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+        return;
+      }
+
+      setIsCloudSaving(false);
+
+      if (detail.status === "success") {
+        setHasCloudSyncError(false);
+        setIsLocalOnly(false);
+        setAutoBackupError("");
+        setAutoBackupMessage(detail.message);
+        setLocalDataUpdatedAt(getLocalDataUpdatedAt());
 
         if (detail.updatedAt) {
           setLastCloudBackup(detail.updatedAt);
@@ -176,6 +227,14 @@ export default function ParametresPage() {
 
       setAutoBackupMessage("");
       setAutoBackupError(detail.message);
+
+      if (detail.status === "error") {
+        setHasCloudSyncError(true);
+      }
+
+      if (detail.status === "conflict" && detail.updatedAt) {
+        setLastCloudBackup(detail.updatedAt);
+      }
     }
 
     window.addEventListener(CLOUD_AUTO_BACKUP_EVENT, handleAutoBackup);
@@ -249,15 +308,35 @@ export default function ParametresPage() {
     }
 
     setIsCloudBusy(true);
+    setIsCloudSaving(true);
 
     try {
-      const savedAt = await saveCloudBackup(session.user.id, getBackupData());
-      setLastCloudBackup(savedAt);
-      setMessage("Sauvegarde cloud reussie.");
+      const result = await saveCloudBackupSafely(session.user.id);
+
+      if (result.status === "conflict") {
+        setLastCloudBackup(result.cloudUpdatedAt);
+        setError(
+          "Synchronisation bloquee : une version cloud plus recente existe.",
+        );
+        return;
+      }
+
+      if (result.status === "empty") {
+        setError("Aucune donnee locale suffisante a synchroniser.");
+        return;
+      }
+
+      setLastCloudBackup(result.updatedAt);
+      setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+      setHasCloudSyncError(false);
+      setIsLocalOnly(false);
+      setMessage("Synchronisation cloud reussie.");
     } catch {
+      setHasCloudSyncError(true);
       setError("Impossible de sauvegarder dans le cloud pour le moment.");
     } finally {
       setIsCloudBusy(false);
+      setIsCloudSaving(false);
     }
   }
 
@@ -299,10 +378,14 @@ export default function ParametresPage() {
       setLastCloudBackup(
         typeof data.updated_at === "string" ? data.updated_at : null,
       );
+      setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+      setHasCloudSyncError(false);
+      setIsLocalOnly(false);
       setError("");
       setMessage("Restauration cloud reussie. La page va se recharger.");
       window.location.reload();
     } catch {
+      setHasCloudSyncError(true);
       setError("Impossible de restaurer depuis le cloud pour le moment.");
     } finally {
       setIsCloudBusy(false);
@@ -486,6 +569,36 @@ export default function ParametresPage() {
                 </div>
 
                 <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>Etat de synchronisation</span>
+                  <strong
+                    className={
+                      cloudSyncSnapshot.state === "up-to-date"
+                        ? styles.statusOk
+                        : cloudSyncSnapshot.state === "error"
+                          ? styles.statusDanger
+                          : styles.statusWarning
+                    }
+                  >
+                    {CLOUD_SYNC_LABELS[cloudSyncSnapshot.state]}
+                  </strong>
+                </div>
+
+                <div className={styles.statusItem}>
+                  <span className={styles.statusLabel}>
+                    Derniere modification locale
+                  </span>
+                  <strong
+                    className={
+                      cloudSyncSnapshot.localUpdatedAt
+                        ? styles.statusValue
+                        : styles.statusWarning
+                    }
+                  >
+                    {formatSyncDate(cloudSyncSnapshot.localUpdatedAt)}
+                  </strong>
+                </div>
+
+                <div className={styles.statusItem}>
                   <span className={styles.statusLabel}>
                     Derniere sauvegarde cloud
                   </span>
@@ -508,7 +621,7 @@ export default function ParametresPage() {
                   onClick={handleCloudSave}
                   disabled={isCloudBusy || isLoadingSession}
                 >
-                  Sauvegarder dans le cloud
+                  Synchroniser maintenant
                 </button>
 
                 <button

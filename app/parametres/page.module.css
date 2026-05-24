@@ -132,6 +132,7 @@
 }
 
 .statusOk,
+.statusDanger,
 .statusWarning,
 .statusValue {
   display: block;
@@ -146,6 +147,10 @@
 
 .statusWarning {
   color: #fde68a;
+}
+
+.statusDanger {
+  color: #fecaca;
 }
 
 .button,

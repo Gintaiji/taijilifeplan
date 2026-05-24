@@ -22,7 +22,7 @@ import { getSupabaseSession, onSupabaseAuthChange } from "../utils/supabase";
 export const CLOUD_AUTO_BACKUP_EVENT = "taiji-life-plan-cloud-auto-backup";
 
 export type CloudAutoBackupDetail = {
-  status: "success" | "error" | "conflict";
+  status: "success" | "error" | "conflict" | "saving";
   message: string;
   updatedAt?: string;
 };
@@ -102,6 +102,11 @@ export default function AutoCloudBackup() {
       isSavingRef.current = true;
 
       try {
+        notifyAutoBackup({
+          status: "saving",
+          message: "Sauvegarde cloud en cours.",
+        });
+
         const cloudBackup = await getCloudBackup(userId);
         const localUpdatedAt = getLocalDataUpdatedAt();
 
