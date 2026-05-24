@@ -13,6 +13,7 @@ import { getLocalDataUpdatedAt } from "./storage";
 
 export type CloudSyncState =
   | "up-to-date"
+  | "pending"
   | "saving"
   | "cloud-newer"
   | "signed-out"
@@ -40,6 +41,7 @@ export type ProtectedCloudSaveResult =
 
 export const CLOUD_SYNC_LABELS: Record<CloudSyncState, string> = {
   "up-to-date": "A jour",
+  pending: "Modifications locales en attente",
   saving: "Sauvegarde en cours",
   "cloud-newer": "Cloud plus recent disponible",
   "signed-out": "Non connecte",
@@ -69,6 +71,7 @@ export function getCloudSyncSnapshot({
   localUpdatedAt,
   cloudUpdatedAt,
   isSaving,
+  hasPendingChanges,
   hasError,
   localOnly,
 }: {
@@ -76,6 +79,7 @@ export function getCloudSyncSnapshot({
   localUpdatedAt: string | null;
   cloudUpdatedAt: string | null;
   isSaving: boolean;
+  hasPendingChanges: boolean;
   hasError: boolean;
   localOnly: boolean;
 }): CloudSyncSnapshot {
@@ -105,7 +109,15 @@ export function getCloudSyncSnapshot({
 
   if (!session) {
     return {
-      state: "signed-out",
+      state: "local-only",
+      localUpdatedAt,
+      cloudUpdatedAt,
+    };
+  }
+
+  if (hasPendingChanges) {
+    return {
+      state: "pending",
       localUpdatedAt,
       cloudUpdatedAt,
     };
@@ -124,6 +136,12 @@ export function getCloudSyncSnapshot({
     localUpdatedAt,
     cloudUpdatedAt,
   };
+}
+
+export function hasLocalBackupDataToSync() {
+  const backupData = getBackupData();
+
+  return isBackupData(backupData) && !isBackupDataEmptyOrAlmostEmpty(backupData);
 }
 
 export async function saveCloudBackupSafely(

@@ -23,6 +23,7 @@ const APP_DATA_STORAGE_KEYS = new Set<string>([
   STORAGE_KEYS.trajectory,
   STORAGE_KEYS.dailyObjectives,
   STORAGE_KEYS.progressHistory,
+  STORAGE_KEYS.lastBackupExport,
 ]);
 
 export type AppStorageChangedDetail = {

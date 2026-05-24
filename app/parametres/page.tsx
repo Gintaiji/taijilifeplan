@@ -19,9 +19,11 @@ import {
   clearAppStorage,
   APP_STORAGE_CHANGED_EVENT,
   getLocalDataUpdatedAt,
+  isAppDataStorageKey,
   isPersistentStorageGranted,
   requestPersistentStorage,
   saveLocalDataUpdatedAt,
+  type AppStorageChangedDetail,
 } from "../utils/storage";
 import {
   getSupabaseSession,
@@ -32,6 +34,7 @@ import {
   CLOUD_SYNC_LABELS,
   formatSyncDate,
   getCloudSyncSnapshot,
+  hasLocalBackupDataToSync,
   saveCloudBackupSafely,
 } from "../utils/cloudSyncStatus";
 import styles from "./page.module.css";
@@ -92,6 +95,7 @@ function formatDaysSinceBackup(daysSinceBackup: number | null) {
 
 export default function ParametresPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sessionRef = useRef<Session | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -99,6 +103,7 @@ export default function ParametresPage() {
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isCloudBusy, setIsCloudBusy] = useState(false);
   const [isCloudSaving, setIsCloudSaving] = useState(false);
+  const [hasPendingCloudChanges, setHasPendingCloudChanges] = useState(false);
   const [lastCloudBackup, setLastCloudBackup] = useState<string | null>(null);
   const [localDataUpdatedAt, setLocalDataUpdatedAt] = useState<string | null>(
     null,
@@ -120,6 +125,7 @@ export default function ParametresPage() {
     localUpdatedAt: localDataUpdatedAt,
     cloudUpdatedAt: lastCloudBackup,
     isSaving: isCloudSaving,
+    hasPendingChanges: hasPendingCloudChanges,
     hasError: hasCloudSyncError,
     localOnly: isLocalOnly,
   });
@@ -133,6 +139,7 @@ export default function ParametresPage() {
       );
       setHasCloudSyncError(false);
       setIsLocalOnly(false);
+      setHasPendingCloudChanges(false);
     } catch {
       setHasCloudSyncError(true);
     }
@@ -150,6 +157,7 @@ export default function ParametresPage() {
         }
 
         setIsClient(true);
+        sessionRef.current = currentSession;
         setSession(currentSession);
         setLastBackupExport(getLastBackupExportDate());
         setLocalDataUpdatedAt(getLocalDataUpdatedAt());
@@ -173,18 +181,41 @@ export default function ParametresPage() {
     void loadClientSettings();
 
     const unsubscribe = onSupabaseAuthChange((newSession) => {
+      sessionRef.current = newSession;
       setSession(newSession);
       setLastCloudBackup(null);
       setHasCloudSyncError(false);
-      setIsLocalOnly(false);
+      setIsLocalOnly(!newSession);
+      setHasPendingCloudChanges(false);
 
       if (newSession) {
         void loadLastCloudBackup(newSession.user.id);
       }
     });
 
-    function handleStorageChanged() {
+    function handleStorageChanged(event: Event) {
+      const customEvent = event as CustomEvent<AppStorageChangedDetail>;
+      const storageKey = customEvent.detail?.key;
+
       setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+
+      if (!storageKey || !isAppDataStorageKey(storageKey)) {
+        return;
+      }
+
+      if (!hasLocalBackupDataToSync()) {
+        return;
+      }
+
+      if (!sessionRef.current) {
+        setIsLocalOnly(true);
+        setHasPendingCloudChanges(false);
+        return;
+      }
+
+      setHasCloudSyncError(false);
+      setIsLocalOnly(false);
+      setHasPendingCloudChanges(true);
     }
 
     window.addEventListener(APP_STORAGE_CHANGED_EVENT, handleStorageChanged);
@@ -201,8 +232,30 @@ export default function ParametresPage() {
       const customEvent = event as CustomEvent<CloudAutoBackupDetail>;
       const detail = customEvent.detail;
 
+      if (detail.status === "pending") {
+        setIsCloudSaving(false);
+        setHasCloudSyncError(false);
+        setIsLocalOnly(false);
+        setHasPendingCloudChanges(true);
+        setAutoBackupError("");
+        setAutoBackupMessage(detail.message);
+        setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+        return;
+      }
+
+      if (detail.status === "local-only") {
+        setIsCloudSaving(false);
+        setHasPendingCloudChanges(false);
+        setIsLocalOnly(true);
+        setAutoBackupError("");
+        setAutoBackupMessage(detail.message);
+        setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+        return;
+      }
+
       if (detail.status === "saving") {
         setIsCloudSaving(true);
+        setHasPendingCloudChanges(false);
         setAutoBackupError("");
         setAutoBackupMessage(detail.message);
         setLocalDataUpdatedAt(getLocalDataUpdatedAt());
@@ -214,6 +267,7 @@ export default function ParametresPage() {
       if (detail.status === "success") {
         setHasCloudSyncError(false);
         setIsLocalOnly(false);
+        setHasPendingCloudChanges(false);
         setAutoBackupError("");
         setAutoBackupMessage(detail.message);
         setLocalDataUpdatedAt(getLocalDataUpdatedAt());
@@ -230,10 +284,12 @@ export default function ParametresPage() {
 
       if (detail.status === "error") {
         setHasCloudSyncError(true);
+        setHasPendingCloudChanges(false);
       }
 
       if (detail.status === "conflict" && detail.updatedAt) {
         setLastCloudBackup(detail.updatedAt);
+        setHasPendingCloudChanges(false);
       }
     }
 
@@ -309,6 +365,7 @@ export default function ParametresPage() {
 
     setIsCloudBusy(true);
     setIsCloudSaving(true);
+    setHasPendingCloudChanges(false);
 
     try {
       const result = await saveCloudBackupSafely(session.user.id);
@@ -330,6 +387,7 @@ export default function ParametresPage() {
       setLocalDataUpdatedAt(getLocalDataUpdatedAt());
       setHasCloudSyncError(false);
       setIsLocalOnly(false);
+      setHasPendingCloudChanges(false);
       setMessage("Synchronisation cloud reussie.");
     } catch {
       setHasCloudSyncError(true);

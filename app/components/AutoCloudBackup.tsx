@@ -6,14 +6,9 @@ import {
   isBackupData,
   isBackupDataEmptyOrAlmostEmpty,
 } from "../utils/backup";
-import {
-  getCloudBackup,
-  isCloudBackupNewerThanLocal,
-  saveCloudBackup,
-} from "../utils/cloudBackup";
+import { saveCloudBackupSafely } from "../utils/cloudSyncStatus";
 import {
   APP_STORAGE_CHANGED_EVENT,
-  getLocalDataUpdatedAt,
   isAppDataStorageKey,
   type AppStorageChangedDetail,
 } from "../utils/storage";
@@ -22,7 +17,7 @@ import { getSupabaseSession, onSupabaseAuthChange } from "../utils/supabase";
 export const CLOUD_AUTO_BACKUP_EVENT = "taiji-life-plan-cloud-auto-backup";
 
 export type CloudAutoBackupDetail = {
-  status: "success" | "error" | "conflict" | "saving";
+  status: "pending" | "saving" | "success" | "error" | "conflict" | "local-only";
   message: string;
   updatedAt?: string;
 };
@@ -76,6 +71,10 @@ export default function AutoCloudBackup() {
   useEffect(() => {
     async function runAutoBackup() {
       if (!userId) {
+        notifyAutoBackup({
+          status: "local-only",
+          message: "Sauvegarde locale uniquement.",
+        });
         return;
       }
 
@@ -107,29 +106,26 @@ export default function AutoCloudBackup() {
           message: "Sauvegarde cloud en cours.",
         });
 
-        const cloudBackup = await getCloudBackup(userId);
-        const localUpdatedAt = getLocalDataUpdatedAt();
+        const result = await saveCloudBackupSafely(userId);
 
-        if (
-          isCloudBackupNewerThanLocal(
-            cloudBackup?.updated_at ?? null,
-            localUpdatedAt,
-          )
-        ) {
+        if (result.status === "conflict") {
           notifyAutoBackup({
             status: "conflict",
             message: "Une version cloud plus recente existe.",
-            updatedAt: cloudBackup?.updated_at ?? undefined,
+            updatedAt: result.cloudUpdatedAt ?? undefined,
           });
           return;
         }
 
-        const updatedAt = await saveCloudBackup(userId, backupData);
+        if (result.status === "empty") {
+          return;
+        }
+
         lastSavedSnapshotRef.current = snapshot;
         notifyAutoBackup({
           status: "success",
           message: "Sauvegarde automatique cloud reussie.",
-          updatedAt,
+          updatedAt: result.updatedAt,
         });
       } catch {
         notifyAutoBackup({
@@ -163,6 +159,22 @@ export default function AutoCloudBackup() {
       if (!storageKey || !isAppDataStorageKey(storageKey)) {
         return;
       }
+
+      const backupData = getBackupData();
+
+      if (
+        !isBackupData(backupData) ||
+        isBackupDataEmptyOrAlmostEmpty(backupData)
+      ) {
+        return;
+      }
+
+      notifyAutoBackup({
+        status: userId ? "pending" : "local-only",
+        message: userId
+          ? "Modifications locales en attente."
+          : "Sauvegarde locale uniquement.",
+      });
 
       scheduleAutoBackup();
     }

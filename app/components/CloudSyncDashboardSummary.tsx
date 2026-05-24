@@ -11,11 +11,14 @@ import {
   CLOUD_SYNC_LABELS,
   formatSyncDate,
   getCloudSyncSnapshot,
+  hasLocalBackupDataToSync,
   type CloudSyncSnapshot,
 } from "../utils/cloudSyncStatus";
 import {
   APP_STORAGE_CHANGED_EVENT,
   getLocalDataUpdatedAt,
+  isAppDataStorageKey,
+  type AppStorageChangedDetail,
 } from "../utils/storage";
 import {
   getSupabaseSession,
@@ -24,7 +27,7 @@ import {
 import styles from "../page.module.css";
 
 const initialSnapshot: CloudSyncSnapshot = {
-  state: "signed-out",
+  state: "local-only",
   localUpdatedAt: null,
   cloudUpdatedAt: null,
 };
@@ -48,8 +51,9 @@ export default function CloudSyncDashboardSummary() {
               localUpdatedAt,
               cloudUpdatedAt: null,
               isSaving: false,
+              hasPendingChanges: false,
               hasError: false,
-              localOnly: false,
+              localOnly: true,
             }),
           );
         }
@@ -74,6 +78,7 @@ export default function CloudSyncDashboardSummary() {
                 ? cloudBackup.updated_at
                 : null,
             isSaving: false,
+            hasPendingChanges: false,
             hasError: false,
             localOnly: false,
           }),
@@ -90,6 +95,7 @@ export default function CloudSyncDashboardSummary() {
             localUpdatedAt,
             cloudUpdatedAt: null,
             isSaving: false,
+            hasPendingChanges: false,
             hasError: false,
             localOnly: true,
           }),
@@ -119,6 +125,7 @@ export default function CloudSyncDashboardSummary() {
             localUpdatedAt: getLocalDataUpdatedAt(),
             cloudUpdatedAt: null,
             isSaving: false,
+            hasPendingChanges: false,
             hasError: false,
             localOnly: true,
           }),
@@ -133,8 +140,29 @@ export default function CloudSyncDashboardSummary() {
       void refreshSyncStatus(newSession);
     });
 
-    function handleStorageChanged() {
-      void refreshSyncStatus(session);
+    function handleStorageChanged(event: Event) {
+      const customEvent = event as CustomEvent<AppStorageChangedDetail>;
+      const storageKey = customEvent.detail?.key;
+
+      if (!storageKey || !isAppDataStorageKey(storageKey)) {
+        return;
+      }
+
+      if (!hasLocalBackupDataToSync()) {
+        return;
+      }
+
+      setSnapshot((currentSnapshot) =>
+        getCloudSyncSnapshot({
+          session,
+          localUpdatedAt: getLocalDataUpdatedAt(),
+          cloudUpdatedAt: currentSnapshot.cloudUpdatedAt,
+          isSaving: false,
+          hasPendingChanges: Boolean(session),
+          hasError: false,
+          localOnly: !session,
+        }),
+      );
     }
 
     window.addEventListener(APP_STORAGE_CHANGED_EVENT, handleStorageChanged);
@@ -160,6 +188,37 @@ export default function CloudSyncDashboardSummary() {
         return;
       }
 
+      if (detail.status === "pending") {
+        setSnapshot((currentSnapshot) =>
+          getCloudSyncSnapshot({
+            session,
+            localUpdatedAt: getLocalDataUpdatedAt(),
+            cloudUpdatedAt: currentSnapshot.cloudUpdatedAt,
+            isSaving: false,
+            hasPendingChanges: true,
+            hasError: false,
+            localOnly: false,
+          }),
+        );
+        return;
+      }
+
+      if (detail.status === "local-only") {
+        setLocalOnly(true);
+        setSnapshot((currentSnapshot) =>
+          getCloudSyncSnapshot({
+            session,
+            localUpdatedAt: getLocalDataUpdatedAt(),
+            cloudUpdatedAt: currentSnapshot.cloudUpdatedAt,
+            isSaving: false,
+            hasPendingChanges: false,
+            hasError: false,
+            localOnly: true,
+          }),
+        );
+        return;
+      }
+
       if (detail.status === "success") {
         setLocalOnly(false);
         setSnapshot(
@@ -168,6 +227,7 @@ export default function CloudSyncDashboardSummary() {
             localUpdatedAt: getLocalDataUpdatedAt(),
             cloudUpdatedAt: detail.updatedAt ?? null,
             isSaving: false,
+            hasPendingChanges: false,
             hasError: false,
             localOnly: false,
           }),
@@ -182,6 +242,7 @@ export default function CloudSyncDashboardSummary() {
             localUpdatedAt: getLocalDataUpdatedAt(),
             cloudUpdatedAt: detail.updatedAt ?? null,
             isSaving: false,
+            hasPendingChanges: false,
             hasError: false,
             localOnly,
           }),
@@ -195,6 +256,7 @@ export default function CloudSyncDashboardSummary() {
           localUpdatedAt: getLocalDataUpdatedAt(),
           cloudUpdatedAt: snapshot.cloudUpdatedAt,
           isSaving: false,
+          hasPendingChanges: false,
           hasError: true,
           localOnly,
         }),
