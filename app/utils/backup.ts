@@ -63,6 +63,35 @@ export function getBackupData(): BackupData {
   };
 }
 
+function getObjectSize(value: unknown) {
+  if (!isObject(value)) {
+    return 0;
+  }
+
+  return Object.keys(value).length;
+}
+
+function getArraySize(value: unknown) {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+export function getBackupDataSize(data: BackupData) {
+  return (
+    getObjectSize(data.habits) +
+    getArraySize(data.habitNames) +
+    getArraySize(data.habitOrder) +
+    getArraySize(data.goals) +
+    getArraySize(data.planning) +
+    getObjectSize(data.trajectory) +
+    getObjectSize(data.priorities) +
+    getArraySize(data.progressHistory)
+  );
+}
+
+export function isBackupDataEmptyOrAlmostEmpty(data: BackupData) {
+  return getBackupDataSize(data) <= 1;
+}
+
 export function createBackupFile(): BackupFile {
   return {
     version: 1,

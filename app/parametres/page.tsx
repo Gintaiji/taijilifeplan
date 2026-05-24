@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   createBackupFile,
   downloadJsonFile,
+  getBackupData,
   getLastBackupExportDate,
   importBackupData,
   isBackupData,
@@ -17,17 +18,16 @@ import {
   requestPersistentStorage,
 } from "../utils/storage";
 import {
-  getSupabaseBrowserClient,
   getSupabaseSession,
   onSupabaseAuthChange,
 } from "../utils/supabase";
+import { getCloudBackup, saveCloudBackup } from "../utils/cloudBackup";
 import styles from "./page.module.css";
 
 const RESET_CONFIRMATION_TEXT = "SUPPRIMER";
 const BACKUP_WARNING_DAYS = 3;
 const APP_VERSION = "V1.1.0";
 const APP_UPDATED_AT = "19 mai 2026";
-const CLOUD_BACKUP_TABLE = "taiji_app_data";
 
 function formatBackupDate(dateValue: string | null) {
   if (!dateValue) {
@@ -97,16 +97,7 @@ export default function ParametresPage() {
   const userEmail = session?.user.email;
 
   async function loadLastCloudBackup(userId: string) {
-    const supabase = getSupabaseBrowserClient();
-    const { data, error: selectError } = await supabase
-      .from(CLOUD_BACKUP_TABLE)
-      .select("updated_at")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (selectError) {
-      throw selectError;
-    }
+    const data = await getCloudBackup(userId);
 
     setLastCloudBackup(
       typeof data?.updated_at === "string" ? data.updated_at : null,
@@ -226,30 +217,7 @@ export default function ParametresPage() {
     setIsCloudBusy(true);
 
     try {
-      const backupFile = createBackupFile();
-      const supabase = getSupabaseBrowserClient();
-      const { data, error: upsertError } = await supabase
-        .from(CLOUD_BACKUP_TABLE)
-        .upsert(
-          {
-            user_id: session.user.id,
-            data: backupFile.data,
-            updated_at: backupFile.exportedAt,
-          },
-          { onConflict: "user_id" },
-        )
-        .select("updated_at")
-        .single();
-
-      if (upsertError) {
-        throw upsertError;
-      }
-
-      const savedAt =
-        typeof data?.updated_at === "string"
-          ? data.updated_at
-          : backupFile.exportedAt;
-
+      const savedAt = await saveCloudBackup(session.user.id, getBackupData());
       setLastCloudBackup(savedAt);
       setMessage("Sauvegarde cloud reussie.");
     } catch {
@@ -280,16 +248,7 @@ export default function ParametresPage() {
     setIsCloudBusy(true);
 
     try {
-      const supabase = getSupabaseBrowserClient();
-      const { data, error: selectError } = await supabase
-        .from(CLOUD_BACKUP_TABLE)
-        .select("data, updated_at")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-
-      if (selectError) {
-        throw selectError;
-      }
+      const data = await getCloudBackup(session.user.id);
 
       if (!data) {
         setError("Aucune sauvegarde cloud trouvee.");

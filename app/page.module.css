@@ -77,6 +77,13 @@
   grid-column: span 2;
 }
 
+.cloudRestoreCard {
+  grid-column: 1 / -1;
+  border-color: rgba(134, 239, 172, 0.34);
+  background:
+    linear-gradient(135deg, rgba(20, 83, 45, 0.92), rgba(15, 23, 42, 0.98));
+}
+
 .actionsCard {
   grid-column: span 2;
 }

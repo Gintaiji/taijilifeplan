@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import DailyRecommendationCard from "./components/DailyRecommendationCard";
 import ProgressHistoryCard from "./components/ProgressHistoryCard";
+import {
+  getBackupData,
+  importBackupData,
+  isBackupData,
+  isBackupDataEmptyOrAlmostEmpty,
+} from "./utils/backup";
+import { getCloudBackup, type CloudBackup } from "./utils/cloudBackup";
 import { getStorage, setStorage, STORAGE_KEYS } from "./utils/storage";
+import { getSupabaseSession } from "./utils/supabase";
 import styles from "./page.module.css";
 
 const HABITS_STORAGE_KEY = STORAGE_KEYS.habits;
@@ -412,6 +420,23 @@ function formatTrajectoryDate(dateKey: string) {
     month: "long",
     year: "numeric",
   });
+}
+
+function formatCloudBackupDate(dateValue: string | null) {
+  if (!dateValue) {
+    return "Date inconnue";
+  }
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date inconnue";
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function getTodayKey() {
@@ -1296,10 +1321,80 @@ function TodayActionsCard({
   );
 }
 
+function CloudRestoreNotice({
+  cloudBackup,
+  onRestored,
+}: {
+  cloudBackup: CloudBackup;
+  onRestored: () => void;
+}) {
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  function handleRestore() {
+    setMessage("");
+    setError("");
+
+    const shouldRestore = window.confirm(
+      "Restaurer depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+    );
+
+    if (!shouldRestore) {
+      setError("Restauration annulee.");
+      return;
+    }
+
+    if (!isBackupData(cloudBackup.data)) {
+      setError("La sauvegarde cloud trouvee n'est pas valide.");
+      return;
+    }
+
+    setIsRestoring(true);
+    importBackupData(cloudBackup.data);
+    setMessage("Restauration cloud reussie. La page va se recharger.");
+    onRestored();
+    window.location.reload();
+  }
+
+  return (
+    <article className={`${styles.card} ${styles.cloudRestoreCard}`}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.cardTitle}>Une sauvegarde cloud est disponible</h2>
+          <p className={styles.cardText}>
+            Tes donnees locales semblent vides sur cet appareil. Tu peux
+            restaurer la copie Supabase sans action automatique.
+          </p>
+        </div>
+        <span className={styles.counterBadge}>
+          {formatCloudBackupDate(cloudBackup.updated_at)}
+        </span>
+      </div>
+
+      <div className={styles.backupActions}>
+        <button
+          type="button"
+          className={`control-button ${styles.button} ${styles.addButton}`}
+          onClick={handleRestore}
+          disabled={isRestoring}
+        >
+          Restaurer depuis le cloud
+        </button>
+      </div>
+
+      {message ? <p className={styles.successText}>{message}</p> : null}
+      {error ? <p className={styles.errorText}>{error}</p> : null}
+    </article>
+  );
+}
+
 export default function HomePage() {
   const [todayKey, setTodayKey] = useState(getTodayKey);
   const [planningRefreshKey, setPlanningRefreshKey] = useState(0);
   const [dailyObjectivesRefreshKey, setDailyObjectivesRefreshKey] = useState(0);
+  const [availableCloudBackup, setAvailableCloudBackup] =
+    useState<CloudBackup | null>(null);
   const handleDailyObjectivesChange = useCallback(() => {
     setDailyObjectivesRefreshKey((currentKey) => currentKey + 1);
   }, []);
@@ -1311,6 +1406,49 @@ export default function HomePage() {
   const dashboard = isClient
     ? getDashboardFromLocalStorage()
     : initialDashboardState;
+
+  useEffect(() => {
+    let shouldUpdateState = true;
+
+    async function checkCloudRestoreSuggestion() {
+      const localBackupData = getBackupData();
+
+      if (!isBackupDataEmptyOrAlmostEmpty(localBackupData)) {
+        setAvailableCloudBackup(null);
+        return;
+      }
+
+      try {
+        const currentSession = await getSupabaseSession();
+
+        if (!currentSession) {
+          return;
+        }
+
+        const cloudBackup = await getCloudBackup(currentSession.user.id);
+
+        if (
+          shouldUpdateState &&
+          cloudBackup &&
+          isBackupData(cloudBackup.data)
+        ) {
+          setAvailableCloudBackup(cloudBackup);
+        }
+      } catch {
+        if (shouldUpdateState) {
+          setAvailableCloudBackup(null);
+        }
+      }
+    }
+
+    if (isClient) {
+      void checkCloudRestoreSuggestion();
+    }
+
+    return () => {
+      shouldUpdateState = false;
+    };
+  }, [isClient]);
 
   useEffect(() => {
     const refreshTodayKey = () => {
@@ -1345,6 +1483,13 @@ export default function HomePage() {
         data-planning-refresh={planningRefreshKey}
         data-daily-objectives-refresh={dailyObjectivesRefreshKey}
       >
+        {availableCloudBackup ? (
+          <CloudRestoreNotice
+            cloudBackup={availableCloudBackup}
+            onRestored={() => setAvailableCloudBackup(null)}
+          />
+        ) : null}
+
         {isClient ? (
           <DailyObjectivesCard
             todayKey={todayKey}
