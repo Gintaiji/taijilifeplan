@@ -299,7 +299,7 @@ export default function CloudSyncDashboardSummary() {
     <article className={`${styles.card} ${styles.syncSummaryCard}`}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 className={styles.cardTitle}>Synchronisation</h2>
+          <h2 className={styles.cardTitle}>Sauvegarde cloud</h2>
           <p className={styles.cardText}>{CLOUD_SYNC_LABELS[snapshot.state]}</p>
         </div>
         <span className={styles.syncStatusBadge}>

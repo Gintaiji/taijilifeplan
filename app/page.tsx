@@ -1348,11 +1348,11 @@ function CloudRestoreNotice({
     setError("");
 
     const shouldRestore = window.confirm(
-      "Restaurer depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+      "Charger depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
     );
 
     if (!shouldRestore) {
-      setError("Restauration annulee.");
+      setError("Chargement depuis le cloud annule.");
       return;
     }
 
@@ -1364,7 +1364,7 @@ function CloudRestoreNotice({
     setIsRestoring(true);
     importBackupData(cloudBackup.data);
     saveLocalDataUpdatedAt(cloudBackup.updated_at ?? undefined);
-    setMessage("Restauration cloud reussie. La page va se recharger.");
+    setMessage("Sauvegarde chargee depuis le cloud. La page va se recharger.");
     onRestored();
     window.location.reload();
   }
@@ -1376,7 +1376,7 @@ function CloudRestoreNotice({
           <h2 className={styles.cardTitle}>Une sauvegarde cloud est disponible</h2>
           <p className={styles.cardText}>
             Tes donnees locales semblent vides sur cet appareil. Tu peux
-            restaurer la copie Supabase.
+            charger la copie Supabase.
           </p>
         </div>
         <span className={styles.counterBadge}>
@@ -1391,7 +1391,7 @@ function CloudRestoreNotice({
           onClick={handleRestore}
           disabled={isRestoring}
         >
-          Restaurer depuis le cloud
+          Charger depuis le cloud
         </button>
       </div>
 
@@ -1417,11 +1417,11 @@ function CloudNewerNotice({
     setError("");
 
     const shouldRestore = window.confirm(
-      "Restaurer depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+      "Charger depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
     );
 
     if (!shouldRestore) {
-      setError("Restauration annulee.");
+      setError("Chargement depuis le cloud annule.");
       return;
     }
 
@@ -1433,7 +1433,7 @@ function CloudNewerNotice({
     setIsRestoring(true);
     importBackupData(cloudBackup.data);
     saveLocalDataUpdatedAt(cloudBackup.updated_at ?? undefined);
-    setMessage("Restauration cloud reussie. La page va se recharger.");
+    setMessage("Sauvegarde chargee depuis le cloud. La page va se recharger.");
     onResolved();
     window.location.reload();
   }
@@ -1469,7 +1469,7 @@ function CloudNewerNotice({
           onClick={handleRestore}
           disabled={isRestoring}
         >
-          Restaurer depuis le cloud
+          Charger depuis le cloud
         </button>
 
         <button

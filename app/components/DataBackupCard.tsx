@@ -17,7 +17,7 @@ export default function DataBackupCard() {
   function handleExport() {
     downloadJsonFile("taiji-life-plan-donnees.json", createBackupFile());
     setError("");
-    setMessage("Export cree avec succes.");
+    setMessage("Sauvegarde creee.");
   }
 
   function handleImportClick() {
@@ -38,13 +38,13 @@ export default function DataBackupCard() {
 
       if (!isBackupFile(parsedFile)) {
         setMessage("");
-        setError("Le fichier choisi n'est pas un export valide.");
+        setError("Le fichier choisi n'est pas une sauvegarde valide.");
         return;
       }
 
       importBackupData(parsedFile.data);
       setError("");
-      setMessage("Import termine. La page va se recharger.");
+      setMessage("Sauvegarde chargee. La page va se recharger.");
       window.location.reload();
     } catch {
       setMessage("");
@@ -56,9 +56,9 @@ export default function DataBackupCard() {
     <article className={`${styles.card} ${styles.backupCard}`}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 className={styles.cardTitle}>Sauvegarde des donnees</h2>
+          <h2 className={styles.cardTitle}>Sauvegarde dans un fichier</h2>
           <p className={styles.cardText}>
-            Exporte ou importe toutes les donnees enregistrees sur cet appareil.
+            Sauvegarde dans un fichier ou charge une sauvegarde enregistree.
           </p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function DataBackupCard() {
           className={`control-button ${styles.button} ${styles.addButton}`}
           onClick={handleExport}
         >
-          Exporter mes donnees
+          Sauvegarder dans un fichier
         </button>
 
         <button
@@ -77,7 +77,7 @@ export default function DataBackupCard() {
           className={`control-button ${styles.button} ${styles.addButton}`}
           onClick={handleImportClick}
         >
-          Importer mes donnees
+          Charger une sauvegarde
         </button>
       </div>
 

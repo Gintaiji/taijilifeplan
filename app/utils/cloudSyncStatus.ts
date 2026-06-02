@@ -43,11 +43,11 @@ export type ProtectedCloudSaveResult =
 export const CLOUD_SYNC_LABELS: Record<CloudSyncState, string> = {
   checking: "Verification cloud en cours",
   "up-to-date": "A jour",
-  pending: "Modifications locales en attente",
+  pending: "Sauvegarde cloud en attente",
   saving: "Sauvegarde en cours",
   "cloud-newer": "Cloud plus recent disponible",
   "signed-out": "Non connecte",
-  error: "Erreur de synchronisation",
+  error: "Erreur de sauvegarde",
   "local-only": "Sauvegarde locale uniquement",
 };
 

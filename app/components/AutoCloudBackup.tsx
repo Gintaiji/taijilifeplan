@@ -110,7 +110,7 @@ export default function AutoCloudBackup() {
           isRestoringFromCloudRef.current = true;
           notifyAutoBackup({
             status: "checking",
-            message: "Restauration cloud en cours.",
+            message: "Chargement depuis le cloud en cours.",
           });
 
           importBackupData(validCloudBackupData);
@@ -118,12 +118,12 @@ export default function AutoCloudBackup() {
           lastSavedSnapshotRef.current = JSON.stringify(getBackupData());
           addSyncLogEvent(
             "restore-success",
-            "Donnees restaurees automatiquement depuis le cloud.",
+            "Sauvegarde chargee automatiquement depuis le cloud.",
           );
           notifyAutoBackup({
             status: "restored",
             message:
-              "Donnees restaurees depuis le cloud. Synchronisation automatique activee.",
+              "Sauvegarde chargee depuis le cloud. Sauvegarde automatique activee.",
             updatedAt: cloudBackup.updated_at ?? undefined,
           });
           isRestoringFromCloudRef.current = false;
@@ -143,13 +143,13 @@ export default function AutoCloudBackup() {
           notifyAutoBackup({
             status: "conflict",
             message:
-              "Une version cloud plus recente existe. Restauration proposee avant auto-sync.",
+              "Une version cloud plus recente existe. Chargement propose avant la sauvegarde automatique.",
             updatedAt: cloudBackup.updated_at ?? undefined,
           });
         } else {
           notifyAutoBackup({
             status: "ready",
-            message: "Synchronisation automatique activee.",
+            message: "Sauvegarde automatique activee.",
             updatedAt: cloudBackup?.updated_at ?? undefined,
           });
         }

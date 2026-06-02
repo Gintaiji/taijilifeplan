@@ -22,14 +22,14 @@ export type SyncLogEvent = {
 const MAX_SYNC_LOG_EVENTS = 10;
 
 export const SYNC_LOG_TYPE_LABELS: Record<SyncLogEventType, string> = {
-  "manual-save-started": "Synchronisation manuelle",
-  "manual-save-success": "Sauvegarde manuelle",
+  "manual-save-started": "Sauvegarde cloud",
+  "manual-save-success": "Sauvegarde cloud",
   "auto-save-success": "Sauvegarde automatique",
-  "restore-success": "Restauration cloud",
+  "restore-success": "Chargement depuis le cloud",
   "save-error": "Erreur de sauvegarde",
-  "restore-error": "Erreur de restauration",
+  "restore-error": "Erreur de chargement",
   "cloud-newer": "Cloud plus recent",
-  "auto-save-skipped-empty": "Auto-sync ignoree",
+  "auto-save-skipped-empty": "Sauvegarde ignoree",
 };
 
 function isSyncLogEventType(value: unknown): value is SyncLogEventType {
