@@ -179,6 +179,15 @@ export default function CloudSyncDashboardSummary() {
       const customEvent = event as CustomEvent<CloudAutoBackupDetail>;
       const detail = customEvent.detail;
 
+      if (detail.status === "checking") {
+        setSnapshot((currentSnapshot) => ({
+          ...currentSnapshot,
+          state: "checking",
+          localUpdatedAt: getLocalDataUpdatedAt(),
+        }));
+        return;
+      }
+
       if (detail.status === "saving") {
         setSnapshot((currentSnapshot) => ({
           ...currentSnapshot,
@@ -226,6 +235,22 @@ export default function CloudSyncDashboardSummary() {
             session,
             localUpdatedAt: getLocalDataUpdatedAt(),
             cloudUpdatedAt: detail.updatedAt ?? null,
+            isSaving: false,
+            hasPendingChanges: false,
+            hasError: false,
+            localOnly: false,
+          }),
+        );
+        return;
+      }
+
+      if (detail.status === "restored" || detail.status === "ready") {
+        setLocalOnly(false);
+        setSnapshot(
+          getCloudSyncSnapshot({
+            session,
+            localUpdatedAt: getLocalDataUpdatedAt(),
+            cloudUpdatedAt: detail.updatedAt ?? snapshot.cloudUpdatedAt,
             isSaving: false,
             hasPendingChanges: false,
             hasError: false,

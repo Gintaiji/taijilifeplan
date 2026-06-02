@@ -3,13 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import {
   getBackupData,
+  importBackupData,
   isBackupData,
   isBackupDataEmptyOrAlmostEmpty,
 } from "../utils/backup";
+import { getCloudBackup, isCloudBackupNewerThanLocal } from "../utils/cloudBackup";
 import { saveCloudBackupSafely } from "../utils/cloudSyncStatus";
 import {
   APP_STORAGE_CHANGED_EVENT,
+  getLocalDataUpdatedAt,
   isAppDataStorageKey,
+  saveLocalDataUpdatedAt,
   type AppStorageChangedDetail,
 } from "../utils/storage";
 import { addSyncLogEvent } from "../utils/syncLog";
@@ -18,7 +22,16 @@ import { getSupabaseSession, onSupabaseAuthChange } from "../utils/supabase";
 export const CLOUD_AUTO_BACKUP_EVENT = "taiji-life-plan-cloud-auto-backup";
 
 export type CloudAutoBackupDetail = {
-  status: "pending" | "saving" | "success" | "error" | "conflict" | "local-only";
+  status:
+    | "checking"
+    | "pending"
+    | "saving"
+    | "success"
+    | "error"
+    | "conflict"
+    | "restored"
+    | "ready"
+    | "local-only";
   message: string;
   updatedAt?: string;
 };
@@ -35,32 +48,144 @@ function notifyAutoBackup(detail: CloudAutoBackupDetail) {
 
 export default function AutoCloudBackup() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [initialCloudCheckDone, setInitialCloudCheckDone] = useState(false);
   const timerRef = useRef<number | null>(null);
   const lastSavedSnapshotRef = useRef("");
   const isSavingRef = useRef(false);
   const hasPendingSaveRef = useRef(false);
+  const autoSyncPausedRef = useRef(true);
+  const isRestoringFromCloudRef = useRef(false);
+  const cloudBootstrapIdRef = useRef(0);
 
   useEffect(() => {
     let shouldUpdateState = true;
+
+    async function runInitialCloudCheck(sessionUserId: string | null) {
+      const bootstrapId = cloudBootstrapIdRef.current + 1;
+
+      cloudBootstrapIdRef.current = bootstrapId;
+      autoSyncPausedRef.current = true;
+      setInitialCloudCheckDone(false);
+      notifyAutoBackup({
+        status: "checking",
+        message: "Verification cloud en cours.",
+      });
+
+      try {
+        if (!sessionUserId) {
+          if (shouldUpdateState && bootstrapId === cloudBootstrapIdRef.current) {
+            setUserId(null);
+            setInitialCloudCheckDone(true);
+            autoSyncPausedRef.current = false;
+            notifyAutoBackup({
+              status: "local-only",
+              message: "Sauvegarde locale uniquement.",
+            });
+          }
+
+          return;
+        }
+
+        const cloudBackup = await getCloudBackup(sessionUserId);
+        const localBackupData = getBackupData();
+        const localDataIsEmpty = isBackupDataEmptyOrAlmostEmpty(localBackupData);
+        const validCloudBackupData =
+          cloudBackup && isBackupData(cloudBackup.data)
+            ? cloudBackup.data
+            : null;
+        const cloudHasData =
+          validCloudBackupData !== null &&
+          !isBackupDataEmptyOrAlmostEmpty(validCloudBackupData);
+
+        if (!shouldUpdateState || bootstrapId !== cloudBootstrapIdRef.current) {
+          return;
+        }
+
+        if (
+          localDataIsEmpty &&
+          cloudBackup &&
+          validCloudBackupData &&
+          cloudHasData
+        ) {
+          isRestoringFromCloudRef.current = true;
+          notifyAutoBackup({
+            status: "checking",
+            message: "Restauration cloud en cours.",
+          });
+
+          importBackupData(validCloudBackupData);
+          saveLocalDataUpdatedAt(cloudBackup.updated_at ?? undefined);
+          lastSavedSnapshotRef.current = JSON.stringify(getBackupData());
+          addSyncLogEvent(
+            "restore-success",
+            "Donnees restaurees automatiquement depuis le cloud.",
+          );
+          notifyAutoBackup({
+            status: "restored",
+            message:
+              "Donnees restaurees depuis le cloud. Synchronisation automatique activee.",
+            updatedAt: cloudBackup.updated_at ?? undefined,
+          });
+          isRestoringFromCloudRef.current = false;
+        } else if (
+          !localDataIsEmpty &&
+          cloudBackup &&
+          cloudHasData &&
+          isCloudBackupNewerThanLocal(
+            cloudBackup.updated_at,
+            getLocalDataUpdatedAt(),
+          )
+        ) {
+          addSyncLogEvent(
+            "cloud-newer",
+            "Sauvegarde automatique en attente : une version cloud plus recente existe.",
+          );
+          notifyAutoBackup({
+            status: "conflict",
+            message:
+              "Une version cloud plus recente existe. Restauration proposee avant auto-sync.",
+            updatedAt: cloudBackup.updated_at ?? undefined,
+          });
+        } else {
+          notifyAutoBackup({
+            status: "ready",
+            message: "Synchronisation automatique activee.",
+            updatedAt: cloudBackup?.updated_at ?? undefined,
+          });
+        }
+
+        if (shouldUpdateState && bootstrapId === cloudBootstrapIdRef.current) {
+          setUserId(sessionUserId);
+          setInitialCloudCheckDone(true);
+          autoSyncPausedRef.current = false;
+        }
+      } catch {
+        if (shouldUpdateState && bootstrapId === cloudBootstrapIdRef.current) {
+          setUserId(sessionUserId);
+          setInitialCloudCheckDone(true);
+          autoSyncPausedRef.current = false;
+          notifyAutoBackup({
+            status: "error",
+            message: "Verification cloud impossible pour le moment.",
+          });
+        }
+      }
+    }
 
     async function loadSession() {
       try {
         const currentSession = await getSupabaseSession();
 
-        if (shouldUpdateState) {
-          setUserId(currentSession?.user.id ?? null);
-        }
+        await runInitialCloudCheck(currentSession?.user.id ?? null);
       } catch {
-        if (shouldUpdateState) {
-          setUserId(null);
-        }
+        await runInitialCloudCheck(null);
       }
     }
 
     void loadSession();
 
     const unsubscribe = onSupabaseAuthChange((newSession) => {
-      setUserId(newSession?.user.id ?? null);
+      void runInitialCloudCheck(newSession?.user.id ?? null);
     });
 
     return () => {
@@ -71,6 +196,18 @@ export default function AutoCloudBackup() {
 
   useEffect(() => {
     async function runAutoBackup() {
+      if (
+        !initialCloudCheckDone ||
+        autoSyncPausedRef.current ||
+        isRestoringFromCloudRef.current
+      ) {
+        notifyAutoBackup({
+          status: "checking",
+          message: "Verification cloud en cours.",
+        });
+        return;
+      }
+
       if (!userId) {
         notifyAutoBackup({
           status: "local-only",
@@ -164,6 +301,14 @@ export default function AutoCloudBackup() {
     }
 
     function scheduleAutoBackup() {
+      if (
+        !initialCloudCheckDone ||
+        autoSyncPausedRef.current ||
+        isRestoringFromCloudRef.current
+      ) {
+        return;
+      }
+
       if (timerRef.current) {
         window.clearTimeout(timerRef.current);
       }
@@ -178,6 +323,18 @@ export default function AutoCloudBackup() {
       const storageKey = customEvent.detail?.key;
 
       if (!storageKey || !isAppDataStorageKey(storageKey)) {
+        return;
+      }
+
+      if (
+        !initialCloudCheckDone ||
+        autoSyncPausedRef.current ||
+        isRestoringFromCloudRef.current
+      ) {
+        notifyAutoBackup({
+          status: "checking",
+          message: "Verification cloud en cours.",
+        });
         return;
       }
 
@@ -213,7 +370,7 @@ export default function AutoCloudBackup() {
         window.clearTimeout(timerRef.current);
       }
     };
-  }, [userId]);
+  }, [initialCloudCheckDone, userId]);
 
   return null;
 }

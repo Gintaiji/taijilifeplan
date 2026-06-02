@@ -22,7 +22,7 @@ import {
   setStorage,
   STORAGE_KEYS,
 } from "./utils/storage";
-import { getSupabaseSession } from "./utils/supabase";
+import { getSupabaseSession, onSupabaseAuthChange } from "./utils/supabase";
 import styles from "./page.module.css";
 
 const HABITS_STORAGE_KEY = STORAGE_KEYS.habits;
@@ -1376,7 +1376,7 @@ function CloudRestoreNotice({
           <h2 className={styles.cardTitle}>Une sauvegarde cloud est disponible</h2>
           <p className={styles.cardText}>
             Tes donnees locales semblent vides sur cet appareil. Tu peux
-            restaurer la copie Supabase sans action automatique.
+            restaurer la copie Supabase.
           </p>
         </div>
         <span className={styles.counterBadge}>
@@ -1511,7 +1511,7 @@ export default function HomePage() {
   useEffect(() => {
     let shouldUpdateState = true;
 
-    async function checkCloudRestoreSuggestion() {
+    async function checkCloudRestoreSuggestion(userId?: string) {
       const localBackupData = getBackupData();
       const localDataIsEmpty =
         isBackupDataEmptyOrAlmostEmpty(localBackupData);
@@ -1521,13 +1521,14 @@ export default function HomePage() {
       }
 
       try {
-        const currentSession = await getSupabaseSession();
+        const currentSession = userId ? null : await getSupabaseSession();
+        const cloudUserId = userId ?? currentSession?.user.id;
 
-        if (!currentSession) {
+        if (!cloudUserId) {
           return;
         }
 
-        const cloudBackup = await getCloudBackup(currentSession.user.id);
+        const cloudBackup = await getCloudBackup(cloudUserId);
 
         if (
           shouldUpdateState &&
@@ -1569,8 +1570,19 @@ export default function HomePage() {
       void checkCloudRestoreSuggestion();
     }
 
+    const unsubscribe = onSupabaseAuthChange((newSession) => {
+      if (!newSession) {
+        setAvailableCloudBackup(null);
+        setNewerCloudBackup(null);
+        return;
+      }
+
+      void checkCloudRestoreSuggestion(newSession.user.id);
+    });
+
     return () => {
       shouldUpdateState = false;
+      unsubscribe();
     };
   }, [isClient]);
 

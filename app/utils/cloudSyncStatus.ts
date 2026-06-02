@@ -12,6 +12,7 @@ import {
 import { getLocalDataUpdatedAt } from "./storage";
 
 export type CloudSyncState =
+  | "checking"
   | "up-to-date"
   | "pending"
   | "saving"
@@ -40,6 +41,7 @@ export type ProtectedCloudSaveResult =
     };
 
 export const CLOUD_SYNC_LABELS: Record<CloudSyncState, string> = {
+  checking: "Verification cloud en cours",
   "up-to-date": "A jour",
   pending: "Modifications locales en attente",
   saving: "Sauvegarde en cours",

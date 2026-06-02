@@ -262,6 +262,15 @@ export default function ParametresPage() {
       const customEvent = event as CustomEvent<CloudAutoBackupDetail>;
       const detail = customEvent.detail;
 
+      if (detail.status === "checking") {
+        setIsCloudSaving(false);
+        setHasPendingCloudChanges(false);
+        setAutoBackupError("");
+        setAutoBackupMessage(detail.message);
+        setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+        return;
+      }
+
       if (detail.status === "pending") {
         setIsCloudSaving(false);
         setHasCloudSyncError(false);
@@ -296,6 +305,23 @@ export default function ParametresPage() {
 
       if (detail.status === "success") {
         setSyncLogEvents(getSyncLogEvents());
+        setHasCloudSyncError(false);
+        setIsLocalOnly(false);
+        setHasPendingCloudChanges(false);
+        setAutoBackupError("");
+        setAutoBackupMessage(detail.message);
+        setLocalDataUpdatedAt(getLocalDataUpdatedAt());
+
+        if (detail.updatedAt) {
+          setLastCloudBackup(detail.updatedAt);
+        }
+
+        return;
+      }
+
+      if (detail.status === "restored" || detail.status === "ready") {
+        setSyncLogEvents(getSyncLogEvents());
+        setIsCloudSaving(false);
         setHasCloudSyncError(false);
         setIsLocalOnly(false);
         setHasPendingCloudChanges(false);
