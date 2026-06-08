@@ -1620,7 +1620,10 @@ export default function HomePage() {
           <p className={styles.homeDate}>{homeDate}</p>
 
           <div className={styles.homeActions}>
-            <Link href="/trajectoire" className={`control-button ${styles.homeActionButton}`}>
+            <Link
+              href="/trajectoire"
+              className={`control-button ${styles.homeActionButton}`}
+            >
               Faire mon bilan
             </Link>
           </div>
@@ -1670,6 +1673,24 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className={styles.todayFocus}>
+        {isClient ? (
+          <DailyRecommendationCard
+            todayKey={todayKey}
+            globalScore={dashboard.globalProgressScore}
+            habitsCompleted={dashboard.habitsCompleted}
+            habitsTotal={dashboard.habitsTotal}
+            planningCompleted={dashboard.planningCompleted}
+            planningTotal={dashboard.planningTotal}
+          />
+        ) : null}
+      </section>
+
+      <section className={styles.secondaryIntro}>
+        <p className={styles.eyebrow}>Plus bas</p>
+        <h2>Le detail reste disponible.</h2>
+      </section>
+
       <section
         className={styles.grid}
         data-planning-refresh={planningRefreshKey}
@@ -1707,24 +1728,13 @@ export default function HomePage() {
           />
         ) : null}
 
-        {isClient ? (
-          <DailyRecommendationCard
-            todayKey={todayKey}
-            globalScore={dashboard.globalProgressScore}
-            habitsCompleted={dashboard.habitsCompleted}
-            habitsTotal={dashboard.habitsTotal}
-            planningCompleted={dashboard.planningCompleted}
-            planningTotal={dashboard.planningTotal}
-          />
-        ) : null}
-
         <article className={`${styles.card} ${styles.progressCard}`}>
           <div className={styles.sectionHeader}>
             <div>
               <h2 className={styles.cardTitle}>Progression globale</h2>
               <p className={styles.cardText}>
                 {isClient
-                  ? "Ton rythme du jour en un coup d'oeil."
+                  ? "Un repere simple pour la journee."
                   : "Chargement du score..."}
               </p>
             </div>
