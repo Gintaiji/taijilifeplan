@@ -10,10 +10,10 @@ const mainLinks = [
   { href: "/habitudes", label: "Habitudes" },
   { href: "/objectifs", label: "Objectifs" },
   { href: "/planning", label: "Planning" },
+  { href: "/trajectoire", label: "Trajectoire" },
 ];
 
 const secondaryLinks = [
-  { href: "/trajectoire", label: "Correcteur de trajectoire" },
   { href: "/bilan", label: "Bilan" },
   { href: "/parametres", label: "Parametres" },
   { href: "/connexion", label: "Connexion" },
