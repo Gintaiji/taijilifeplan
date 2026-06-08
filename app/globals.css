@@ -1,27 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --field-background: #123524;
+  --background: #07110d;
+  --foreground: #eefcf4;
+  --app-page-background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 30%),
+    radial-gradient(circle at 92% 8%, rgba(52, 211, 153, 0.1), transparent 24%),
+    linear-gradient(180deg, #08130f 0%, #07110d 45%, #050807 100%);
+  --app-surface: linear-gradient(180deg, rgba(12, 24, 20, 0.97), rgba(8, 17, 13, 0.96));
+  --app-surface-strong: linear-gradient(135deg, rgba(16, 31, 27, 0.98), rgba(8, 30, 18, 0.94));
+  --app-surface-muted: rgba(16, 39, 29, 0.68);
+  --app-border: rgba(134, 239, 172, 0.14);
+  --app-border-strong: rgba(134, 239, 172, 0.24);
+  --app-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --app-shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
+  --app-radius-lg: 18px;
+  --app-radius-md: 14px;
+  --app-radius-sm: 10px;
+  --field-background: rgba(11, 33, 23, 0.92);
   --field-foreground: #f7fee7;
-  --field-border: #2f855a;
-  --field-placeholder: #bbf7d0;
+  --field-border: rgba(134, 239, 172, 0.2);
+  --field-placeholder: #9eddb6;
   --field-focus: #86efac;
-  --control-button-background: #14532d;
-  --control-button-background-hover: #166534;
-  --control-button-background-active: #15803d;
+  --control-button-background: linear-gradient(180deg, #16743b 0%, #12572f 100%);
+  --control-button-background-hover: linear-gradient(180deg, #1b8d47 0%, #156437 100%);
+  --control-button-background-active: linear-gradient(180deg, #21a957 0%, #16743b 100%);
   --control-button-foreground: #f0fdf4;
-  --control-button-border: #22c55e;
+  --control-button-border: rgba(134, 239, 172, 0.28);
   --control-button-focus: #86efac;
-  --dashboard-card-background: #0f172a;
-  --dashboard-card-background-soft: #13271d;
-  --dashboard-card-border: #2f855a;
+  --dashboard-card-background: #0c1814;
+  --dashboard-card-background-soft: #10271d;
+  --dashboard-card-border: var(--app-border);
   --dashboard-text-primary: #f0fdf4;
-  --dashboard-text-secondary: #d1fae5;
-  --dashboard-text-muted: #a7f3d0;
+  --dashboard-text-secondary: #c8f4dc;
+  --dashboard-text-muted: #91cfa9;
   --dashboard-text-accent: #bbf7d0;
-  --dashboard-progress-track: #1f2937;
+  --dashboard-progress-track: rgba(7, 18, 13, 0.88);
   --dashboard-progress-fill: #22c55e;
 }
 
@@ -38,6 +52,7 @@
 
 html {
   min-width: 320px;
+  background: #07110d;
 }
 
 body {
@@ -51,37 +66,51 @@ canvas {
   max-width: 100%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --field-background: #123524;
-    --field-foreground: #f7fee7;
-    --field-border: #2f855a;
-    --field-placeholder: #bbf7d0;
-    --field-focus: #86efac;
-    --control-button-background: #14532d;
-    --control-button-background-hover: #166534;
-    --control-button-background-active: #15803d;
-    --control-button-foreground: #f0fdf4;
-    --control-button-border: #22c55e;
-    --control-button-focus: #86efac;
-    --dashboard-card-background: #0f172a;
-    --dashboard-card-background-soft: #13271d;
-    --dashboard-card-border: #2f855a;
-    --dashboard-text-primary: #f0fdf4;
-    --dashboard-text-secondary: #d1fae5;
-    --dashboard-text-muted: #a7f3d0;
-    --dashboard-text-accent: #bbf7d0;
-    --dashboard-progress-track: #1f2937;
-    --dashboard-progress-fill: #22c55e;
-  }
+body {
+  background: var(--app-page-background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+main {
+  background: var(--app-page-background) !important;
+}
+
+main > h1,
+main > p {
+  width: min(960px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--dashboard-text-primary);
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.08;
+}
+
+h2 {
+  font-size: clamp(1.25rem, 3vw, 1.55rem);
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 input:not([type="checkbox"]):not([type="radio"]),
@@ -92,6 +121,11 @@ select {
   background: var(--field-background);
   color: var(--field-foreground);
   border-color: var(--field-border);
+  border-radius: var(--app-radius-sm);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
 input:not([type="checkbox"]):not([type="radio"])::placeholder,
@@ -103,8 +137,16 @@ textarea::placeholder {
 input:not([type="checkbox"]):not([type="radio"]):focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid var(--field-focus);
-  outline-offset: 1px;
+  border-color: rgba(134, 239, 172, 0.55);
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(134, 239, 172, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #22c55e;
 }
 
 .control-button {
@@ -112,22 +154,96 @@ select:focus {
   background: var(--control-button-background);
   color: var(--control-button-foreground);
   border: 1px solid var(--control-button-border);
+  border-radius: var(--app-radius-sm);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 22px rgba(5, 14, 10, 0.24);
   white-space: normal;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
 .control-button:hover {
   background: var(--control-button-background-hover);
+  border-color: rgba(187, 247, 208, 0.46);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 12px 28px rgba(20, 83, 45, 0.28);
 }
 
 .control-button:focus {
-  outline: 2px solid var(--control-button-focus);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(134, 239, 172, 0.2),
+    0 12px 28px rgba(20, 83, 45, 0.28);
+}
+
+.control-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
 }
 
 .control-button-active {
   background: var(--control-button-background-active);
   color: var(--control-button-foreground);
   border: 1px solid var(--control-button-border);
+}
+
+form,
+article,
+section {
+  min-width: 0;
+}
+
+main form,
+main article,
+main li,
+main textarea,
+main input:not([type="checkbox"]):not([type="radio"]),
+main select {
+  border-radius: var(--app-radius-md);
+}
+
+main article,
+main form {
+  border-color: var(--app-border) !important;
+}
+
+main li {
+  border-color: rgba(134, 239, 172, 0.12) !important;
+}
+
+main form {
+  background: var(--app-surface) !important;
+  box-shadow: var(--app-shadow-soft);
+}
+
+main li {
+  background-color: var(--app-surface-muted) !important;
+}
+
+main h1 + p {
+  color: var(--dashboard-text-secondary) !important;
+}
+
+main h2,
+main h3 {
+  margin-bottom: 0;
+}
+
+main strong {
+  color: inherit;
+}
+
+main [style*="borderRadius: 8px"],
+main [style*="border-radius: 8px"] {
+  border-radius: var(--app-radius-md) !important;
 }
 
 @media (max-width: 640px) {
