@@ -440,7 +440,7 @@ export default function HabitsTracker() {
     <section className={styles.section}>
       <div className={styles.header}>
         <div>
-          <h2 className={styles.title}>Mes habitudes</h2>
+          <h2 className={styles.title}>Habitudes du jour</h2>
           <p className={styles.date}>Aujourd&apos;hui : {today}</p>
         </div>
 
@@ -449,12 +449,12 @@ export default function HabitsTracker() {
           className={`control-button ${styles.button}`}
           onClick={handleResetHabits}
         >
-          Reinitialiser
+          Tout decocher
         </button>
       </div>
 
       <p className={styles.summary}>
-        {completedHabitsCount} habitudes sur {habitsData.habitNames.length} completees
+        {completedHabitsCount} sur {habitsData.habitNames.length} faites
       </p>
 
       <form className={styles.form} onSubmit={handleAddHabit}>
@@ -476,8 +476,7 @@ export default function HabitsTracker() {
         </div>
 
         <p className={styles.helperText}>
-          Les habitudes ajoutees ou supprimees restent enregistrees apres
-          rechargement.
+          Ta liste reste disponible chaque jour.
         </p>
       </form>
 

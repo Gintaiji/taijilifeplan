@@ -8,8 +8,7 @@ export default function HabitudesPage() {
         <p className={styles.eyebrow}>Habitudes</p>
         <h1 className={styles.pageTitle}>Habitudes</h1>
         <p className={styles.intro}>
-          Suis tes habitudes quotidiennes, ajoute-en de nouvelles et garde une
-          liste simple a mettre a jour chaque jour.
+          Garde tes habitudes du jour sous les yeux, simplement.
         </p>
       </section>
 

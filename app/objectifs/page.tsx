@@ -540,17 +540,16 @@ export default function ObjectifsPage() {
     <main style={pageStyle}>
       <h1>Objectifs</h1>
       <p style={introStyle}>
-        Ajoute tes objectifs et retrouve-les automatiquement au rechargement de
-        la page, avec leur etat termine ou non termine.
+        Pose tes objectifs et suis leur avancee simplement.
       </p>
 
       <section style={sectionStyle}>
-        <h2>Ajouter un objectif</h2>
+        <h2>Nouvel objectif</h2>
 
         <form style={formStyle} onSubmit={handleSubmit}>
           <div style={fieldGroupStyle}>
             <label htmlFor="goal-title" style={labelStyle}>
-              Titre
+              Objectif
             </label>
             <input
               id="goal-title"
@@ -564,7 +563,7 @@ export default function ObjectifsPage() {
 
           <div style={fieldGroupStyle}>
             <label htmlFor="goal-period" style={labelStyle}>
-              Periode
+              Rythme
             </label>
             <select
               id="goal-period"
@@ -585,14 +584,14 @@ export default function ObjectifsPage() {
             className="control-button"
             style={addButtonStyle}
           >
-            Ajouter l&apos;objectif
+            Ajouter
           </button>
         </form>
 
-        <h2 style={{ marginTop: "32px" }}>Mes objectifs</h2>
+        <h2 style={{ marginTop: "32px" }}>Objectifs en cours</h2>
 
         {goals.length === 0 ? (
-          <p style={emptyTextStyle}>Aucun objectif pour le moment.</p>
+          <p style={emptyTextStyle}>Aucun objectif pour l&apos;instant.</p>
         ) : (
           periods.map((currentPeriod) => {
             const goalsByPeriod = goals.filter(
@@ -605,7 +604,7 @@ export default function ObjectifsPage() {
 
                 {goalsByPeriod.length === 0 ? (
                   <p style={emptyTextStyle}>
-                    Aucun objectif dans cette section.
+                    Rien ici pour l&apos;instant.
                   </p>
                 ) : (
                   <ul style={listStyle}>
@@ -638,7 +637,7 @@ export default function ObjectifsPage() {
                                     setEditTitle(event.target.value)
                                   }
                                   style={inputStyle}
-                                  aria-label="Titre de l'objectif"
+                                  aria-label="Objectif"
                                 />
 
                                 <select
@@ -649,7 +648,7 @@ export default function ObjectifsPage() {
                                     )
                                   }
                                   style={selectStyle}
-                                  aria-label="Periode de l'objectif"
+                                  aria-label="Rythme de l'objectif"
                                 >
                                   {periods.map((item) => (
                                     <option key={item} value={item}>
@@ -707,8 +706,8 @@ export default function ObjectifsPage() {
                                     }
                                   >
                                     {goal.completed
-                                      ? "Marquer non termine"
-                                      : "Marquer termine"}
+                                      ? "Reouvrir"
+                                      : "Terminer"}
                                   </button>
 
                                   <button
@@ -747,9 +746,9 @@ export default function ObjectifsPage() {
                                         event.target.value,
                                       )
                                     }
-                                    placeholder="Ajouter un sous-objectif"
+                                    placeholder="Ajouter une etape"
                                     style={inputStyle}
-                                    aria-label={`Nouveau sous-objectif pour ${goal.title}`}
+                                    aria-label={`Nouvelle etape pour ${goal.title}`}
                                   />
 
                                   <button
@@ -764,13 +763,13 @@ export default function ObjectifsPage() {
                                 <div style={progressAreaStyle}>
                                   {totalSubGoals === 0 ? (
                                     <p style={noSubGoalTextStyle}>
-                                      Aucun sous-objectif pour le moment
+                                      Aucune etape pour l&apos;instant
                                     </p>
                                   ) : (
                                     <>
                                       <p style={progressTextStyle}>
                                         {completedSubGoals} / {totalSubGoals}{" "}
-                                        sous-objectifs termines (
+                                        etapes terminees (
                                         {progressPercent}%)
                                       </p>
                                       <div style={progressBarStyle}>

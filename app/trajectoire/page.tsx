@@ -18,7 +18,7 @@ export default function TrajectoirePage() {
     <main style={pageStyle}>
       <h1>Correcteur de trajectoire</h1>
       <p style={introStyle}>
-        Ici, tu peux analyser ta journee et ajuster ta direction.
+        Fais le point, puis choisis la suite.
       </p>
       <TrajectoryReview />
     </main>

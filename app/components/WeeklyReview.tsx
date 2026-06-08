@@ -211,14 +211,14 @@ function getCurrentStreak(history: ProgressHistoryEntry[], todayKey: string) {
 
 function getWeeklyMessage(averageScore: number) {
   if (averageScore >= 75) {
-    return "Semaine solide : tu avances avec une bonne regularite.";
+    return "Belle semaine. Tu avances avec regularite.";
   }
 
   if (averageScore >= 45) {
-    return "La base est la. Garde le cap avec quelques actions simples chaque jour.";
+    return "La base est la. Continue avec des actions simples.";
   }
 
-  return "Recentrage utile : choisis peu d'actions, mais termine-les vraiment.";
+  return "Recentrage utile. Choisis peu, mais termine vraiment.";
 }
 
 function getWeeklyStats(
@@ -291,7 +291,7 @@ export default function WeeklyReview() {
     return (
       <section style={sectionStyle}>
         <article style={cardStyle}>
-          <p style={textStyle}>Chargement du bilan hebdomadaire...</p>
+          <p style={textStyle}>Chargement du bilan...</p>
         </article>
       </section>
     );
@@ -300,7 +300,7 @@ export default function WeeklyReview() {
   return (
     <section style={sectionStyle}>
       <article style={cardStyle}>
-        <h2 style={titleStyle}>Synthese des {selectedPeriod} derniers jours</h2>
+        <h2 style={titleStyle}>Bilan des {selectedPeriod} derniers jours</h2>
         <p style={{ ...textStyle, marginTop: "8px" }}>
           {getWeeklyMessage(stats.averageScore)}
         </p>
@@ -341,7 +341,7 @@ export default function WeeklyReview() {
         </article>
 
         <article style={metricCardStyle}>
-          <span style={labelStyle}>Jours valides</span>
+          <span style={labelStyle}>Jours suivis</span>
           <strong style={valueStyle}>
             {stats.validatedDays}/{selectedPeriod}
           </strong>
@@ -353,22 +353,22 @@ export default function WeeklyReview() {
         </article>
 
         <article style={metricCardStyle}>
-          <span style={labelStyle}>Habitudes completees</span>
+          <span style={labelStyle}>Habitudes faites</span>
           <strong style={valueStyle}>{stats.totalHabitsCompleted}</strong>
         </article>
 
         <article style={metricCardStyle}>
-          <span style={labelStyle}>Taches planning faites</span>
+          <span style={labelStyle}>Taches faites</span>
           <strong style={valueStyle}>{stats.totalPlanningCompleted}</strong>
         </article>
       </div>
 
       <article style={cardStyle}>
-        <h2 style={titleStyle}>Detail de la periode</h2>
+        <h2 style={titleStyle}>Details</h2>
 
         {stats.entries.length === 0 ? (
           <p style={{ ...textStyle, marginTop: "12px" }}>
-            Aucun jour enregistre sur les {selectedPeriod} derniers jours.
+            Aucun jour suivi sur les {selectedPeriod} derniers jours.
           </p>
         ) : (
           <ul style={listStyle}>
@@ -378,7 +378,7 @@ export default function WeeklyReview() {
                   <strong>{formatDate(entry.date)}</strong>
                   <p style={{ ...textStyle, marginTop: "4px" }}>
                     {entry.habitsCompleted} habitudes -{" "}
-                    {entry.planningCompleted} taches planning faites
+                    {entry.planningCompleted} taches faites
                   </p>
                 </div>
                 <span style={scoreStyle}>{entry.score}%</span>

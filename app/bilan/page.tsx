@@ -18,7 +18,7 @@ export default function BilanPage() {
     <main style={pageStyle}>
       <h1>Bilan</h1>
       <p style={introStyle}>
-        Vue simple de ta progression recente.
+        Regarde ta progression des derniers jours.
       </p>
       <WeeklyReview />
     </main>

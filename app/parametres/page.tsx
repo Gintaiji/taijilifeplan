@@ -54,7 +54,7 @@ const APP_UPDATED_AT = "19 mai 2026";
 
 function formatBackupDate(dateValue: string | null) {
   if (!dateValue) {
-    return "Aucune sauvegarde dans un fichier pour le moment";
+    return "Aucune sauvegarde pour l'instant";
   }
 
   const date = new Date(dateValue);
@@ -192,7 +192,7 @@ export default function ParametresPage() {
       } catch {
         if (shouldUpdateState) {
           setIsLocalOnly(true);
-          setError("Mode local actif : Supabase n'est pas disponible.");
+          setError("Sauvegarde cloud indisponible pour le moment.");
         }
       } finally {
         if (shouldUpdateState) {
@@ -377,7 +377,7 @@ export default function ParametresPage() {
     setMessage(
       isGranted
         ? "Stockage persistant active sur cet appareil."
-        : "Le navigateur n'a pas accorde le stockage persistant.",
+        : "Protection non disponible sur ce navigateur.",
     );
   }
 
@@ -418,13 +418,13 @@ export default function ParametresPage() {
     setError("");
 
     if (!session) {
-      setError("Tu dois etre connecte pour sauvegarder dans le cloud.");
+      setError("Connecte-toi pour sauvegarder dans le cloud.");
       return;
     }
 
     addSyncLogEvent(
       "manual-save-started",
-      "Sauvegarde dans le cloud lancee.",
+      "Sauvegarde cloud lancee.",
     );
     setSyncLogEvents(getSyncLogEvents());
     setIsCloudBusy(true);
@@ -437,29 +437,29 @@ export default function ParametresPage() {
       if (result.status === "conflict") {
         addSyncLogEvent(
           "cloud-newer",
-          "Sauvegarde dans le cloud bloquee : une version cloud plus recente existe.",
+          "Sauvegarde bloquee : une copie plus recente existe.",
         );
         setSyncLogEvents(getSyncLogEvents());
         setLastCloudBackup(result.cloudUpdatedAt);
         setError(
-          "Sauvegarde bloquee : une version cloud plus recente existe.",
+          "Sauvegarde bloquee : une copie plus recente existe.",
         );
         return;
       }
 
       if (result.status === "empty") {
-        setError("Aucune donnee locale suffisante a synchroniser.");
+        setError("Aucune donnee a sauvegarder pour le moment.");
         return;
       }
 
-      addSyncLogEvent("manual-save-success", "Sauvegarde dans le cloud reussie.");
+      addSyncLogEvent("manual-save-success", "Sauvegarde cloud reussie.");
       setSyncLogEvents(getSyncLogEvents());
       setLastCloudBackup(result.updatedAt);
       setLocalDataUpdatedAt(getLocalDataUpdatedAt());
       setHasCloudSyncError(false);
       setIsLocalOnly(false);
       setHasPendingCloudChanges(false);
-      setMessage("Sauvegarde dans le cloud reussie.");
+      setMessage("Sauvegarde cloud reussie.");
     } catch {
       addSyncLogEvent("save-error", "Erreur pendant la sauvegarde cloud.");
       setSyncLogEvents(getSyncLogEvents());
@@ -476,16 +476,16 @@ export default function ParametresPage() {
     setError("");
 
     if (!session) {
-      setError("Tu dois etre connecte pour charger depuis le cloud.");
+      setError("Connecte-toi pour charger depuis le cloud.");
       return;
     }
 
     const shouldRestore = window.confirm(
-      "Charger depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+      "Charger depuis le cloud va remplacer les donnees de cet appareil. Continuer ?",
     );
 
     if (!shouldRestore) {
-      setError("Chargement depuis le cloud annule.");
+      setError("Chargement annule.");
       return;
     }
 
@@ -500,7 +500,7 @@ export default function ParametresPage() {
       }
 
       if (!isBackupData(data.data)) {
-        setError("La sauvegarde cloud trouvee n'est pas valide.");
+        setError("Cette sauvegarde cloud ne peut pas etre chargee.");
         return;
       }
 
@@ -515,13 +515,13 @@ export default function ParametresPage() {
       setHasCloudSyncError(false);
       setIsLocalOnly(false);
       setError("");
-      setMessage("Sauvegarde chargee depuis le cloud. La page va se recharger.");
+      setMessage("Sauvegarde chargee. La page va se recharger.");
       window.location.reload();
     } catch {
       addSyncLogEvent("restore-error", "Erreur pendant le chargement depuis le cloud.");
       setSyncLogEvents(getSyncLogEvents());
       setHasCloudSyncError(true);
-      setError("Impossible de charger depuis le cloud pour le moment.");
+      setError("Chargement depuis le cloud impossible pour le moment.");
     } finally {
       setIsCloudBusy(false);
     }
@@ -529,18 +529,18 @@ export default function ParametresPage() {
 
   function handleResetData() {
     const confirmedText = window.prompt(
-      `Cette action supprime toutes les donnees de l'application sur cet appareil. Tape ${RESET_CONFIRMATION_TEXT} pour confirmer.`,
+      `Cette action supprime toutes tes donnees sur cet appareil. Tape ${RESET_CONFIRMATION_TEXT} pour confirmer.`,
     );
 
     if (confirmedText !== RESET_CONFIRMATION_TEXT) {
       setMessage("");
-      setError("Reinitialisation annulee.");
+      setError("Suppression annulee.");
       return;
     }
 
     clearAppStorage();
     setError("");
-    setMessage("Toutes les donnees ont ete supprimees. La page va se recharger.");
+    setMessage("Donnees supprimees. La page va se recharger.");
     window.location.reload();
   }
 
@@ -567,9 +567,9 @@ export default function ParametresPage() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <p className={styles.eyebrow}>Parametres</p>
-        <h1 className={styles.pageTitle}>Reglages et donnees</h1>
+        <h1 className={styles.pageTitle}>Reglages</h1>
         <p className={styles.intro}>
-          Gere les sauvegardes de ton application et les actions sensibles.
+          Gere tes sauvegardes et ton application.
         </p>
       </section>
 
@@ -577,10 +577,9 @@ export default function ParametresPage() {
         <article className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.cardTitle}>Sauvegarde et securite</h2>
+              <h2 className={styles.cardTitle}>Sauvegardes</h2>
               <p className={styles.cardText}>
-                Sauvegarde dans un fichier, charge une sauvegarde et demande au
-                navigateur de mieux proteger le stockage local.
+                Garde une copie de secours et recharge-la quand tu veux.
               </p>
             </div>
           </div>
@@ -590,7 +589,7 @@ export default function ParametresPage() {
               <div className={styles.statusGrid}>
                 <div className={styles.statusItem}>
                   <span className={styles.statusLabel}>
-                    Stockage persistant
+                    Protection
                   </span>
                   <strong
                     className={
@@ -620,7 +619,7 @@ export default function ParametresPage() {
 
                 <div className={styles.statusItem}>
                   <span className={styles.statusLabel}>
-                    Depuis le dernier fichier
+                    Derniere copie
                   </span>
                   <strong
                     className={
@@ -636,7 +635,7 @@ export default function ParametresPage() {
 
               {shouldShowBackupWarning ? (
                 <p className={styles.warningText}>
-                  Pense a creer une sauvegarde recente dans un fichier.
+                  Pense a faire une sauvegarde recente.
                 </p>
               ) : null}
 
@@ -646,7 +645,7 @@ export default function ParametresPage() {
                   className={`control-button ${styles.button}`}
                   onClick={handleExport}
                 >
-                  Sauvegarder dans un fichier
+                  Sauvegarder
                 </button>
 
                 <button
@@ -662,7 +661,7 @@ export default function ParametresPage() {
                   className={`control-button ${styles.button}`}
                   onClick={handleProtectStorage}
                 >
-                  Proteger le stockage
+                  Proteger cet appareil
                 </button>
               </div>
 
@@ -675,7 +674,7 @@ export default function ParametresPage() {
               />
             </>
           ) : (
-            <p className={styles.cardText}>Chargement des parametres...</p>
+            <p className={styles.cardText}>Chargement des reglages...</p>
           )}
 
           {message ? <p className={styles.successText}>{message}</p> : null}
@@ -685,9 +684,9 @@ export default function ParametresPage() {
         <article className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.cardTitle}>Journal des sauvegardes</h2>
+              <h2 className={styles.cardTitle}>Journal</h2>
               <p className={styles.cardText}>
-                Les 10 derniers evenements importants de sauvegarde.
+                Les derniers evenements.
               </p>
             </div>
 
@@ -697,7 +696,7 @@ export default function ParametresPage() {
                 className={`control-button ${styles.secondaryButton}`}
                 onClick={handleClearSyncLog}
               >
-                Vider le journal
+                Vider
               </button>
             ) : null}
           </div>
@@ -724,12 +723,12 @@ export default function ParametresPage() {
               </ul>
             ) : (
               <p className={styles.cardText}>
-                Aucun evenement de sauvegarde pour le moment.
+                Rien a afficher pour l&apos;instant.
               </p>
             )
           ) : (
             <p className={styles.cardText}>
-              Chargement du journal des sauvegardes...
+              Chargement du journal...
             </p>
           )}
         </article>
@@ -739,8 +738,7 @@ export default function ParametresPage() {
             <div>
               <h2 className={styles.cardTitle}>Sauvegarde cloud</h2>
               <p className={styles.cardText}>
-                Garde localStorage comme stockage principal et utilise Supabase
-                comme copie de secours liee a ton compte.
+                Garde une copie de secours liee a ton compte.
               </p>
             </div>
           </div>
@@ -766,12 +764,12 @@ export default function ParametresPage() {
                       userEmail ? styles.statusValue : styles.statusWarning
                     }
                   >
-                    {userEmail ?? "Aucun utilisateur connecte"}
+                    {userEmail ?? "Aucun compte connecte"}
                   </strong>
                 </div>
 
                 <div className={styles.statusItem}>
-                  <span className={styles.statusLabel}>Etat de sauvegarde cloud</span>
+                  <span className={styles.statusLabel}>Etat</span>
                   <strong
                     className={
                       cloudSyncSnapshot.state === "up-to-date"
@@ -787,7 +785,7 @@ export default function ParametresPage() {
 
                 <div className={styles.statusItem}>
                   <span className={styles.statusLabel}>
-                    Derniere modification locale
+                    Dernier changement
                   </span>
                   <strong
                     className={
@@ -802,7 +800,7 @@ export default function ParametresPage() {
 
                 <div className={styles.statusItem}>
                   <span className={styles.statusLabel}>
-                    Derniere sauvegarde cloud
+                    Derniere sauvegarde
                   </span>
                   <strong
                     className={
@@ -823,7 +821,7 @@ export default function ParametresPage() {
                   onClick={handleCloudSave}
                   disabled={isCloudBusy || isLoadingSession}
                 >
-                  Sauvegarder maintenant
+                  Sauvegarder
                 </button>
 
                 <button
@@ -853,8 +851,7 @@ export default function ParametresPage() {
             <div>
               <h2 className={styles.cardTitle}>Application</h2>
               <p className={styles.cardText}>
-                Verifie la version affichee sur cet appareil et recharge la
-                page pour recuperer la derniere version disponible.
+                Verifie la version de l&apos;application.
               </p>
             </div>
           </div>
@@ -865,7 +862,7 @@ export default function ParametresPage() {
               Taiji Life Plan {APP_VERSION}
             </strong>
             <span className={styles.versionDate}>
-              Derniere mise a jour : {APP_UPDATED_AT}
+              Mise a jour : {APP_UPDATED_AT}
             </span>
           </div>
 
@@ -876,7 +873,7 @@ export default function ParametresPage() {
                 className={`control-button ${styles.reloadButton}`}
                 onClick={handleReloadApp}
               >
-                Recharger l&apos;application
+                Recharger
               </button>
             </div>
           ) : null}
@@ -887,8 +884,7 @@ export default function ParametresPage() {
             <div>
               <h2 className={styles.dangerTitle}>Danger</h2>
               <p className={styles.cardText}>
-                La reinitialisation supprime habitudes, objectifs, planning,
-                trajectoire, priorites et historique local.
+                Cette action supprime tes donnees sur cet appareil.
               </p>
             </div>
           </div>
@@ -900,7 +896,7 @@ export default function ParametresPage() {
                 className={styles.dangerButton}
                 onClick={handleResetData}
               >
-                Reinitialiser toutes les donnees
+                Supprimer mes donnees
               </button>
             </div>
           ) : null}

@@ -722,7 +722,7 @@ function getTodayActionsFromLocalStorage(todayKey: string): TodayAction[] {
       title: firstUnfinishedPriority.label,
       detail:
         firstUnfinishedPriority.time === ""
-          ? "Premier objectif du jour non termine."
+          ? "A faire aujourd'hui."
           : `Prevu a ${firstUnfinishedPriority.time}.`,
     });
   }
@@ -758,7 +758,7 @@ function getTodayActionsFromLocalStorage(todayKey: string): TodayAction[] {
       id: "habit",
       category: "Habitude",
       title: firstUnfinishedHabit,
-      detail: "Habitude non cochee aujourd'hui.",
+      detail: "Encore a cocher aujourd'hui.",
     });
   }
 
@@ -976,7 +976,7 @@ function DailyObjectivesCard({
         <div>
           <h2 className={styles.cardTitle}>Objectifs du jour</h2>
           <p className={styles.cardText}>
-            Choisis jusqu&apos;a 3 objectifs simples pour aujourd&apos;hui.
+            Choisis jusqu&apos;a 3 priorites pour aujourd&apos;hui.
           </p>
         </div>
         <span className={styles.counterBadge}>{priorities.length}/3</span>
@@ -1010,14 +1010,13 @@ function DailyObjectivesCard({
         </div>
 
         <p className={styles.helperText}>
-          Ces objectifs servent au score de la journee. Les grands objectifs
-          restent suivis dans l&apos;onglet Objectifs.
+          Simple, court, utile pour avancer aujourd&apos;hui.
         </p>
       </form>
 
       {priorities.length === 0 ? (
         <p className={styles.emptyText}>
-          Aucun objectif du jour pour aujourd&apos;hui.
+          Aucun objectif du jour pour l&apos;instant.
         </p>
       ) : (
         <ul className={styles.list}>
@@ -1050,7 +1049,7 @@ function DailyObjectivesCard({
                   className={`control-button ${styles.button}`}
                   onClick={() => handleTogglePriority(priority.id)}
                 >
-                  {priority.completed ? "Marquer non faite" : "Marquer faite"}
+                  {priority.completed ? "A refaire" : "Terminer"}
                 </button>
 
                 <button
@@ -1076,7 +1075,7 @@ function DailyObjectivesLoadingCard() {
         <div>
           <h2 className={styles.cardTitle}>Objectifs du jour</h2>
           <p className={styles.cardText}>
-            Choisis jusqu&apos;a 3 objectifs simples pour aujourd&apos;hui.
+            Choisis jusqu&apos;a 3 priorites pour aujourd&apos;hui.
           </p>
         </div>
         <span className={styles.counterBadge}>0/3</span>
@@ -1109,12 +1108,12 @@ function DailyObjectivesLoadingCard() {
         </div>
 
         <p className={styles.helperText}>
-          Ces objectifs servent au score de la journee.
+          Ajoute ce qui compte vraiment aujourd&apos;hui.
         </p>
       </form>
 
       <p className={styles.emptyText}>
-        Aucun objectif du jour pour aujourd&apos;hui.
+        Aucun objectif du jour pour l&apos;instant.
       </p>
     </article>
   );
@@ -1183,14 +1182,14 @@ function TodayActionsCard({
     const cleanLabel = action.title.trim();
 
     if (cleanDay === "" || cleanTime === "" || cleanLabel === "") {
-      setScheduleMessage(action.id, "Choisis un jour et une heure.");
+      setScheduleMessage(action.id, "Ajoute un jour et une heure.");
       return;
     }
 
     const savedTasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
 
     if (hasSamePlannedTask(savedTasks, cleanLabel, cleanDay, cleanTime)) {
-      setScheduleMessage(action.id, "Cette action est deja planifiee.");
+      setScheduleMessage(action.id, "Deja ajoute au planning.");
       return;
     }
 
@@ -1234,16 +1233,16 @@ function TodayActionsCard({
     <article className={`${styles.card} ${styles.actionsCard}`}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 className={styles.cardTitle}>Actions du jour</h2>
+          <h2 className={styles.cardTitle}>Prochaines actions</h2>
           <p className={styles.cardText}>
-            Une selection simple des prochaines choses utiles a faire.
+            Ce que tu peux faire maintenant.
           </p>
         </div>
         <span className={styles.counterBadge}>{actions.length}/3</span>
       </div>
 
       {actions.length === 0 ? (
-        <p className={styles.emptyText}>Tout est a jour pour aujourd&apos;hui.</p>
+        <p className={styles.emptyText}>Tout est clair pour aujourd&apos;hui.</p>
       ) : (
         <ul className={styles.list}>
           {actions.map((action) => (
@@ -1314,7 +1313,7 @@ function TodayActionsCard({
                       handleCompletePlanningAction(action.planningTaskId!)
                     }
                   >
-                    Marquer faite
+                    Terminer
                   </button>
                 )}
 
@@ -1348,23 +1347,23 @@ function CloudRestoreNotice({
     setError("");
 
     const shouldRestore = window.confirm(
-      "Charger depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+      "Charger depuis le cloud va remplacer les donnees de cet appareil. Continuer ?",
     );
 
     if (!shouldRestore) {
-      setError("Chargement depuis le cloud annule.");
+      setError("Chargement annule.");
       return;
     }
 
     if (!isBackupData(cloudBackup.data)) {
-      setError("La sauvegarde cloud trouvee n'est pas valide.");
+      setError("Cette sauvegarde cloud ne peut pas etre chargee.");
       return;
     }
 
     setIsRestoring(true);
     importBackupData(cloudBackup.data);
     saveLocalDataUpdatedAt(cloudBackup.updated_at ?? undefined);
-    setMessage("Sauvegarde chargee depuis le cloud. La page va se recharger.");
+    setMessage("Sauvegarde chargee. La page va se recharger.");
     onRestored();
     window.location.reload();
   }
@@ -1373,10 +1372,9 @@ function CloudRestoreNotice({
     <article className={`${styles.card} ${styles.cloudRestoreCard}`}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 className={styles.cardTitle}>Une sauvegarde cloud est disponible</h2>
+          <h2 className={styles.cardTitle}>Sauvegarde cloud disponible</h2>
           <p className={styles.cardText}>
-            Tes donnees locales semblent vides sur cet appareil. Tu peux
-            charger la copie Supabase.
+            Tu peux charger ta copie de secours.
           </p>
         </div>
         <span className={styles.counterBadge}>
@@ -1417,23 +1415,23 @@ function CloudNewerNotice({
     setError("");
 
     const shouldRestore = window.confirm(
-      "Charger depuis le cloud va remplacer les donnees locales de cet appareil. Continuer ?",
+      "Charger depuis le cloud va remplacer les donnees de cet appareil. Continuer ?",
     );
 
     if (!shouldRestore) {
-      setError("Chargement depuis le cloud annule.");
+      setError("Chargement annule.");
       return;
     }
 
     if (!isBackupData(cloudBackup.data)) {
-      setError("La version cloud trouvee n'est pas valide.");
+      setError("Cette sauvegarde cloud ne peut pas etre chargee.");
       return;
     }
 
     setIsRestoring(true);
     importBackupData(cloudBackup.data);
     saveLocalDataUpdatedAt(cloudBackup.updated_at ?? undefined);
-    setMessage("Sauvegarde chargee depuis le cloud. La page va se recharger.");
+    setMessage("Sauvegarde chargee. La page va se recharger.");
     onResolved();
     window.location.reload();
   }
@@ -1441,7 +1439,7 @@ function CloudNewerNotice({
   function handleKeepLocalData() {
     saveLocalDataUpdatedAt();
     setError("");
-    setMessage("Donnees locales conservees.");
+    setMessage("Donnees de cet appareil conservees.");
     onResolved();
   }
 
@@ -1450,11 +1448,10 @@ function CloudNewerNotice({
       <div className={styles.sectionHeader}>
         <div>
           <h2 className={styles.cardTitle}>
-            Une version cloud plus recente existe
+            Sauvegarde cloud plus recente
           </h2>
           <p className={styles.cardText}>
-            Cet appareil semble avoir des donnees plus anciennes que la
-            sauvegarde Supabase.
+            Une copie plus recente est disponible.
           </p>
         </div>
         <span className={styles.counterBadge}>
@@ -1478,7 +1475,7 @@ function CloudNewerNotice({
           onClick={handleKeepLocalData}
           disabled={isRestoring}
         >
-          Garder mes donnees locales
+          Garder mes donnees
         </button>
       </div>
 
@@ -1606,11 +1603,10 @@ export default function HomePage() {
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <p className={styles.eyebrow}>Dashboard</p>
+        <p className={styles.eyebrow}>Accueil</p>
         <h1 className={styles.pageTitle}>Taiji Life Plan</h1>
         <p className={styles.intro}>
-          Bienvenue dans ton application de pilotage personnel. Voici un resume
-          simple de tes principales sections.
+          Ton cockpit du jour pour avancer avec clarte.
         </p>
       </section>
 
@@ -1670,8 +1666,8 @@ export default function HomePage() {
               <h2 className={styles.cardTitle}>Progression globale</h2>
               <p className={styles.cardText}>
                 {isClient
-                  ? "Vue simple de ta progression sur les sections principales."
-                  : "Chargement de la progression globale..."}
+                  ? "Ton rythme du jour en un coup d'oeil."
+                  : "Chargement du score..."}
               </p>
             </div>
           </div>
@@ -1724,7 +1720,7 @@ export default function HomePage() {
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>Trajectoire</span>
                   <strong className={styles.metricValue}>
-                    {dashboard.hasTodayTrajectoryEntry ? "A jour" : "A remplir"}
+                    {dashboard.hasTodayTrajectoryEntry ? "Fait" : "A faire"}
                   </strong>
                 </div>
               </div>
@@ -1750,7 +1746,7 @@ export default function HomePage() {
                   <span className={styles.progressDetailValue}>
                     {dashboard.planningTotal > 0
                       ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites`
-                      : "aucune tache prevue aujourd'hui"}
+                      : "rien de prevu aujourd'hui"}
                   </span>
                 </li>
                 <li className={styles.progressDetailItem}>
@@ -1759,14 +1755,14 @@ export default function HomePage() {
                   </span>
                   <span className={styles.progressDetailValue}>
                     {dashboard.hasTodayTrajectoryEntry
-                      ? "entree du jour presente"
-                      : "pas encore d'entree aujourd'hui"}
+                      ? "point du jour fait"
+                      : "point du jour a faire"}
                   </span>
                 </li>
               </ul>
             </>
           ) : (
-            <p className={styles.emptyText}>Chargement de la progression...</p>
+            <p className={styles.emptyText}>Chargement du score...</p>
           )}
         </article>
 
@@ -1785,7 +1781,7 @@ export default function HomePage() {
           <h2 className={styles.cardTitle}>Habitudes</h2>
           <p className={styles.cardText}>
             {isClient
-              ? "Suivi rapide de tes habitudes du moment."
+              ? "Tes habitudes du jour."
               : "Chargement des habitudes..."}
           </p>
           {isClient ? (
@@ -1794,7 +1790,7 @@ export default function HomePage() {
                 {dashboard.habitsCompleted}/{dashboard.habitsTotal}
               </p>
               <p className={styles.cardText}>
-                habitudes completees aujourd&apos;hui.
+                habitudes faites aujourd&apos;hui.
               </p>
             </>
           ) : (
@@ -1806,7 +1802,7 @@ export default function HomePage() {
           <h2 className={styles.cardTitle}>Objectifs</h2>
           <p className={styles.cardText}>
             {isClient
-              ? "Vision rapide de l'avancement de tes objectifs."
+              ? "Tes objectifs en cours."
               : "Chargement des objectifs..."}
           </p>
           {isClient ? (
@@ -1829,7 +1825,7 @@ export default function HomePage() {
                 {isClient
                   ? dashboard.planningTotal > 0
                     ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites aujourd'hui.`
-                    : "Aucune tache prevue aujourd'hui."
+                    : "Rien de prevu aujourd'hui."
                   : "Chargement du planning..."}
               </p>
             </div>
@@ -1841,10 +1837,10 @@ export default function HomePage() {
           </div>
 
           {!isClient ? (
-            <p className={styles.emptyText}>Chargement des prochaines taches...</p>
+            <p className={styles.emptyText}>Chargement du planning...</p>
           ) : dashboard.nextTasks.length === 0 ? (
             <p className={styles.emptyText}>
-              Aucune tache enregistree pour le moment.
+              Aucune tache pour le moment.
             </p>
           ) : (
             <ul className={styles.list}>
@@ -1865,29 +1861,29 @@ export default function HomePage() {
           <h2 className={styles.cardTitle}>Correcteur de trajectoire</h2>
           <p className={styles.cardText}>
             {isClient
-              ? "Garde un point de controle sur ta direction."
-              : "Chargement de la derniere entree..."}
+              ? "Ton point de recul."
+              : "Chargement du dernier point..."}
           </p>
 
           {!isClient ? (
-            <p className={styles.emptyText}>Chargement de la derniere entree...</p>
+            <p className={styles.emptyText}>Chargement du dernier point...</p>
           ) : dashboard.lastTrajectoryDate ? (
             <>
               <p className={styles.highlightValueSmall}>
                 {formatTrajectoryDate(dashboard.lastTrajectoryDate)}
               </p>
               <p className={styles.cardText}>
-                Derniere entree enregistree.
+                Dernier point enregistre.
               </p>
               <p className={styles.statusText}>
                 {dashboard.hasTodayTrajectoryEntry
-                  ? "Ton point du jour est deja rempli."
-                  : "Il reste ton point du jour a completer."}
+                  ? "Ton point du jour est fait."
+                  : "Ton point du jour reste a faire."}
               </p>
             </>
           ) : (
             <p className={styles.emptyText}>
-              Aucune entree enregistree pour le moment.
+              Aucun point note pour le moment.
             </p>
           )}
         </article>

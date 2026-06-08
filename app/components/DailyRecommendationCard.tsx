@@ -270,48 +270,48 @@ function getRecommendation({
 }): Recommendation {
   if (globalScore < STREAK_MIN_SCORE && currentStreak === 0) {
     return {
-      title: "Valider une petite action",
-      text: "Ton score est encore sous 60%. Choisis une action facile pour relancer la journee.",
-      detail: "Une habitude courte ou une tache simple suffit pour remettre le mouvement.",
+      title: "Faire une petite action",
+      text: "Choisis une action simple pour relancer la journee.",
+      detail: "Une habitude courte ou une tache rapide suffit.",
     };
   }
 
   if (unfinishedPriorities > 0) {
     return {
       title: "Revenir a un objectif du jour",
-      text: "Il reste au moins un objectif du jour non fait aujourd'hui.",
-      detail: "Consacre un bloc court a cet objectif avant d'ouvrir autre chose.",
+      text: "Il reste un objectif important aujourd'hui.",
+      detail: "Prends un court moment pour l'avancer.",
     };
   }
 
   if (habitsRemaining > 0) {
     return {
-      title: "Coche une habitude maintenant",
-      text: "Une habitude reste disponible pour faire monter ton score.",
-      detail: "Prends la plus simple et termine-la tout de suite.",
+      title: "Coche une habitude",
+      text: "Une petite habitude peut deja aider.",
+      detail: "Choisis la plus simple et fais-la maintenant.",
     };
   }
 
   if (planningRemaining > 0) {
     return {
-      title: "Terminer une tache planning",
-      text: "Il reste une tache planifiee non faite.",
-      detail: "Choisis la plus courte pour renforcer ta progression du jour.",
+      title: "Terminer une tache",
+      text: "Il reste quelque chose dans ton planning.",
+      detail: "Commence par la tache la plus courte.",
     };
   }
 
   if (globalScore < STREAK_MIN_SCORE) {
     return {
-      title: "Proteger la serie",
-      text: "Ton streak demande encore un petit effort aujourd'hui.",
-      detail: "Valide une action minimum pour atteindre 60%.",
+      title: "Garder le rythme",
+      text: "Un petit effort peut relancer la journee.",
+      detail: "Valide une action simple maintenant.",
     };
   }
 
   return {
     title: "Preparer demain",
-    text: "Le jour est bien avance, tu peux passer en mode anticipation.",
-    detail: "Note un objectif simple pour demain pendant que l'elan est la.",
+    text: "Tu peux deja poser la suite.",
+    detail: "Note un objectif simple pour demain.",
   };
 }
 
@@ -367,8 +367,8 @@ export default function DailyRecommendationCard({
 
       <div className={styles.recommendationStats}>
         <span>Habitudes restantes : {habitsRemaining}</span>
-        <span>Objectifs du jour non faits : {unfinishedPriorities}</span>
-        <span>Planning restant : {planningRemaining}</span>
+        <span>Objectifs restants : {unfinishedPriorities}</span>
+        <span>Taches restantes : {planningRemaining}</span>
         <span>Streak actuel : {currentStreak} jours</span>
       </div>
     </article>

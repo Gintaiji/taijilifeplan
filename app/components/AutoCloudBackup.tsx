@@ -68,7 +68,7 @@ export default function AutoCloudBackup() {
       setInitialCloudCheckDone(false);
       notifyAutoBackup({
         status: "checking",
-        message: "Verification cloud en cours.",
+        message: "Verification en cours.",
       });
 
       try {
@@ -79,7 +79,7 @@ export default function AutoCloudBackup() {
             autoSyncPausedRef.current = false;
             notifyAutoBackup({
               status: "local-only",
-              message: "Sauvegarde locale uniquement.",
+              message: "Sauvegarde sur cet appareil.",
             });
           }
 
@@ -110,7 +110,7 @@ export default function AutoCloudBackup() {
           isRestoringFromCloudRef.current = true;
           notifyAutoBackup({
             status: "checking",
-            message: "Chargement depuis le cloud en cours.",
+            message: "Chargement depuis le cloud...",
           });
 
           importBackupData(validCloudBackupData);
@@ -118,12 +118,12 @@ export default function AutoCloudBackup() {
           lastSavedSnapshotRef.current = JSON.stringify(getBackupData());
           addSyncLogEvent(
             "restore-success",
-            "Sauvegarde chargee automatiquement depuis le cloud.",
+            "Sauvegarde chargee depuis le cloud.",
           );
           notifyAutoBackup({
             status: "restored",
             message:
-              "Sauvegarde chargee depuis le cloud. Sauvegarde automatique activee.",
+              "Sauvegarde chargee. Sauvegarde cloud active.",
             updatedAt: cloudBackup.updated_at ?? undefined,
           });
           isRestoringFromCloudRef.current = false;
@@ -138,18 +138,18 @@ export default function AutoCloudBackup() {
         ) {
           addSyncLogEvent(
             "cloud-newer",
-            "Sauvegarde automatique en attente : une version cloud plus recente existe.",
+            "Sauvegarde en attente : une copie plus recente existe.",
           );
           notifyAutoBackup({
             status: "conflict",
             message:
-              "Une version cloud plus recente existe. Chargement propose avant la sauvegarde automatique.",
+              "Une copie plus recente existe.",
             updatedAt: cloudBackup.updated_at ?? undefined,
           });
         } else {
           notifyAutoBackup({
             status: "ready",
-            message: "Sauvegarde automatique activee.",
+            message: "Sauvegarde cloud active.",
             updatedAt: cloudBackup?.updated_at ?? undefined,
           });
         }
@@ -166,7 +166,7 @@ export default function AutoCloudBackup() {
           autoSyncPausedRef.current = false;
           notifyAutoBackup({
             status: "error",
-            message: "Verification cloud impossible pour le moment.",
+            message: "Verification impossible pour le moment.",
           });
         }
       }
@@ -203,7 +203,7 @@ export default function AutoCloudBackup() {
       ) {
         notifyAutoBackup({
           status: "checking",
-          message: "Verification cloud en cours.",
+          message: "Verification en cours.",
         });
         return;
       }
@@ -211,7 +211,7 @@ export default function AutoCloudBackup() {
       if (!userId) {
         notifyAutoBackup({
           status: "local-only",
-          message: "Sauvegarde locale uniquement.",
+          message: "Sauvegarde sur cet appareil.",
         });
         return;
       }
@@ -224,7 +224,7 @@ export default function AutoCloudBackup() {
       ) {
         addSyncLogEvent(
           "auto-save-skipped-empty",
-          "Sauvegarde automatique ignoree : les donnees locales sont vides.",
+          "Sauvegarde ignoree : aucune donnee a sauvegarder.",
         );
         return;
       }
@@ -253,11 +253,11 @@ export default function AutoCloudBackup() {
         if (result.status === "conflict") {
           addSyncLogEvent(
             "cloud-newer",
-            "Sauvegarde automatique bloquee : une version cloud plus recente existe.",
+            "Sauvegarde bloquee : une copie plus recente existe.",
           );
           notifyAutoBackup({
             status: "conflict",
-            message: "Une version cloud plus recente existe.",
+            message: "Une copie plus recente existe.",
             updatedAt: result.cloudUpdatedAt ?? undefined,
           });
           return;
@@ -266,7 +266,7 @@ export default function AutoCloudBackup() {
         if (result.status === "empty") {
           addSyncLogEvent(
             "auto-save-skipped-empty",
-            "Sauvegarde automatique ignoree : les donnees locales sont vides.",
+            "Sauvegarde ignoree : aucune donnee a sauvegarder.",
           );
           return;
         }
@@ -274,21 +274,21 @@ export default function AutoCloudBackup() {
         lastSavedSnapshotRef.current = snapshot;
         addSyncLogEvent(
           "auto-save-success",
-          "Sauvegarde automatique cloud reussie.",
+          "Sauvegarde cloud reussie.",
         );
         notifyAutoBackup({
           status: "success",
-          message: "Sauvegarde automatique cloud reussie.",
+          message: "Sauvegarde cloud reussie.",
           updatedAt: result.updatedAt,
         });
       } catch {
         addSyncLogEvent(
           "save-error",
-          "Erreur pendant la sauvegarde automatique cloud.",
+          "Erreur pendant la sauvegarde cloud.",
         );
         notifyAutoBackup({
           status: "error",
-          message: "Sauvegarde automatique cloud impossible pour le moment.",
+          message: "Sauvegarde cloud impossible pour le moment.",
         });
       } finally {
         isSavingRef.current = false;
@@ -333,7 +333,7 @@ export default function AutoCloudBackup() {
       ) {
         notifyAutoBackup({
           status: "checking",
-          message: "Verification cloud en cours.",
+          message: "Verification en cours.",
         });
         return;
       }
@@ -346,7 +346,7 @@ export default function AutoCloudBackup() {
       ) {
         addSyncLogEvent(
           "auto-save-skipped-empty",
-          "Sauvegarde automatique ignoree : les donnees locales sont vides.",
+          "Sauvegarde ignoree : aucune donnee a sauvegarder.",
         );
         return;
       }
@@ -354,8 +354,8 @@ export default function AutoCloudBackup() {
       notifyAutoBackup({
         status: userId ? "pending" : "local-only",
         message: userId
-          ? "Modifications locales en attente."
-          : "Sauvegarde locale uniquement.",
+          ? "Changements a sauvegarder."
+          : "Sauvegarde sur cet appareil.",
       });
 
       scheduleAutoBackup();

@@ -675,7 +675,7 @@ export default function TrajectoryReview() {
 
     if (lines.length === 0) {
       setTomorrowPreparationMessage(
-        "Ajoute au moins une ligne dans ce champ pour preparer demain.",
+        "Ajoute au moins une ligne pour preparer demain.",
       );
       return;
     }
@@ -687,7 +687,7 @@ export default function TrajectoryReview() {
     if (updatedTomorrowObjectives.length >= 3) {
       setTomorrowObjectives(updatedTomorrowObjectives.slice(0, 3));
       setTomorrowPreparationMessage(
-        "Demain a deja 3 objectifs. Aucun objectif n'a ete ajoute.",
+        "Demain a deja 3 objectifs.",
       );
       return;
     }
@@ -718,7 +718,7 @@ export default function TrajectoryReview() {
 
     if (newObjectives.length === 0) {
       setTomorrowPreparationMessage(
-        "Aucun nouvel objectif ajoute : doublons ou limite de 3 deja atteinte.",
+        "Aucun nouvel objectif ajoute.",
       );
       return;
     }
@@ -734,7 +734,7 @@ export default function TrajectoryReview() {
         : "";
 
     setTomorrowPreparationMessage(
-      `${newObjectives.length} objectif(s) prepare(s) pour demain.${limitMessage}`,
+      `${newObjectives.length} objectif(s) pour demain.${limitMessage}`,
     );
   }
 
@@ -783,10 +783,10 @@ export default function TrajectoryReview() {
         </div>
 
         {!isStorageLoaded ? (
-          <p style={emptyTextStyle}>Chargement des objectifs du jour...</p>
+          <p style={emptyTextStyle}>Chargement des objectifs...</p>
         ) : dailyObjectives.length === 0 ? (
           <p style={emptyTextStyle}>
-            Aucun objectif du jour enregistre pour aujourd&apos;hui.
+            Aucun objectif du jour pour l&apos;instant.
           </p>
         ) : (
           <ul style={objectivesListStyle}>
@@ -834,10 +834,10 @@ export default function TrajectoryReview() {
         </div>
 
         {!isStorageLoaded ? (
-          <p style={emptyTextStyle}>Chargement des objectifs de demain...</p>
+          <p style={emptyTextStyle}>Chargement de demain...</p>
         ) : tomorrowObjectives.length === 0 ? (
           <p style={emptyTextStyle}>
-            Aucun objectif de demain prepare pour le moment.
+            Aucun objectif prepare pour demain.
           </p>
         ) : (
           <ul style={objectivesListStyle}>
@@ -891,7 +891,7 @@ export default function TrajectoryReview() {
         <div style={fieldStyle}>
           <div style={fieldHeaderStyle}>
             <label htmlFor="accomplishedToday" style={fieldHeaderLabelStyle}>
-              Ce que j&apos;ai accompli aujourd&apos;hui
+              Ce que j&apos;ai fait aujourd&apos;hui
             </label>
             <button
               type="button"
@@ -902,7 +902,7 @@ export default function TrajectoryReview() {
                 handlePrefillField("accomplishedToday", completedObjectives)
               }
             >
-              Pr&eacute;remplir les accomplissements
+              Ajouter les objectifs faits
             </button>
           </div>
           <textarea
@@ -918,7 +918,7 @@ export default function TrajectoryReview() {
         <div style={fieldStyle}>
           <div style={fieldHeaderStyle}>
             <label htmlFor="notDoneToday" style={fieldHeaderLabelStyle}>
-              Ce que je n&apos;ai pas fait
+              Ce qui reste a faire
             </label>
             <button
               type="button"
@@ -929,7 +929,7 @@ export default function TrajectoryReview() {
                 handlePrefillField("notDoneToday", unfinishedObjectives)
               }
             >
-              Pr&eacute;remplir les non faits
+              Ajouter les objectifs restants
             </button>
           </div>
           <textarea
@@ -943,7 +943,7 @@ export default function TrajectoryReview() {
         <div style={fieldStyle}>
           <div style={fieldHeaderStyle}>
             <label htmlFor="decideForTomorrow" style={fieldHeaderLabelStyle}>
-              Ce que je decide pour demain
+              Ce que je choisis pour demain
             </label>
             <button
               type="button"
@@ -954,7 +954,7 @@ export default function TrajectoryReview() {
               }
               onClick={handlePrepareTomorrowObjectives}
             >
-              Pr&eacute;parer les objectifs de demain
+              Preparer demain
             </button>
           </div>
           <textarea
@@ -973,12 +973,12 @@ export default function TrajectoryReview() {
       </div>
 
       <section style={historySectionStyle}>
-        <h2>Derniers jours enregistres</h2>
+        <h2>Derniers points</h2>
 
         {!isStorageLoaded ? (
-          <p style={emptyTextStyle}>Chargement des jours enregistres...</p>
+          <p style={emptyTextStyle}>Chargement des derniers points...</p>
         ) : savedDates.length === 0 ? (
-          <p style={emptyTextStyle}>Aucune journee enregistree pour le moment.</p>
+          <p style={emptyTextStyle}>Aucun point pour l&apos;instant.</p>
         ) : (
           <ul style={historyListStyle}>
             {savedDates.map((dateKey) => (
@@ -1006,27 +1006,27 @@ export default function TrajectoryReview() {
 
         {isStorageLoaded && savedDates.length > 0 && (
           <>
-            <h3 style={consultationTitleStyle}>Consultation du {formatDate(consultationDate)}</h3>
+            <h3 style={consultationTitleStyle}>Point du {formatDate(consultationDate)}</h3>
 
             <div style={consultationBoxStyle}>
               <div>
-                <strong>Ce que j&apos;ai accompli aujourd&apos;hui</strong>
+                <strong>Ce que j&apos;ai fait</strong>
                 <p style={consultationTextStyle}>
-                  {consultationEntry.accomplishedToday || "Aucun contenu."}
+                  {consultationEntry.accomplishedToday || "Rien note."}
                 </p>
               </div>
 
               <div>
-                <strong>Ce que je n&apos;ai pas fait</strong>
+                <strong>Ce qui reste</strong>
                 <p style={consultationTextStyle}>
-                  {consultationEntry.notDoneToday || "Aucun contenu."}
+                  {consultationEntry.notDoneToday || "Rien note."}
                 </p>
               </div>
 
               <div>
-                <strong>Ce que je decide pour demain</strong>
+                <strong>Ce que je choisis pour demain</strong>
                 <p style={consultationTextStyle}>
-                  {consultationEntry.decideForTomorrow || "Aucun contenu."}
+                  {consultationEntry.decideForTomorrow || "Rien note."}
                 </p>
               </div>
             </div>

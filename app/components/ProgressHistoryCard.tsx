@@ -92,18 +92,18 @@ function getPreviousDateKey(dateKey: string) {
 
 function getStreakMessage(currentStreak: number) {
   if (currentStreak >= 7) {
-    return "Belle regularite, continue sur ce rythme.";
+    return "Belle regularite. Continue comme ca.";
   }
 
   if (currentStreak >= 3) {
-    return "La dynamique est bien lancee.";
+    return "La dynamique est lancee.";
   }
 
   if (currentStreak > 0) {
-    return "Jour valide, la serie commence.";
+    return "Jour valide. La serie commence.";
   }
 
-  return "Atteins 60% aujourd'hui pour relancer la serie.";
+  return "Atteins 60% pour relancer la serie.";
 }
 
 function getStreakStats(
@@ -193,7 +193,7 @@ export default function ProgressHistoryCard({
         <div>
           <h2 className={styles.cardTitle}>Historique</h2>
           <p className={styles.cardText}>
-            Les derniers scores de progression enregistres.
+            Tes derniers scores.
           </p>
         </div>
         <span className={styles.counterBadge}>{visibleHistory.length}/7</span>
@@ -249,7 +249,7 @@ export default function ProgressHistoryCard({
                   </strong>
                   <p className={styles.itemMeta}>
                     {entry.habitsCompleted} habitudes -{" "}
-                    {entry.planningCompleted} taches planning faites
+                    {entry.planningCompleted} taches faites
                   </p>
                 </div>
                 <span className={styles.historyScore}>{entry.score}%</span>

@@ -56,9 +56,9 @@ export default function DataBackupCard() {
     <article className={`${styles.card} ${styles.backupCard}`}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2 className={styles.cardTitle}>Sauvegarde dans un fichier</h2>
+          <h2 className={styles.cardTitle}>Sauvegarde</h2>
           <p className={styles.cardText}>
-            Sauvegarde dans un fichier ou charge une sauvegarde enregistree.
+            Garde une copie de secours sur ton appareil.
           </p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function DataBackupCard() {
           className={`control-button ${styles.button} ${styles.addButton}`}
           onClick={handleExport}
         >
-          Sauvegarder dans un fichier
+          Sauvegarder
         </button>
 
         <button

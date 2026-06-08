@@ -24,11 +24,11 @@ const MAX_SYNC_LOG_EVENTS = 10;
 export const SYNC_LOG_TYPE_LABELS: Record<SyncLogEventType, string> = {
   "manual-save-started": "Sauvegarde cloud",
   "manual-save-success": "Sauvegarde cloud",
-  "auto-save-success": "Sauvegarde automatique",
+  "auto-save-success": "Sauvegarde cloud",
   "restore-success": "Chargement depuis le cloud",
   "save-error": "Erreur de sauvegarde",
   "restore-error": "Erreur de chargement",
-  "cloud-newer": "Cloud plus recent",
+  "cloud-newer": "Copie plus recente",
   "auto-save-skipped-empty": "Sauvegarde ignoree",
 };
 

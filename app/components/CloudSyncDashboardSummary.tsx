@@ -308,7 +308,7 @@ export default function CloudSyncDashboardSummary() {
       </div>
 
       <div className={styles.syncSummaryGrid}>
-        <span>Local : {formatSyncDate(snapshot.localUpdatedAt)}</span>
+        <span>Appareil : {formatSyncDate(snapshot.localUpdatedAt)}</span>
         <span>Cloud : {formatSyncDate(snapshot.cloudUpdatedAt)}</span>
       </div>
     </article>

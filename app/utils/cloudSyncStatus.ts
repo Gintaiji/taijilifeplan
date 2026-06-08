@@ -41,19 +41,19 @@ export type ProtectedCloudSaveResult =
     };
 
 export const CLOUD_SYNC_LABELS: Record<CloudSyncState, string> = {
-  checking: "Verification cloud en cours",
+  checking: "Verification en cours",
   "up-to-date": "A jour",
-  pending: "Sauvegarde cloud en attente",
+  pending: "Sauvegarde a faire",
   saving: "Sauvegarde en cours",
-  "cloud-newer": "Cloud plus recent disponible",
+  "cloud-newer": "Copie plus recente",
   "signed-out": "Non connecte",
   error: "Erreur de sauvegarde",
-  "local-only": "Sauvegarde locale uniquement",
+  "local-only": "Sur cet appareil",
 };
 
 export function formatSyncDate(dateValue: string | null) {
   if (!dateValue) {
-    return "Aucune date connue";
+    return "Pas encore";
   }
 
   const date = new Date(dateValue);

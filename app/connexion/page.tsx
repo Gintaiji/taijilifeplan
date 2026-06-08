@@ -12,7 +12,7 @@ import {
 import styles from "./page.module.css";
 
 function getAuthErrorMessage() {
-  return "Erreur d'identifiants. Verifie ton email et ton mot de passe.";
+  return "Email ou mot de passe incorrect.";
 }
 
 export default function ConnexionPage() {
@@ -36,7 +36,7 @@ export default function ConnexionPage() {
         }
       } catch {
         if (shouldUpdateState) {
-          setError("Impossible de charger la session Supabase.");
+          setError("Impossible de charger ton compte.");
         }
       } finally {
         if (shouldUpdateState) {
@@ -66,7 +66,7 @@ export default function ConnexionPage() {
     try {
       const newSession = await signInWithPassword(email, password);
       setSession(newSession);
-      setMessage("Connexion reussie.");
+      setMessage("Tu es connecte.");
       setPassword("");
     } catch {
       setError(getAuthErrorMessage());
@@ -83,7 +83,7 @@ export default function ConnexionPage() {
     try {
       const newSession = await signUpWithPassword(email, password);
       setSession(newSession);
-      setMessage("Inscription reussie.");
+      setMessage("Compte cree.");
       setPassword("");
     } catch {
       setError(getAuthErrorMessage());
@@ -100,9 +100,9 @@ export default function ConnexionPage() {
     try {
       await signOutFromSupabase();
       setSession(null);
-      setMessage("Deconnexion reussie.");
+      setMessage("Tu es deconnecte.");
     } catch {
-      setError("Impossible de te deconnecter pour le moment.");
+      setError("Deconnexion impossible pour le moment.");
     } finally {
       setIsSubmitting(false);
     }
@@ -116,8 +116,7 @@ export default function ConnexionPage() {
         <p className={styles.eyebrow}>Compte</p>
         <h1 className={styles.pageTitle}>Connexion</h1>
         <p className={styles.intro}>
-          Connecte ton compte Supabase. Tes donnees restent pour l&apos;instant
-          stockees localement sur cet appareil.
+          Connecte ton compte pour garder une copie de secours.
         </p>
       </section>
 
@@ -125,16 +124,15 @@ export default function ConnexionPage() {
         <article className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.cardTitle}>Utilisateur</h2>
+              <h2 className={styles.cardTitle}>Compte</h2>
               <p className={styles.cardText}>
-                La connexion prepare la future sauvegarde cloud, sans modifier
-                le fonctionnement actuel de l&apos;application.
+                Ton compte sert a proteger tes donnees.
               </p>
             </div>
           </div>
 
           <div className={styles.sessionBox}>
-            <span className={styles.statusLabel}>Session</span>
+            <span className={styles.statusLabel}>Etat</span>
             {isLoadingSession ? (
               <strong className={styles.statusValue}>Chargement...</strong>
             ) : userEmail ? (
@@ -151,7 +149,7 @@ export default function ConnexionPage() {
               onClick={handleSignOut}
               disabled={isSubmitting}
             >
-              Se deconnecter
+                Deconnexion
             </button>
           ) : (
             <form className={styles.form} onSubmit={handleSignIn}>
@@ -184,7 +182,7 @@ export default function ConnexionPage() {
                   className={`control-button ${styles.button}`}
                   disabled={isSubmitting}
                 >
-                  Se connecter
+                  Connexion
                 </button>
 
                 <button

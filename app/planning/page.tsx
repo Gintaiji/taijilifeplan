@@ -376,7 +376,7 @@ export default function PlanningPage() {
   }
 
   function handleDelete(taskId: number) {
-    const confirmed = window.confirm("Supprimer cette tache du planning ?");
+    const confirmed = window.confirm("Supprimer cette tache ?");
 
     if (!confirmed) {
       return;
@@ -447,12 +447,11 @@ export default function PlanningPage() {
     <main style={pageStyle}>
       <h1>Planning</h1>
       <p style={introStyle}>
-        Ajoute tes taches planifiees et retrouve-les automatiquement au
-        rechargement de la page.
+        Organise les moments importants de ta semaine.
       </p>
 
       <section style={sectionStyle}>
-        <h2>Ajouter une tache</h2>
+        <h2>Nouvelle tache</h2>
 
         <form style={formStyle} onSubmit={handleSubmit}>
           <div style={fieldGroupStyle}>
@@ -485,7 +484,7 @@ export default function PlanningPage() {
 
           <div style={fieldGroupStyle}>
             <label htmlFor="task-label" style={labelStyle}>
-              Libelle
+              Tache
             </label>
             <input
               id="task-label"
@@ -502,23 +501,23 @@ export default function PlanningPage() {
             className="control-button"
             style={addButtonStyle}
           >
-            Ajouter la tache
+            Ajouter
           </button>
         </form>
 
         <section style={planningSectionStyle}>
-          <h2>Mes taches planifiees</h2>
+          <h2>Planning</h2>
 
           {!isStorageLoaded ? (
             <p style={emptyTextStyle}>Chargement du planning...</p>
           ) : tasks.length === 0 ? (
-            <p style={emptyTextStyle}>Aucune tache pour le moment.</p>
+            <p style={emptyTextStyle}>Aucune tache pour l&apos;instant.</p>
           ) : (
             <>
               <div style={taskSummaryStyle}>
-                <strong>Organisation automatique</strong>
+                <strong>Vue organisee</strong>
                 <p style={taskCountStyle}>
-                  Les taches sont triees par jour puis par heure.
+                  Les taches sont rangees par jour et par heure.
                 </p>
                 <p style={taskCountStyle}>
                   {tasks.filter((task) => task.completed).length} /{" "}
@@ -576,7 +575,7 @@ export default function PlanningPage() {
                                     htmlFor={`edit-label-${task.id}`}
                                     style={taskInfoLabelStyle}
                                   >
-                                    Libelle
+                                    Tache
                                   </label>
                                   <input
                                     id={`edit-label-${task.id}`}
@@ -625,7 +624,7 @@ export default function PlanningPage() {
                                 </div>
 
                                 <div style={taskInfoRowStyle}>
-                                  <span style={taskInfoLabelStyle}>Libelle</span>
+                                  <span style={taskInfoLabelStyle}>Tache</span>
                                   <span
                                     style={
                                       task.completed
@@ -638,7 +637,7 @@ export default function PlanningPage() {
                                 </div>
 
                                 <div style={taskInfoRowStyle}>
-                                  <span style={taskInfoLabelStyle}>Etat</span>
+                                  <span style={taskInfoLabelStyle}>Statut</span>
                                   <span style={statusBadgeStyle}>
                                     {task.completed ? "Fait" : "Non fait"}
                                   </span>
