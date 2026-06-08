@@ -703,24 +703,30 @@ export default function ParametresPage() {
 
           {isClient ? (
             syncLogEvents.length > 0 ? (
-              <ul className={styles.syncLogList}>
-                {syncLogEvents.map((event) => (
-                  <li key={event.id} className={styles.syncLogItem}>
-                    <div>
-                      <strong className={styles.syncLogType}>
-                        {SYNC_LOG_TYPE_LABELS[event.type]}
-                      </strong>
-                      <p className={styles.syncLogMessage}>{event.message}</p>
-                    </div>
-                    <time
-                      className={styles.syncLogDate}
-                      dateTime={event.createdAt}
-                    >
-                      {formatSyncLogDate(event.createdAt)}
-                    </time>
-                  </li>
-                ))}
-              </ul>
+              <details className={styles.collapsibleBlock}>
+                <summary className={styles.collapsibleSummary}>
+                  Voir les derniers evenements
+                </summary>
+
+                <ul className={styles.syncLogList}>
+                  {syncLogEvents.map((event) => (
+                    <li key={event.id} className={styles.syncLogItem}>
+                      <div>
+                        <strong className={styles.syncLogType}>
+                          {SYNC_LOG_TYPE_LABELS[event.type]}
+                        </strong>
+                        <p className={styles.syncLogMessage}>{event.message}</p>
+                      </div>
+                      <time
+                        className={styles.syncLogDate}
+                        dateTime={event.createdAt}
+                      >
+                        {formatSyncLogDate(event.createdAt)}
+                      </time>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             ) : (
               <p className={styles.cardText}>
                 Rien a afficher pour l&apos;instant.

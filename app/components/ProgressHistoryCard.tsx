@@ -203,59 +203,65 @@ export default function ProgressHistoryCard({
         <p className={styles.emptyText}>Chargement de l&apos;historique...</p>
       ) : (
         <>
-          <div className={styles.streakPanel}>
-            <div className={styles.streakMetric}>
-              <span className={styles.metricLabel}>Streak actuel</span>
-              <strong className={styles.metricValue}>
-                {streakStats.currentStreak} jours
-              </strong>
-            </div>
+          <details className={styles.collapsibleBlock}>
+            <summary className={styles.collapsibleSummary}>
+              Voir les series et le graphique
+            </summary>
 
-            <div className={styles.streakMetric}>
-              <span className={styles.metricLabel}>Meilleure serie</span>
-              <strong className={styles.metricValue}>
-                {streakStats.bestStreak} jours
-              </strong>
-            </div>
-
-            <p className={styles.streakMessage}>
-              {getStreakMessage(streakStats.currentStreak)}
-            </p>
-          </div>
-
-          <div className={styles.historyChart}>
-            {chartHistory.map((entry) => (
-              <div key={entry.date} className={styles.historyBarGroup}>
-                <div className={styles.historyBarTrack} aria-hidden="true">
-                  <div
-                    className={styles.historyBarFill}
-                    style={{ height: getBarHeight(entry.score) }}
-                  />
-                </div>
-                <span className={styles.historyBarScore}>{entry.score}%</span>
-                <span className={styles.historyBarDate}>
-                  {formatHistoryDate(entry.date)}
-                </span>
+            <div className={styles.streakPanel}>
+              <div className={styles.streakMetric}>
+                <span className={styles.metricLabel}>Streak actuel</span>
+                <strong className={styles.metricValue}>
+                  {streakStats.currentStreak} jours
+                </strong>
               </div>
-            ))}
-          </div>
 
-          <ul className={styles.list}>
-            {visibleHistory.map((entry) => (
-              <li key={entry.date} className={styles.historyItem}>
-                <div>
-                  <strong className={styles.itemTitle}>
+              <div className={styles.streakMetric}>
+                <span className={styles.metricLabel}>Meilleure serie</span>
+                <strong className={styles.metricValue}>
+                  {streakStats.bestStreak} jours
+                </strong>
+              </div>
+
+              <p className={styles.streakMessage}>
+                {getStreakMessage(streakStats.currentStreak)}
+              </p>
+            </div>
+
+            <div className={styles.historyChart}>
+              {chartHistory.map((entry) => (
+                <div key={entry.date} className={styles.historyBarGroup}>
+                  <div className={styles.historyBarTrack} aria-hidden="true">
+                    <div
+                      className={styles.historyBarFill}
+                      style={{ height: getBarHeight(entry.score) }}
+                    />
+                  </div>
+                  <span className={styles.historyBarScore}>{entry.score}%</span>
+                  <span className={styles.historyBarDate}>
                     {formatHistoryDate(entry.date)}
-                  </strong>
-                  <p className={styles.itemMeta}>
-                    {entry.habitsCompleted} habitudes -{" "}
-                    {entry.planningCompleted} taches faites
-                  </p>
+                  </span>
                 </div>
-                <span className={styles.historyScore}>{entry.score}%</span>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+
+            <ul className={styles.list}>
+              {visibleHistory.map((entry) => (
+                <li key={entry.date} className={styles.historyItem}>
+                  <div>
+                    <strong className={styles.itemTitle}>
+                      {formatHistoryDate(entry.date)}
+                    </strong>
+                    <p className={styles.itemMeta}>
+                      {entry.habitsCompleted} habitudes -{" "}
+                      {entry.planningCompleted} taches faites
+                    </p>
+                  </div>
+                  <span className={styles.historyScore}>{entry.score}%</span>
+                </li>
+              ))}
+            </ul>
+          </details>
         </>
       )}
     </article>

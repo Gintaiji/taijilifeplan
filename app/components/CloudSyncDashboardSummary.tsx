@@ -307,10 +307,16 @@ export default function CloudSyncDashboardSummary() {
         </span>
       </div>
 
-      <div className={styles.syncSummaryGrid}>
-        <span>Appareil : {formatSyncDate(snapshot.localUpdatedAt)}</span>
-        <span>Cloud : {formatSyncDate(snapshot.cloudUpdatedAt)}</span>
-      </div>
+      <details className={styles.syncSummaryDetails}>
+        <summary className={styles.syncSummaryToggle}>
+          Voir les details
+        </summary>
+
+        <div className={styles.syncSummaryGrid}>
+          <span>Appareil : {formatSyncDate(snapshot.localUpdatedAt)}</span>
+          <span>Cloud : {formatSyncDate(snapshot.cloudUpdatedAt)}</span>
+        </div>
+      </details>
     </article>
   );
 }

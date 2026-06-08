@@ -1762,72 +1762,78 @@ export default function HomePage() {
                 />
               </div>
 
-              <div className={styles.metricsGrid}>
-                <div className={styles.metricCard}>
-                  <span className={styles.metricLabel}>Habitudes</span>
-                  <strong className={styles.metricValue}>
-                    {dashboard.habitsCompleted}/{dashboard.habitsTotal}
-                  </strong>
+              <details className={styles.collapsibleBlock}>
+                <summary className={styles.collapsibleSummary}>
+                  Voir le detail du score
+                </summary>
+
+                <div className={styles.metricsGrid}>
+                  <div className={styles.metricCard}>
+                    <span className={styles.metricLabel}>Habitudes</span>
+                    <strong className={styles.metricValue}>
+                      {dashboard.habitsCompleted}/{dashboard.habitsTotal}
+                    </strong>
+                  </div>
+
+                  <div className={styles.metricCard}>
+                    <span className={styles.metricLabel}>Objectifs du jour</span>
+                    <strong className={styles.metricValue}>
+                      {dashboard.dailyObjectivesCompleted}/
+                      {dashboard.dailyObjectivesTotal}
+                    </strong>
+                  </div>
+
+                  <div className={styles.metricCard}>
+                    <span className={styles.metricLabel}>Planning</span>
+                    <strong className={styles.metricValue}>
+                      {dashboard.planningCompleted}/{dashboard.planningTotal}
+                    </strong>
+                  </div>
+
+                  <div className={styles.metricCard}>
+                    <span className={styles.metricLabel}>Trajectoire</span>
+                    <strong className={styles.metricValue}>
+                      {dashboard.hasTodayTrajectoryEntry ? "Fait" : "A faire"}
+                    </strong>
+                  </div>
                 </div>
 
-                <div className={styles.metricCard}>
-                  <span className={styles.metricLabel}>Objectifs du jour</span>
-                  <strong className={styles.metricValue}>
-                    {dashboard.dailyObjectivesCompleted}/
-                    {dashboard.dailyObjectivesTotal}
-                  </strong>
-                </div>
-
-                <div className={styles.metricCard}>
-                  <span className={styles.metricLabel}>Planning</span>
-                  <strong className={styles.metricValue}>
-                    {dashboard.planningCompleted}/{dashboard.planningTotal}
-                  </strong>
-                </div>
-
-                <div className={styles.metricCard}>
-                  <span className={styles.metricLabel}>Trajectoire</span>
-                  <strong className={styles.metricValue}>
-                    {dashboard.hasTodayTrajectoryEntry ? "Fait" : "A faire"}
-                  </strong>
-                </div>
-              </div>
-
-              <ul className={styles.progressDetails}>
-                <li className={styles.progressDetailItem}>
-                  <span className={styles.progressDetailLabel}>Habitudes</span>
-                  <span className={styles.progressDetailValue}>
-                    {dashboard.habitsCompleted}/{dashboard.habitsTotal}
-                  </span>
-                </li>
-                <li className={styles.progressDetailItem}>
-                  <span className={styles.progressDetailLabel}>
-                    Objectifs du jour
-                  </span>
-                  <span className={styles.progressDetailValue}>
-                    {dashboard.dailyObjectivesCompleted}/
-                    {dashboard.dailyObjectivesTotal}
-                  </span>
-                </li>
-                <li className={styles.progressDetailItem}>
-                  <span className={styles.progressDetailLabel}>Planning</span>
-                  <span className={styles.progressDetailValue}>
-                    {dashboard.planningTotal > 0
-                      ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites`
-                      : "rien de prevu aujourd'hui"}
-                  </span>
-                </li>
-                <li className={styles.progressDetailItem}>
-                  <span className={styles.progressDetailLabel}>
-                    Correcteur de trajectoire
-                  </span>
-                  <span className={styles.progressDetailValue}>
-                    {dashboard.hasTodayTrajectoryEntry
-                      ? "point du jour fait"
-                      : "point du jour a faire"}
-                  </span>
-                </li>
-              </ul>
+                <ul className={styles.progressDetails}>
+                  <li className={styles.progressDetailItem}>
+                    <span className={styles.progressDetailLabel}>Habitudes</span>
+                    <span className={styles.progressDetailValue}>
+                      {dashboard.habitsCompleted}/{dashboard.habitsTotal}
+                    </span>
+                  </li>
+                  <li className={styles.progressDetailItem}>
+                    <span className={styles.progressDetailLabel}>
+                      Objectifs du jour
+                    </span>
+                    <span className={styles.progressDetailValue}>
+                      {dashboard.dailyObjectivesCompleted}/
+                      {dashboard.dailyObjectivesTotal}
+                    </span>
+                  </li>
+                  <li className={styles.progressDetailItem}>
+                    <span className={styles.progressDetailLabel}>Planning</span>
+                    <span className={styles.progressDetailValue}>
+                      {dashboard.planningTotal > 0
+                        ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites`
+                        : "rien de prevu aujourd'hui"}
+                    </span>
+                  </li>
+                  <li className={styles.progressDetailItem}>
+                    <span className={styles.progressDetailLabel}>
+                      Correcteur de trajectoire
+                    </span>
+                    <span className={styles.progressDetailValue}>
+                      {dashboard.hasTodayTrajectoryEntry
+                        ? "point du jour fait"
+                        : "point du jour a faire"}
+                    </span>
+                  </li>
+                </ul>
+              </details>
             </>
           ) : (
             <p className={styles.emptyText}>Chargement du score...</p>

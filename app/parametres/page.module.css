@@ -271,11 +271,55 @@
   font-weight: 600;
 }
 
+.collapsibleBlock {
+  margin-top: 18px;
+}
+
+.collapsibleSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid rgba(134, 239, 172, 0.16);
+  border-radius: 14px;
+  background: rgba(20, 83, 45, 0.16);
+  color: var(--dashboard-text-secondary);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.collapsibleSummary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsibleSummary::after {
+  content: "+";
+  flex: 0 0 auto;
+  color: var(--dashboard-text-accent);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.collapsibleBlock[open] .collapsibleSummary::after {
+  content: "-";
+}
+
+.collapsibleSummary:hover {
+  border-color: rgba(134, 239, 172, 0.28);
+  background: rgba(20, 83, 45, 0.24);
+  color: var(--dashboard-text-primary);
+}
+
 .syncLogList {
   list-style: none;
   display: grid;
   gap: 10px;
-  margin: 20px 0 0;
+  margin: 14px 0 0;
   padding: 0;
 }
 
@@ -327,6 +371,10 @@
   .dangerButton,
   .secondaryButton {
     width: 100%;
+  }
+
+  .collapsibleSummary {
+    min-height: 46px;
   }
 
   .statusGrid {

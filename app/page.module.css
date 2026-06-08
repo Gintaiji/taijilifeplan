@@ -208,10 +208,6 @@
   background: rgba(7, 18, 13, 0.36);
 }
 
-.homeSync .syncSummaryGrid {
-  display: none;
-}
-
 .todayFocus {
   width: min(980px, 100%);
   margin: 0 auto 18px;
@@ -355,6 +351,60 @@
 .syncSummaryGrid span {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.syncSummaryDetails,
+.collapsibleBlock {
+  margin-top: 16px;
+}
+
+.syncSummaryDetails {
+  margin-top: 10px;
+}
+
+.syncSummaryToggle,
+.collapsibleSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid rgba(134, 239, 172, 0.14);
+  border-radius: 14px;
+  background: rgba(20, 83, 45, 0.16);
+  color: var(--dashboard-text-secondary);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.syncSummaryToggle::-webkit-details-marker,
+.collapsibleSummary::-webkit-details-marker {
+  display: none;
+}
+
+.syncSummaryToggle::after,
+.collapsibleSummary::after {
+  content: "+";
+  flex: 0 0 auto;
+  color: var(--dashboard-text-accent);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.syncSummaryDetails[open] .syncSummaryToggle::after,
+.collapsibleBlock[open] .collapsibleSummary::after {
+  content: "-";
+}
+
+.syncSummaryToggle:hover,
+.collapsibleSummary:hover {
+  border-color: rgba(134, 239, 172, 0.24);
+  background: rgba(20, 83, 45, 0.24);
+  color: var(--dashboard-text-primary);
 }
 
 .compactCard {
