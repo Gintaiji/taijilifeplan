@@ -40,6 +40,171 @@
   line-height: 1.7;
 }
 
+.homeHero {
+  width: min(1200px, 100%);
+  margin: 0 auto 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.65fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.homeHeroMain,
+.homeScoreCard,
+.homePrioritiesCard {
+  min-width: 0;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-lg);
+  background:
+    linear-gradient(135deg, rgba(18, 40, 31, 0.98), rgba(6, 21, 13, 0.94)),
+    var(--app-surface-strong);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.homeHeroMain {
+  grid-row: span 2;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.homeDate {
+  margin: 14px 0 0;
+  color: var(--dashboard-text-secondary);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.homeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.homeActionButton {
+  min-width: 150px;
+  text-decoration: none;
+}
+
+.homeScoreCard {
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+  background:
+    radial-gradient(circle at top right, rgba(74, 222, 128, 0.18), transparent 38%),
+    var(--app-surface);
+}
+
+.homeScoreLabel,
+.homeScoreMessage {
+  color: var(--dashboard-text-muted);
+  font-size: 0.84rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.homeScoreValue {
+  color: var(--dashboard-text-primary);
+  font-size: clamp(3rem, 8vw, 5rem);
+  line-height: 0.95;
+}
+
+.homeScoreMessage {
+  color: var(--dashboard-text-accent);
+}
+
+.homePrioritiesCard {
+  padding: 18px;
+}
+
+.homePrioritiesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.homePrioritiesHeader h2 {
+  margin: 0;
+  color: var(--dashboard-text-primary);
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.homePrioritiesHeader span {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid rgba(134, 239, 172, 0.18);
+  border-radius: 999px;
+  color: var(--dashboard-text-accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.homePriorityList {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.homePriorityItem,
+.homePriorityDone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(134, 239, 172, 0.12);
+  border-radius: 12px;
+  background: rgba(20, 83, 45, 0.22);
+}
+
+.homePriorityDone {
+  opacity: 0.72;
+}
+
+.homePriorityItem span,
+.homePriorityDone span {
+  min-width: 0;
+  color: var(--dashboard-text-primary);
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.homePriorityDone span {
+  color: var(--dashboard-text-muted);
+  text-decoration: line-through;
+}
+
+.homePriorityItem strong,
+.homePriorityDone strong {
+  flex: 0 0 auto;
+  color: var(--dashboard-text-accent);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.homeEmptyText {
+  margin: 14px 0 0;
+  color: var(--dashboard-text-muted);
+  line-height: 1.5;
+}
+
+.homeSync {
+  grid-column: 1 / -1;
+}
+
+.homeSync .syncSummaryCard {
+  margin: 0;
+}
+
 .grid {
   width: min(1200px, 100%);
   margin: 0 auto;
@@ -734,6 +899,14 @@
 }
 
 @media (max-width: 900px) {
+  .homeHero {
+    grid-template-columns: 1fr;
+  }
+
+  .homeHeroMain {
+    grid-row: auto;
+  }
+
   .primaryCard,
   .progressCard,
   .backupCard,
@@ -754,6 +927,54 @@
 @media (max-width: 640px) {
   .page {
     padding: 18px 12px 44px;
+  }
+
+  .homeHero {
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .homeHeroMain,
+  .homeScoreCard,
+  .homePrioritiesCard {
+    border-radius: 18px;
+  }
+
+  .homeHeroMain {
+    padding: 18px;
+    gap: 18px;
+  }
+
+  .homeDate {
+    margin-top: 10px;
+    font-size: 0.96rem;
+  }
+
+  .homeActionButton {
+    width: 100%;
+  }
+
+  .homeScoreCard {
+    padding: 16px;
+  }
+
+  .homeScoreValue {
+    font-size: clamp(3rem, 18vw, 4.8rem);
+  }
+
+  .homePrioritiesCard {
+    padding: 16px;
+  }
+
+  .homePriorityItem,
+  .homePriorityDone {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .homeSync .syncSummaryCard {
+    padding: 12px;
   }
 
   .grid {

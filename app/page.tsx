@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import CloudSyncDashboardSummary from "./components/CloudSyncDashboardSummary";
 import DailyRecommendationCard from "./components/DailyRecommendationCard";
 import ProgressHistoryCard from "./components/ProgressHistoryCard";
@@ -448,6 +449,14 @@ function formatCloudBackupDate(dateValue: string | null) {
     dateStyle: "long",
     timeStyle: "short",
   }).format(date);
+}
+
+function formatHomeDate(dateKey: string) {
+  return new Date(`${dateKey}T12:00:00`).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 }
 
 function getTodayKey() {
@@ -1504,6 +1513,8 @@ export default function HomePage() {
   const dashboard = isClient
     ? getDashboardFromLocalStorage()
     : initialDashboardState;
+  const homePriorities = isClient ? getInitialPriorities(todayKey) : [];
+  const homeDate = isClient ? formatHomeDate(todayKey) : "Aujourd'hui";
 
   useEffect(() => {
     let shouldUpdateState = true;
@@ -1602,12 +1613,61 @@ export default function HomePage() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.hero}>
-        <p className={styles.eyebrow}>Accueil</p>
-        <h1 className={styles.pageTitle}>Taiji Life Plan</h1>
-        <p className={styles.intro}>
-          Ton cockpit du jour pour avancer avec clarte.
-        </p>
+      <section className={styles.homeHero}>
+        <div className={styles.homeHeroMain}>
+          <p className={styles.eyebrow}>Accueil</p>
+          <h1 className={styles.pageTitle}>Aujourd&apos;hui, on garde le cap.</h1>
+          <p className={styles.homeDate}>{homeDate}</p>
+
+          <div className={styles.homeActions}>
+            <Link href="/trajectoire" className={`control-button ${styles.homeActionButton}`}>
+              Faire mon bilan
+            </Link>
+          </div>
+        </div>
+
+        <div className={styles.homeScoreCard}>
+          <span className={styles.homeScoreLabel}>Score du jour</span>
+          <strong className={styles.homeScoreValue}>
+            {isClient ? `${dashboard.globalProgressScore}%` : "--"}
+          </strong>
+          <span className={styles.homeScoreMessage}>
+            {isClient ? dashboard.globalProgressMessage : "Chargement..."}
+          </span>
+        </div>
+
+        <div className={styles.homePrioritiesCard}>
+          <div className={styles.homePrioritiesHeader}>
+            <h2>Objectifs du jour</h2>
+            <span>{homePriorities.length}/3</span>
+          </div>
+
+          {!isClient ? (
+            <p className={styles.homeEmptyText}>Chargement...</p>
+          ) : homePriorities.length === 0 ? (
+            <p className={styles.homeEmptyText}>Aucun objectif pour l&apos;instant.</p>
+          ) : (
+            <ul className={styles.homePriorityList}>
+              {homePriorities.slice(0, 3).map((priority) => (
+                <li
+                  key={priority.id}
+                  className={
+                    priority.completed
+                      ? styles.homePriorityDone
+                      : styles.homePriorityItem
+                  }
+                >
+                  <span>{priority.label}</span>
+                  <strong>{priority.completed ? "Fait" : priority.time || "A faire"}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className={styles.homeSync}>
+          {isClient ? <CloudSyncDashboardSummary /> : null}
+        </div>
       </section>
 
       <section
@@ -1628,8 +1688,6 @@ export default function HomePage() {
             onResolved={() => setNewerCloudBackup(null)}
           />
         ) : null}
-
-        {isClient ? <CloudSyncDashboardSummary /> : null}
 
         {isClient ? (
           <DailyObjectivesCard
