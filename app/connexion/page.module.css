@@ -157,7 +157,10 @@
 }
 
 .secondaryButton {
-  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(134, 239, 172, 0.16);
+  background: var(--button-secondary-background);
+  color: var(--dashboard-text-secondary);
+  box-shadow: none;
 }
 
 .button:disabled,

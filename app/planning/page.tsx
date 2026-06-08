@@ -592,7 +592,7 @@ export default function PlanningPage() {
                               <div style={taskTextStyle}>
                                 <button
                                   type="button"
-                                  className="control-button"
+                                  className="control-button control-button-primary"
                                   style={deleteButtonStyle}
                                   onClick={() => handleSaveEdit(task.id)}
                                 >
@@ -669,7 +669,7 @@ export default function PlanningPage() {
 
                                 <button
                                   type="button"
-                                  className="control-button"
+                                  className="control-button control-button-danger"
                                   style={deleteButtonStyle}
                                   onClick={() => handleDelete(task.id)}
                                 >

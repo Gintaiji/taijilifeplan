@@ -662,7 +662,7 @@ export default function ObjectifsPage() {
                               <div style={actionsStyle}>
                                 <button
                                   type="button"
-                                  className="control-button"
+                                  className="control-button control-button-primary"
                                   style={buttonStyle}
                                   onClick={() => handleSaveEdit(goal.id)}
                                 >
@@ -722,7 +722,7 @@ export default function ObjectifsPage() {
 
                                   <button
                                     type="button"
-                                    className="control-button"
+                                    className="control-button control-button-danger"
                                     style={buttonStyle}
                                     onClick={() => handleDelete(goal.id)}
                                   >
@@ -820,7 +820,7 @@ export default function ObjectifsPage() {
 
                                         <button
                                           type="button"
-                                          className="control-button"
+                                          className="control-button control-button-danger"
                                           style={buttonStyle}
                                           onClick={() =>
                                             handleDeleteSubGoal(

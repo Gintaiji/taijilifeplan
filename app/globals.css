@@ -22,12 +22,20 @@
   --field-border: rgba(134, 239, 172, 0.2);
   --field-placeholder: #9eddb6;
   --field-focus: #86efac;
-  --control-button-background: linear-gradient(180deg, #16743b 0%, #12572f 100%);
-  --control-button-background-hover: linear-gradient(180deg, #1b8d47 0%, #156437 100%);
+  --control-button-background: rgba(18, 43, 31, 0.82);
+  --control-button-background-hover: rgba(25, 62, 43, 0.94);
   --control-button-background-active: linear-gradient(180deg, #21a957 0%, #16743b 100%);
   --control-button-foreground: #f0fdf4;
-  --control-button-border: rgba(134, 239, 172, 0.28);
+  --control-button-border: rgba(134, 239, 172, 0.18);
   --control-button-focus: #86efac;
+  --button-primary-background: linear-gradient(180deg, #1c8a47 0%, #146235 100%);
+  --button-primary-background-hover: linear-gradient(180deg, #22a857 0%, #17723d 100%);
+  --button-secondary-background: rgba(18, 43, 31, 0.74);
+  --button-secondary-background-hover: rgba(25, 62, 43, 0.92);
+  --button-danger-background: rgba(127, 29, 29, 0.34);
+  --button-danger-background-hover: rgba(153, 27, 27, 0.48);
+  --button-danger-border: rgba(248, 113, 113, 0.36);
+  --button-danger-foreground: #fecaca;
   --dashboard-card-background: #0c1814;
   --dashboard-card-background-soft: #10271d;
   --dashboard-card-border: var(--app-border);
@@ -150,14 +158,22 @@ input[type="radio"] {
 }
 
 .control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
   max-width: 100%;
   background: var(--control-button-background);
   color: var(--control-button-foreground);
   border: 1px solid var(--control-button-border);
   border-radius: var(--app-radius-sm);
+  cursor: pointer;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 10px 14px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 8px 22px rgba(5, 14, 10, 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 6px 16px rgba(5, 14, 10, 0.18);
   white-space: normal;
   transition:
     transform 0.18s ease,
@@ -168,11 +184,11 @@ input[type="radio"] {
 
 .control-button:hover {
   background: var(--control-button-background-hover);
-  border-color: rgba(187, 247, 208, 0.46);
+  border-color: rgba(187, 247, 208, 0.28);
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 12px 28px rgba(20, 83, 45, 0.28);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 24px rgba(20, 83, 45, 0.22);
 }
 
 .control-button:focus {
@@ -193,6 +209,46 @@ input[type="radio"] {
   background: var(--control-button-background-active);
   color: var(--control-button-foreground);
   border: 1px solid var(--control-button-border);
+}
+
+.control-button-primary,
+button[type="submit"].control-button {
+  background: var(--button-primary-background);
+  border-color: rgba(134, 239, 172, 0.34);
+  color: #f7fee7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 24px rgba(20, 83, 45, 0.28);
+}
+
+.control-button-primary:hover,
+button[type="submit"].control-button:hover {
+  background: var(--button-primary-background-hover);
+  border-color: rgba(187, 247, 208, 0.5);
+}
+
+.control-button-secondary {
+  background: var(--button-secondary-background);
+  border-color: rgba(134, 239, 172, 0.16);
+  color: var(--dashboard-text-secondary);
+  box-shadow: none;
+}
+
+.control-button-secondary:hover {
+  background: var(--button-secondary-background-hover);
+  border-color: rgba(134, 239, 172, 0.26);
+}
+
+.control-button-danger {
+  background: var(--button-danger-background);
+  border-color: var(--button-danger-border);
+  color: var(--button-danger-foreground);
+  box-shadow: none;
+}
+
+.control-button-danger:hover {
+  background: var(--button-danger-background-hover);
+  border-color: rgba(252, 165, 165, 0.5);
 }
 
 form,

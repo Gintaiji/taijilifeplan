@@ -138,10 +138,20 @@
 
 .addButton {
   min-width: 120px;
+  border-color: rgba(134, 239, 172, 0.34);
+  background: var(--button-primary-background);
+  color: #f7fee7;
 }
 
 .deleteButton {
   min-width: 110px;
+  border-color: var(--button-danger-border);
+  background: var(--button-danger-background);
+  color: var(--button-danger-foreground);
+}
+
+.deleteButton:hover {
+  background: var(--button-danger-background-hover);
 }
 
 @media (max-width: 640px) {

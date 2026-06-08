@@ -152,11 +152,16 @@
 .button,
 .dangerButton,
 .secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
   border-radius: 12px;
   padding: 10px 14px;
   cursor: pointer;
   font: inherit;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .button {
@@ -165,22 +170,24 @@
 
 .secondaryButton {
   border: 1px solid rgba(134, 239, 172, 0.28);
-  background: rgba(20, 83, 45, 0.28);
-  color: var(--dashboard-text-accent);
+  background: var(--button-secondary-background);
+  color: var(--dashboard-text-secondary);
+  box-shadow: none;
 }
 
 .secondaryButton:hover {
-  background: rgba(20, 83, 45, 0.42);
+  background: var(--button-secondary-background-hover);
 }
 
 .dangerButton {
-  border: 1px solid rgba(248, 113, 113, 0.6);
-  background: rgba(127, 29, 29, 0.72);
-  color: #fee2e2;
+  border: 1px solid var(--button-danger-border);
+  background: var(--button-danger-background);
+  color: var(--button-danger-foreground);
+  box-shadow: none;
 }
 
 .dangerButton:hover {
-  background: rgba(153, 27, 27, 0.86);
+  background: var(--button-danger-background-hover);
 }
 
 .hiddenFileInput {

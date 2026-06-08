@@ -875,7 +875,7 @@ export default function TrajectoryReview() {
                 </span>
                 <button
                   type="button"
-                  className="control-button"
+                  className="control-button control-button-danger"
                   style={prefillButtonStyle}
                   onClick={() => handleDeleteTomorrowObjective(objective.id)}
                 >

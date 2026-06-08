@@ -1055,7 +1055,7 @@ function DailyObjectivesCard({
 
                 <button
                   type="button"
-                  className={`control-button ${styles.button}`}
+                  className={`control-button control-button-danger ${styles.button}`}
                   onClick={() => handleDeletePriority(priority.id)}
                 >
                   Supprimer
