@@ -1,0 +1,243 @@
+.page {
+  min-height: 100vh;
+  padding: 28px 20px 56px;
+  color: var(--dashboard-text-primary);
+}
+
+.container {
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.3rem);
+}
+
+.header p {
+  margin: 10px 0 0;
+  color: var(--dashboard-text-secondary);
+  line-height: 1.6;
+}
+
+.review {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.controls button {
+  flex: 1 1 0;
+  max-width: 130px;
+  min-height: 48px;
+  box-shadow: none;
+  transition: none;
+}
+
+.controls button:hover {
+  transform: none;
+}
+
+.scoreCard,
+.disclosure {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+}
+
+.scoreCard {
+  padding: 32px 24px 24px;
+  text-align: center;
+}
+
+.scoreCard h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.period,
+.basis,
+.muted,
+.context {
+  color: var(--dashboard-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.period {
+  margin: 8px 0 0;
+}
+
+.average {
+  margin: 24px 0 12px;
+  color: var(--dashboard-text-accent);
+  font-size: clamp(3.5rem, 12vw, 5rem);
+  font-weight: 650;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.percent {
+  font-size: 0.45em;
+  font-weight: 400;
+}
+
+.basis {
+  margin: 0;
+}
+
+.primaryStats,
+.secondaryStats {
+  display: grid;
+  gap: 20px;
+  margin: 0;
+}
+
+.primaryStats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--app-border);
+}
+
+.primaryStats dt,
+.secondaryStats dt {
+  color: var(--dashboard-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.primaryStats dd,
+.secondaryStats dd {
+  margin: 8px 0 0;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.denominator {
+  color: var(--dashboard-text-muted);
+  font-size: 1rem;
+}
+
+.encouragement {
+  max-width: 500px;
+  margin: 28px auto 0;
+  color: var(--dashboard-text-secondary);
+  line-height: 1.7;
+}
+
+.context {
+  padding: 0 4px;
+}
+
+.context p {
+  margin: 0;
+}
+
+.context p + p {
+  margin-top: 10px;
+}
+
+.disclosure summary {
+  min-height: 56px;
+  padding: 18px 20px;
+  cursor: pointer;
+  line-height: 1.5;
+  color: var(--dashboard-text-secondary);
+}
+
+.detailCount {
+  color: var(--dashboard-text-muted);
+  font-size: 0.9rem;
+}
+
+.disclosureBody {
+  padding: 4px 20px 20px;
+}
+
+.secondaryStats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.muted {
+  margin: 16px 0 0;
+}
+
+.days {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+}
+
+.day p {
+  margin: 6px 0 0;
+  color: var(--dashboard-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.dayScore {
+  flex-shrink: 0;
+  color: var(--dashboard-text-accent);
+  font-weight: 600;
+}
+
+.review :is(button, summary):focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 12px 40px;
+  }
+
+  .scoreCard {
+    padding: 28px 16px 24px;
+  }
+
+  .disclosure summary {
+    padding: 16px;
+  }
+
+  .disclosureBody {
+    padding: 4px 16px 16px;
+  }
+
+  .secondaryStats {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .secondaryStats > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .secondaryStats dd {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+}

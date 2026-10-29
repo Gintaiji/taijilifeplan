@@ -3,105 +3,10 @@
 import { useEffect, useState } from "react";
 import { getStorage, STORAGE_KEYS } from "../utils/storage";
 
+import styles from "./WeeklyReview.module.css";
+
 const STREAK_MIN_SCORE = 60;
 const PERIOD_OPTIONS = [7, 14, 30] as const;
-
-const sectionStyle = {
-  display: "grid",
-  gap: "20px",
-  marginTop: "24px",
-  maxWidth: "960px",
-  width: "100%",
-};
-
-const cardStyle = {
-  border: "1px solid rgba(134, 239, 172, 0.16)",
-  borderRadius: "8px",
-  padding: "18px",
-  backgroundColor: "rgba(15, 23, 42, 0.86)",
-};
-
-const gridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(min(180px, 100%), 1fr))",
-  gap: "14px",
-};
-
-const metricCardStyle = {
-  ...cardStyle,
-  display: "grid",
-  gap: "8px",
-};
-
-const labelStyle = {
-  color: "var(--dashboard-text-muted)",
-  fontSize: "14px",
-  fontWeight: 700,
-};
-
-const valueStyle = {
-  color: "var(--dashboard-text-primary)",
-  fontSize: "30px",
-  lineHeight: 1,
-};
-
-const textStyle = {
-  margin: 0,
-  color: "var(--dashboard-text-secondary)",
-  lineHeight: 1.6,
-};
-
-const titleStyle = {
-  margin: 0,
-  color: "var(--dashboard-text-primary)",
-  fontSize: "20px",
-};
-
-const listStyle = {
-  listStyle: "none",
-  padding: 0,
-  margin: "16px 0 0 0",
-  display: "grid",
-  gap: "10px",
-};
-
-const listItemStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap" as const,
-  border: "1px solid rgba(134, 239, 172, 0.12)",
-  borderRadius: "8px",
-  padding: "12px",
-  backgroundColor: "rgba(19, 39, 29, 0.72)",
-  minWidth: 0,
-};
-
-const scoreStyle = {
-  color: "var(--dashboard-text-accent)",
-  fontWeight: 800,
-  flex: "0 0 auto",
-};
-
-const controlsStyle = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap" as const,
-  marginTop: "16px",
-};
-
-const periodButtonStyle = {
-  borderRadius: "8px",
-  padding: "9px 12px",
-  cursor: "pointer",
-  font: "inherit",
-};
-
-const activePeriodButtonStyle = {
-  ...periodButtonStyle,
-  fontWeight: 700,
-};
 
 type PeriodOption = (typeof PERIOD_OPTIONS)[number];
 
@@ -211,14 +116,14 @@ function getCurrentStreak(history: ProgressHistoryEntry[], todayKey: string) {
 
 function getWeeklyMessage(averageScore: number) {
   if (averageScore >= 75) {
-    return "Belle semaine. Tu avances avec regularite.";
+    return "De belles avancées dans les journées enregistrées. Continue à ton rythme.";
   }
 
   if (averageScore >= 45) {
-    return "La base est la. Continue avec des actions simples.";
+    return "Chaque avancée compte. Garde les petites actions qui te font du bien.";
   }
 
-  return "Recentrage utile. Choisis peu, mais termine vraiment.";
+  return "Tu peux reprendre doucement, avec une petite action à ta portée.";
 }
 
 function getWeeklyStats(
@@ -289,104 +194,89 @@ export default function WeeklyReview() {
 
   if (!isLoaded) {
     return (
-      <section style={sectionStyle}>
-        <article style={cardStyle}>
-          <p style={textStyle}>Chargement du bilan...</p>
-        </article>
+      <section className={styles.review} aria-busy="true" aria-label="Bilan de progression">
+        <p className={styles.muted} role="status">Chargement du bilan…</p>
       </section>
     );
   }
 
   return (
-    <section style={sectionStyle}>
-      <article style={cardStyle}>
-        <h2 style={titleStyle}>Bilan des {selectedPeriod} derniers jours</h2>
-        <p style={{ ...textStyle, marginTop: "8px" }}>
-          {getWeeklyMessage(stats.averageScore)}
-        </p>
-        <div style={controlsStyle} aria-label="Choix de la periode">
-          {PERIOD_OPTIONS.map((periodOption) => {
-            const isActive = selectedPeriod === periodOption;
-
-            return (
-              <button
-                key={periodOption}
-                type="button"
-                className={
-                  isActive
-                    ? "control-button control-button-active"
-                    : "control-button"
-                }
-                style={
-                  isActive ? activePeriodButtonStyle : periodButtonStyle
-                }
-                onClick={() => setSelectedPeriod(periodOption)}
-              >
-                {periodOption} jours
-              </button>
-            );
-          })}
-        </div>
-      </article>
-
-      <div style={gridStyle}>
-        <article style={metricCardStyle}>
-          <span style={labelStyle}>Score moyen</span>
-          <strong style={valueStyle}>{stats.averageScore}%</strong>
-        </article>
-
-        <article style={metricCardStyle}>
-          <span style={labelStyle}>Meilleur score</span>
-          <strong style={valueStyle}>{stats.bestScore}%</strong>
-        </article>
-
-        <article style={metricCardStyle}>
-          <span style={labelStyle}>Jours suivis</span>
-          <strong style={valueStyle}>
-            {stats.validatedDays}/{selectedPeriod}
-          </strong>
-        </article>
-
-        <article style={metricCardStyle}>
-          <span style={labelStyle}>Streak actuel</span>
-          <strong style={valueStyle}>{stats.currentStreak} jours</strong>
-        </article>
-
-        <article style={metricCardStyle}>
-          <span style={labelStyle}>Habitudes faites</span>
-          <strong style={valueStyle}>{stats.totalHabitsCompleted}</strong>
-        </article>
-
-        <article style={metricCardStyle}>
-          <span style={labelStyle}>Taches faites</span>
-          <strong style={valueStyle}>{stats.totalPlanningCompleted}</strong>
-        </article>
+    <section className={styles.review} aria-label="Bilan de progression">
+      <div className={styles.controls} role="group" aria-label="Choix de la période">
+        {PERIOD_OPTIONS.map((periodOption) => (
+          <button key={periodOption} type="button" aria-pressed={selectedPeriod === periodOption}
+            className={selectedPeriod === periodOption ? "control-button control-button-active" : "control-button"}
+            onClick={() => setSelectedPeriod(periodOption)}>{periodOption} jours</button>
+        ))}
       </div>
 
-      <article style={cardStyle}>
-        <h2 style={titleStyle}>Details</h2>
-
-        {stats.entries.length === 0 ? (
-          <p style={{ ...textStyle, marginTop: "12px" }}>
-            Aucun jour suivi sur les {selectedPeriod} derniers jours.
-          </p>
-        ) : (
-          <ul style={listStyle}>
-            {stats.entries.map((entry) => (
-              <li key={entry.date} style={listItemStyle}>
-                <div>
-                  <strong>{formatDate(entry.date)}</strong>
-                  <p style={{ ...textStyle, marginTop: "4px" }}>
-                    {entry.habitsCompleted} habitudes -{" "}
-                    {entry.planningCompleted} taches faites
-                  </p>
-                </div>
-                <span style={scoreStyle}>{entry.score}%</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <article className={styles.scoreCard} aria-labelledby="average-score-title">
+        <h2 id="average-score-title">Score moyen</h2>
+        <p className={styles.period}>Sur les {selectedPeriod} derniers jours</p>
+        <p className={styles.average}>
+          {stats.validatedDays > 0 ? <>{stats.averageScore}<span className={styles.percent}> %</span></> : "—"}
+        </p>
+        <p className={styles.basis}>
+          {stats.validatedDays > 0
+            ? `Moyenne calculée sur ${stats.validatedDays} journée${stats.validatedDays > 1 ? "s" : ""} réellement enregistrée${stats.validatedDays > 1 ? "s" : ""}.`
+            : "Aucune journée enregistrée sur cette période."}
+        </p>
+        <dl className={styles.primaryStats}>
+          <div>
+            <dt>Jours enregistrés</dt>
+            <dd>{stats.validatedDays}<span className={styles.denominator}> / {selectedPeriod}</span></dd>
+          </div>
+          <div>
+            <dt>Meilleur score</dt>
+            <dd>{stats.validatedDays > 0 ? `${stats.bestScore} %` : "—"}</dd>
+          </div>
+        </dl>
+        <p className={styles.encouragement}>
+          {stats.validatedDays === 0
+            ? "Ton prochain bilan sera un premier repère. Avance à ton rythme."
+            : getWeeklyMessage(stats.averageScore)}
+        </p>
       </article>
+
+      <div className={styles.context}>
+        <p>Les journées sans données ne sont pas comptées dans la moyenne.</p>
+        {selectedPeriod === 30 && (
+          <p>La vue 30 jours utilise uniquement l&apos;historique disponible : l&apos;application conserve actuellement les 14 dernières journées enregistrées, qui peuvent être espacées. Elle ne couvre donc pas nécessairement les 30 jours.</p>
+        )}
+      </div>
+
+      <details className={styles.disclosure}>
+        <summary>Autres repères</summary>
+        <div className={styles.disclosureBody}>
+          <dl className={styles.secondaryStats}>
+            <div><dt>Série actuelle</dt><dd>{stats.currentStreak} jours</dd></div>
+            <div><dt>Habitudes réalisées</dt><dd>{stats.totalHabitsCompleted}</dd></div>
+            <div><dt>Tâches terminées</dt><dd>{stats.totalPlanningCompleted}</dd></div>
+          </dl>
+          <p className={styles.muted}>Habitudes et tâches sur la période choisie. La série actuelle compte les jours consécutifs à au moins 60 %, en partant d&apos;aujourd&apos;hui, sur l&apos;historique disponible.</p>
+        </div>
+      </details>
+
+      <details className={styles.disclosure}>
+        <summary>Détail des journées enregistrées <span className={styles.detailCount}>({stats.validatedDays})</span></summary>
+        <div className={styles.disclosureBody}>
+          {stats.entries.length === 0 ? (
+            <p className={styles.muted}>Aucune journée enregistrée sur les {selectedPeriod} derniers jours.</p>
+          ) : (
+            <ul className={styles.days}>
+              {stats.entries.map((entry) => (
+                <li key={entry.date} className={styles.day}>
+                  <div>
+                    <time dateTime={entry.date}>{formatDate(entry.date)}</time>
+                    <p>{entry.habitsCompleted} habitudes · {entry.planningCompleted} tâches terminées</p>
+                  </div>
+                  <span className={styles.dayScore}>{entry.score} %</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
     </section>
   );
 }
