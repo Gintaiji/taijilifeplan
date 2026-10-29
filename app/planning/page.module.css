@@ -1,0 +1,252 @@
+.page {
+  min-height: 100vh;
+  padding: 28px 20px 56px;
+  color: var(--dashboard-text-primary);
+}
+
+.container {
+  width: min(860px, 100%);
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header h1,
+.form h2 {
+  margin: 0;
+}
+
+.intro,
+.muted,
+.overview,
+.emptyDay {
+  color: var(--dashboard-text-muted);
+  line-height: 1.6;
+}
+
+.intro {
+  margin: 8px 0 0;
+}
+
+.agenda {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.overview {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.day {
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+}
+
+.daySummary {
+  min-height: 60px;
+  padding: 18px 16px;
+  cursor: pointer;
+  color: var(--dashboard-text-accent);
+}
+
+.dayName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.count {
+  display: inline-block;
+  margin-left: 12px;
+  color: var(--dashboard-text-muted);
+  font-size: 0.85rem;
+}
+
+.emptyDay {
+  margin: 0;
+  padding: 0 16px 18px;
+}
+
+.tasks {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  padding: 0 10px 10px;
+  margin: 0;
+}
+
+.task {
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-muted);
+}
+
+.taskRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.taskLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  min-height: 60px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.taskLabel input {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  accent-color: #4ade80;
+}
+
+.taskTitle {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.time {
+  max-width: 30%;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--dashboard-text-muted);
+}
+
+.completed {
+  background: rgba(34, 197, 94, 0.07);
+}
+
+.completed .taskTitle {
+  color: var(--dashboard-text-muted);
+  text-decoration: line-through;
+}
+
+.manage {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+.manage summary {
+  min-height: 44px;
+  padding: 12px 8px;
+  cursor: pointer;
+  color: var(--dashboard-text-muted);
+  font-size: 0.85rem;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+  width: 160px;
+  padding: 10px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-md);
+  background: var(--dashboard-card-background);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.form,
+.editForm {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.form {
+  margin-top: 24px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+}
+
+.editForm {
+  border-top: 1px solid var(--app-border);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  color: var(--dashboard-text-secondary);
+  font-size: 0.95rem;
+}
+
+.field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px;
+  border-radius: var(--app-radius-sm);
+  font-size: 1rem;
+}
+
+.page button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--app-radius-sm);
+  white-space: normal;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.page :is(summary, button, input):focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 12px 40px;
+  }
+
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .taskLabel {
+    gap: 8px;
+    padding: 12px 8px;
+  }
+
+  .tasks {
+    padding: 0 6px 6px;
+  }
+
+  .actions button {
+    flex: 1 1 120px;
+  }
+}

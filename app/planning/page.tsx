@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { getStorage, setStorage, STORAGE_KEYS } from "../utils/storage";
 
+import styles from "./page.module.css";
+
 const STORAGE_KEY = STORAGE_KEYS.planning;
 
 const weekdayOrder: Record<string, number> = {
@@ -21,203 +23,6 @@ type PlannedTask = {
   time: string;
   label: string;
   completed: boolean;
-};
-
-const pageStyle = {
-  minHeight: "100vh",
-  padding: "clamp(16px, 5vw, 24px)",
-  background:
-    "linear-gradient(180deg, #08110d 0%, #0a0a0a 100%)",
-  color: "#f0fdf4",
-};
-
-const sectionStyle = {
-  marginTop: "24px",
-  maxWidth: "720px",
-  width: "100%",
-};
-
-const planningSectionStyle = {
-  marginTop: "32px",
-};
-
-const introStyle = {
-  marginTop: "8px",
-  color: "#bbf7d0",
-  lineHeight: 1.6,
-};
-
-const formStyle = {
-  display: "grid",
-  gap: "16px",
-  marginTop: "24px",
-  padding: "16px",
-  border: "1px solid rgba(134, 239, 172, 0.18)",
-  borderRadius: "8px",
-  backgroundColor: "rgba(15, 23, 42, 0.86)",
-};
-
-const fieldGroupStyle = {
-  display: "grid",
-  gap: "8px",
-};
-
-const labelStyle = {
-  fontWeight: 600,
-  color: "#dcfce7",
-};
-
-const inputStyle = {
-  width: "100%",
-  minWidth: 0,
-  padding: "10px 12px",
-  border: "1px solid rgba(134, 239, 172, 0.18)",
-  borderRadius: "8px",
-  font: "inherit",
-  color: "#f0fdf4",
-  backgroundColor: "rgba(8, 24, 15, 0.96)",
-};
-
-const addButtonStyle = {
-  width: "min(100%, fit-content)",
-  borderRadius: "8px",
-  padding: "10px 14px",
-  cursor: "pointer",
-  font: "inherit",
-  fontWeight: 700,
-};
-
-const listStyle = {
-  listStyle: "none",
-  padding: 0,
-  margin: "24px 0 0 0",
-  display: "grid",
-  gap: "24px",
-};
-
-const dayGroupStyle = {
-  display: "grid",
-  gap: "12px",
-};
-
-const dayTitleStyle = {
-  margin: 0,
-  fontSize: "18px",
-  color: "#86efac",
-};
-
-const itemStyle = {
-  display: "flex",
-  flexWrap: "wrap" as const,
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "16px",
-  minWidth: 0,
-  border: "1px solid rgba(134, 239, 172, 0.16)",
-  borderRadius: "8px",
-  padding: "16px",
-  backgroundColor: "rgba(19, 39, 29, 0.72)",
-};
-
-const completedItemStyle = {
-  ...itemStyle,
-  backgroundColor: "rgba(18, 34, 25, 0.92)",
-  opacity: 0.82,
-};
-
-const taskTextStyle = {
-  display: "grid",
-  gap: "10px",
-  minWidth: 0,
-  flex: "1 1 220px",
-};
-
-const taskInfoRowStyle = {
-  display: "grid",
-  gap: "4px",
-};
-
-const taskInfoLabelStyle = {
-  fontSize: "12px",
-  fontWeight: 700,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase" as const,
-  color: "#86efac",
-};
-
-const taskInfoValueStyle = {
-  fontSize: "16px",
-  color: "#dcfce7",
-  overflowWrap: "anywhere" as const,
-};
-
-const taskLabelStyle = {
-  fontWeight: 600,
-  fontSize: "18px",
-  color: "#f0fdf4",
-  overflowWrap: "anywhere" as const,
-};
-
-const completedTaskLabelStyle = {
-  ...taskLabelStyle,
-  color: "#9ca3af",
-  textDecoration: "line-through",
-};
-
-const taskMetaStyle = {
-  display: "grid",
-  gap: "8px",
-};
-
-const taskSummaryStyle = {
-  padding: "12px 16px",
-  borderRadius: "8px",
-  border: "1px solid rgba(134, 239, 172, 0.16)",
-  backgroundColor: "rgba(15, 23, 42, 0.86)",
-};
-
-const taskCountStyle = {
-  margin: "8px 0 0 0",
-  fontSize: "14px",
-  color: "#bbf7d0",
-};
-
-const deleteButtonStyle = {
-  borderRadius: "8px",
-  padding: "8px 12px",
-  cursor: "pointer",
-  font: "inherit",
-  alignSelf: "start",
-  maxWidth: "100%",
-};
-
-const emptyTextStyle = {
-  marginTop: "24px",
-  color: "#bbf7d0",
-};
-
-const doneControlStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  color: "#dcfce7",
-  fontWeight: 700,
-};
-
-const checkboxStyle = {
-  width: "18px",
-  height: "18px",
-  accentColor: "#22c55e",
-};
-
-const statusBadgeStyle = {
-  width: "fit-content",
-  padding: "4px 9px",
-  border: "1px solid rgba(134, 239, 172, 0.18)",
-  borderRadius: "999px",
-  color: "#86efac",
-  fontSize: "12px",
-  fontWeight: 700,
 };
 
 function getDayOrder(day: string) {
@@ -323,6 +128,7 @@ function getInitialTasks(): PlannedTask[] {
 export default function PlanningPage() {
   const [tasks, setTasks] = useState<PlannedTask[]>([]);
   const [isStorageLoaded, setIsStorageLoaded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [day, setDay] = useState("");
   const [time, setTime] = useState("");
   const [label, setLabel] = useState("");
@@ -331,7 +137,14 @@ export default function PlanningPage() {
   const [editingTime, setEditingTime] = useState("");
   const [editingLabel, setEditingLabel] = useState("");
   const sortedTasks = sortTasks(tasks);
-  const groupedTasks = groupTasksByDay(sortedTasks);
+  // Presentation only: retain every stored day value and the existing time order.
+  const groupedTasks = [
+    ...Object.entries(weekdayOrder).map(([dayName, order]) => ({
+      day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+      tasks: sortedTasks.filter((task) => getDayOrder(task.day) === order),
+    })),
+    ...groupTasksByDay(sortedTasks.filter((task) => getDayOrder(task.day) === 99)),
+  ];
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -373,6 +186,7 @@ export default function PlanningPage() {
     setDay("");
     setTime("");
     setLabel("");
+    setIsAdding(false);
   }
 
   function handleDelete(taskId: number) {
@@ -444,249 +258,127 @@ export default function PlanningPage() {
   }
 
   return (
-    <main style={pageStyle}>
-      <h1>Planning</h1>
-      <p style={introStyle}>
-        Organise les moments importants de ta semaine.
-      </p>
-
-      <section style={sectionStyle}>
-        <h2>Nouvelle tache</h2>
-
-        <form style={formStyle} onSubmit={handleSubmit}>
-          <div style={fieldGroupStyle}>
-            <label htmlFor="task-day" style={labelStyle}>
-              Jour
-            </label>
-            <input
-              id="task-day"
-              type="text"
-              value={day}
-              onChange={(event) => setDay(event.target.value)}
-              placeholder="Exemple : Lundi"
-              style={inputStyle}
-            />
+    <main className={styles.page} aria-busy={!isStorageLoaded}>
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <div>
+            <h1>Planning</h1>
+            <p className={styles.intro}>Organise les moments importants de ta semaine.</p>
           </div>
-
-          <div style={fieldGroupStyle}>
-            <label htmlFor="task-time" style={labelStyle}>
-              Heure
-            </label>
-            <input
-              id="task-time"
-              type="text"
-              value={time}
-              onChange={(event) => setTime(event.target.value)}
-              placeholder="Exemple : 08:30"
-              style={inputStyle}
-            />
-          </div>
-
-          <div style={fieldGroupStyle}>
-            <label htmlFor="task-label" style={labelStyle}>
-              Tache
-            </label>
-            <input
-              id="task-label"
-              type="text"
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              placeholder="Exemple : Sport"
-              style={inputStyle}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="control-button"
-            style={addButtonStyle}
-          >
-            Ajouter
+          <button type="button" className="control-button" disabled={!isStorageLoaded}
+            aria-expanded={isAdding} aria-controls="new-task-form"
+            onClick={() => setIsAdding(!isAdding)}>
+            {isAdding ? "Fermer le formulaire" : "Ajouter une tâche"}
           </button>
-        </form>
+        </header>
 
-        <section style={planningSectionStyle}>
-          <h2>Planning</h2>
+        <datalist id="planning-days">
+          {Object.keys(weekdayOrder).map((weekday) => (
+            <option key={weekday} value={weekday.charAt(0).toUpperCase() + weekday.slice(1)} />
+          ))}
+        </datalist>
+        {isAdding && (
+          <form id="new-task-form" className={styles.form} onSubmit={handleSubmit}>
+            <h2>Nouvelle tâche</h2>
+            <div className={styles.fields}>
+              <label className={styles.field} htmlFor="task-day">
+                Jour
+                <input id="task-day" type="text" list="planning-days" value={day}
+                  onChange={(event) => setDay(event.target.value)} placeholder="Exemple : Lundi" required />
+              </label>
+              <label className={styles.field} htmlFor="task-time">
+                Heure
+                <input id="task-time" type="text" value={time}
+                  onChange={(event) => setTime(event.target.value)} placeholder="Exemple : 08:30" required />
+              </label>
+            </div>
+            <label className={styles.field} htmlFor="task-label">
+              Tâche
+              <input id="task-label" type="text" value={label}
+                onChange={(event) => setLabel(event.target.value)} placeholder="Exemple : Sport" required />
+            </label>
+            <div className={styles.actions}>
+              <button type="submit" className="control-button">Ajouter</button>
+            </div>
+          </form>
+        )}
 
-          {!isStorageLoaded ? (
-            <p style={emptyTextStyle}>Chargement du planning...</p>
-          ) : tasks.length === 0 ? (
-            <p style={emptyTextStyle}>Aucune tache pour l&apos;instant.</p>
-          ) : (
-            <>
-              <div style={taskSummaryStyle}>
-                <strong>Vue organisee</strong>
-                <p style={taskCountStyle}>
-                  Les taches sont rangees par jour et par heure.
-                </p>
-                <p style={taskCountStyle}>
-                  {tasks.filter((task) => task.completed).length} /{" "}
-                  {tasks.length} taches faites.
-                </p>
-              </div>
-
-              <ul style={listStyle}>
-                {groupedTasks.map((group) => (
-                  <li key={group.day} style={dayGroupStyle}>
-                    <h3 style={dayTitleStyle}>{group.day}</h3>
-
-                    <ul style={listStyle}>
-                      {group.tasks.map((task) => (
-                        <li
-                          key={task.id}
-                          style={task.completed ? completedItemStyle : itemStyle}
-                        >
-                          {editingTaskId === task.id ? (
-                            <>
-                              <div style={taskTextStyle}>
-                                <div style={taskInfoRowStyle}>
-                                  <label htmlFor={`edit-day-${task.id}`} style={taskInfoLabelStyle}>
-                                    Jour
-                                  </label>
-                                  <input
-                                    id={`edit-day-${task.id}`}
-                                    type="text"
-                                    value={editingDay}
-                                    onChange={(event) => setEditingDay(event.target.value)}
-                                    placeholder="Exemple : Lundi"
-                                    style={inputStyle}
-                                  />
-                                </div>
-
-                                <div style={taskInfoRowStyle}>
-                                  <label
-                                    htmlFor={`edit-time-${task.id}`}
-                                    style={taskInfoLabelStyle}
-                                  >
-                                    Heure
-                                  </label>
-                                  <input
-                                    id={`edit-time-${task.id}`}
-                                    type="text"
-                                    value={editingTime}
-                                    onChange={(event) => setEditingTime(event.target.value)}
-                                    placeholder="Exemple : 08:30"
-                                    style={inputStyle}
-                                  />
-                                </div>
-
-                                <div style={taskInfoRowStyle}>
-                                  <label
-                                    htmlFor={`edit-label-${task.id}`}
-                                    style={taskInfoLabelStyle}
-                                  >
-                                    Tache
-                                  </label>
-                                  <input
-                                    id={`edit-label-${task.id}`}
-                                    type="text"
-                                    value={editingLabel}
-                                    onChange={(event) => setEditingLabel(event.target.value)}
-                                    placeholder="Exemple : Sport"
-                                    style={inputStyle}
-                                  />
-                                </div>
-                              </div>
-
-                              <div style={taskTextStyle}>
-                                <button
-                                  type="button"
-                                  className="control-button control-button-primary"
-                                  style={deleteButtonStyle}
-                                  onClick={() => handleSaveEdit(task.id)}
-                                >
-                                  Enregistrer
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="control-button"
-                                  style={deleteButtonStyle}
-                                  onClick={handleCancelEdit}
-                                >
-                                  Annuler
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div style={taskTextStyle}>
-                                <div style={taskMetaStyle}>
-                                  <div style={taskInfoRowStyle}>
-                                    <span style={taskInfoLabelStyle}>Jour</span>
-                                    <span style={taskInfoValueStyle}>{task.day}</span>
-                                  </div>
-
-                                  <div style={taskInfoRowStyle}>
-                                    <span style={taskInfoLabelStyle}>Heure</span>
-                                    <span style={taskInfoValueStyle}>{task.time}</span>
-                                  </div>
-                                </div>
-
-                                <div style={taskInfoRowStyle}>
-                                  <span style={taskInfoLabelStyle}>Tache</span>
-                                  <span
-                                    style={
-                                      task.completed
-                                        ? completedTaskLabelStyle
-                                        : taskLabelStyle
-                                    }
-                                  >
-                                    {task.label}
-                                  </span>
-                                </div>
-
-                                <div style={taskInfoRowStyle}>
-                                  <span style={taskInfoLabelStyle}>Statut</span>
-                                  <span style={statusBadgeStyle}>
-                                    {task.completed ? "Fait" : "Non fait"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div style={taskTextStyle}>
-                                <label style={doneControlStyle}>
-                                  <input
-                                    type="checkbox"
-                                    checked={task.completed}
-                                    onChange={() =>
-                                      handleToggleCompleted(task.id)
-                                    }
-                                    style={checkboxStyle}
-                                  />
-                                  {task.completed ? "Fait" : "Non fait"}
-                                </label>
-
-                                <button
-                                  type="button"
-                                  className="control-button"
-                                  style={deleteButtonStyle}
-                                  onClick={() => handleStartEdit(task)}
-                                >
-                                  Modifier
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="control-button control-button-danger"
-                                  style={deleteButtonStyle}
-                                  onClick={() => handleDelete(task.id)}
-                                >
-                                  Supprimer
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      </section>
+        {!isStorageLoaded ? (
+          <p className={styles.muted} role="status">Chargement du planning…</p>
+        ) : (
+          <section className={styles.agenda} aria-label="Agenda hebdomadaire">
+            <p className={styles.overview}>
+              {tasks.filter((task) => task.completed).length} / {tasks.length} tâches faites dans le planning
+            </p>
+            {tasks.length === 0 && <p className={styles.muted}>Aucune tâche pour l&apos;instant. Ajoute un premier moment à ta semaine.</p>}
+            {groupedTasks.map((group) => (
+              <details key={group.day} className={styles.day}>
+                <summary className={styles.daySummary}>
+                  <span className={styles.dayName}>{group.day || "Jour non renseigné"}</span>
+                  <span className={styles.count}>
+                    {group.tasks.length === 0 ? "Libre" : `${group.tasks.filter((task) => task.completed).length} / ${group.tasks.length} faites`}
+                  </span>
+                </summary>
+                {group.tasks.length === 0 ? (
+                  <p className={styles.emptyDay}>Aucune tâche prévue.</p>
+                ) : (
+                  <ul className={styles.tasks}>
+                    {group.tasks.map((task) => (
+                      <li key={task.id} className={`${styles.task} ${task.completed ? styles.completed : ""}`}>
+                        <div className={styles.taskRow}>
+                          <label className={styles.taskLabel}>
+                            <input type="checkbox" checked={task.completed}
+                              onChange={() => handleToggleCompleted(task.id)} />
+                            <span className={styles.taskTitle}>{task.label}</span>
+                            <span className={styles.time}>{task.time}</span>
+                          </label>
+                          <details className={styles.manage}>
+                            <summary aria-label={`Gérer la tâche : ${task.label}`}>Gérer</summary>
+                            <div className={styles.menu}>
+                              <button type="button" className="control-button"
+                                onClick={() => handleStartEdit(task)}>Modifier</button>
+                              <button type="button" className="control-button control-button-danger"
+                                onClick={() => handleDelete(task.id)}>Supprimer</button>
+                            </div>
+                          </details>
+                        </div>
+                        {editingTaskId === task.id && (
+                          <form className={styles.editForm} onSubmit={(event) => {
+                            event.preventDefault();
+                            handleSaveEdit(task.id);
+                          }}>
+                            <div className={styles.fields}>
+                              <label className={styles.field} htmlFor={`edit-day-${task.id}`}>
+                                Jour
+                                <input id={`edit-day-${task.id}`} type="text" list="planning-days" value={editingDay}
+                                  onChange={(event) => setEditingDay(event.target.value)} required />
+                              </label>
+                              <label className={styles.field} htmlFor={`edit-time-${task.id}`}>
+                                Heure
+                                <input id={`edit-time-${task.id}`} type="text" value={editingTime}
+                                  onChange={(event) => setEditingTime(event.target.value)} required />
+                              </label>
+                            </div>
+                            <label className={styles.field} htmlFor={`edit-label-${task.id}`}>
+                              Tâche
+                              <input id={`edit-label-${task.id}`} type="text" value={editingLabel}
+                                onChange={(event) => setEditingLabel(event.target.value)} required />
+                            </label>
+                            <div className={styles.actions}>
+                              <button type="submit" className="control-button">Enregistrer</button>
+                              <button type="button" className="control-button" onClick={handleCancelEdit}>Annuler</button>
+                            </div>
+                          </form>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </details>
+            ))}
+          </section>
+        )}
+      </div>
     </main>
   );
 }
