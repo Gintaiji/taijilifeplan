@@ -1,6 +1,8 @@
 // Run against an isolated headless Chrome profile on port 9322 and the app on 3100.
 // Uses native CDP/WebSocket support in Node, without adding a browser dependency.
 import assert from 'node:assert/strict';
+const appUrl = process.argv[2] ?? 'http://localhost:3100';
+if (!/^http:\/\/localhost:\d+$/.test(appUrl)) throw new Error('Use an isolated localhost test origin.');
 
 const targets = await (await fetch('http://127.0.0.1:9322/json/list')).json();
 const target = targets.find((t) => t.type === 'page');
@@ -59,7 +61,7 @@ try {
   await send('Runtime.enable');
   await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-  await send('Page.navigate', { url: 'http://localhost:3100/trajectoire' });
+  await send('Page.navigate', { url: `${appUrl}/trajectoire` });
   await waitFor(`document.querySelector('section[aria-label="Défis de progression"]')`);
   await evaluate('localStorage.clear()');
   await send('Page.reload');
@@ -71,6 +73,20 @@ try {
   await click('Commencer ce défi');
   await waitFor(`document.querySelector('output')`);
   assert.equal((await saved()).attempts.length, 1);
+  assert.equal((await saved()).attempts[0].results, undefined);
+  assert.equal(await evaluate(`document.querySelector('section[aria-label="Défis de progression"] > article details').open`), false, 'results closed by default');
+  await click('Résultats obtenus');
+  for (const [field, label] of Object.entries({conversations:'Conversations engagées', appointmentsProposed:'Rendez-vous proposés', appointmentsObtained:'Rendez-vous obtenus'})) {
+    for (let i = 0; i < 2; i++) {
+      await evaluate(`document.querySelector('button[aria-label^="Augmenter : ${label}"]').click()`);
+      await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts[0].results.${field} === ${i+1}`);
+    }
+    await evaluate(`document.querySelector('button[aria-label^="Diminuer : ${label}"]').click()`);
+    await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts[0].results.${field} === 1`);
+  }
+  assert.equal((await saved()).attempts[0].progress, 0, 'outcomes do not advance action counter');
+  assert.ok(await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`), 'open results fit mobile');
+  assert.ok(await evaluate(`[...document.querySelectorAll('button[aria-label^="Augmenter :"],button[aria-label^="Diminuer :"]')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().height >= 44)`));
   for (let i = 0; i < 3; i++) {
     await evaluate(`document.querySelector('button[aria-label^="Augmenter"]').click()`);
     await waitFor(`document.querySelector('output').textContent.startsWith('${i + 1} /')`);
@@ -87,6 +103,8 @@ try {
   await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts[0].note === 'J’ai appris à oser.'`);
   await send('Page.reload');
   await waitFor(`document.querySelector('output')?.textContent.startsWith('2 / 5')`);
+  assert.deepEqual((await saved()).attempts[0].results, { conversations:1, appointmentsProposed:1, appointmentsObtained:1 }, 'results survive reload');
+  assert.equal(await evaluate(`document.querySelector('section[aria-label="Défis de progression"] > article details').open`), false, 'results closed again after reload');
   await click('Choisir un défi');
   await click('Créer un défi personnalisé');
   await fill('input[name="title"]', 'Mon défi navigateur');
@@ -100,10 +118,53 @@ try {
   assert.equal((await saved()).customTemplates[0].title, 'Mon défi navigateur');
   await click('Revoir mes progrès');
   assert.ok(await evaluate(`document.querySelector('section[aria-label="Défis de progression"]').textContent.includes('J’ai appris à oser.')`));
+  assert.ok(await evaluate(`(() => {
+    const history = [...document.querySelectorAll('article')].find(a=>a.querySelector('strong')?.textContent === 'Aborder 3 nouvelles personnes');
+    return history.textContent.includes('1 conversations · 1 RDV proposés · 1 RDV obtenus') && !history.querySelector('details').open;
+  })()`), 'discreet results in archived history');
+  await evaluate(`(() => {
+    const history = [...document.querySelectorAll('article')].find(a=>a.querySelector('strong')?.textContent === 'Aborder 3 nouvelles personnes');
+    history.querySelector('summary').click();
+    history.querySelector('button[aria-label^="Augmenter : Rendez-vous obtenus"]').click();
+  })()`);
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts[0].results.appointmentsObtained === 2`);
+  // Seed only this disposable profile, then ensure consulting never writes or activates.
+  await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('taiji-life-plan-challenges'));
+    const first = data.attempts[0];
+    const date = new Date();
+    const today = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    data.attempts = Array.from({length:4}, (_, i) => ({...first, instanceId:'suggestion-'+i, date:today, endDate:today, target:3, progress:i<3?3:1, closed:true}));
+    data.attempts.push({...first, instanceId:'ongoing', date:today, endDate:today, target:3, progress:0, closed:false});
+    localStorage.setItem('taiji-life-plan-challenges', JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('taiji-life-plan-storage-changed', {detail:{key:'taiji-life-plan-challenges'}}));
+  })()`);
+  await waitFor(`document.querySelector('section[aria-label="Défis de progression"]').textContent.includes('3 de tes 4 derniers défis comparables')`);
+  const beforeConsult = await saved();
+  await click('Consulter le défi suggéré');
+  await waitFor(`document.querySelector('form[aria-label="Aperçu du défi"]')?.textContent.includes('Progression')`);
+  assert.deepEqual(await saved(), beforeConsult, 'consulting writes nothing and preserves current challenge/custom settings');
+  assert.equal(await evaluate(`document.querySelector('form[aria-label="Aperçu du défi"] input').value`), '4');
+  await click('Annuler');
+  assert.deepEqual(await saved(), beforeConsult);
+  await click('Résultats obtenus');
+  for (const width of [390, 320]) {
+    await send('Emulation.setDeviceMetricsOverride', { width, height:844, deviceScaleFactor:1, mobile:true });
+    assert.ok(await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`), `results fit ${width}px`);
+  }
+  // Irrelevant challenges must not display results even if a payload contains them.
+  await evaluate(`(() => {
+    const data=JSON.parse(localStorage.getItem('taiji-life-plan-challenges'));
+    const ongoing=data.attempts.find(a=>a.instanceId==='ongoing');
+    ongoing.id='focus-25'; ongoing.category='Discipline et productivité';
+    localStorage.setItem('taiji-life-plan-challenges', JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('taiji-life-plan-storage-changed', {detail:{key:'taiji-life-plan-challenges'}}));
+  })()`);
+  await waitFor(`![...document.querySelector('section[aria-label="Défis de progression"] > article').querySelectorAll('summary')].some(s=>s.textContent.includes('Résultats obtenus'))`);
   assert.ok(await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`), 'no overflow on 390px screen');
   assert.ok(await evaluate(`[...document.querySelectorAll('section[aria-label="Défis de progression"] button')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().height >= 44)`), 'comfortable touch controls');
   assert.deepEqual(errors, [], 'no browser exceptions');
-  console.log('Browser PASS: choose, counter +/−, target, completion, reflection, reload, custom creation, replacement/history, 390px mobile, touch controls.');
+  console.log('Browser PASS: action and results counters, closed-by-default results, reload, custom creation, archived results/history, independent suggestions, relevant-only indicators, 320px/390px mobile, touch controls.');
 } finally {
   await send('Browser.close').catch(() => {});
   socket.close();

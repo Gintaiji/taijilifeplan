@@ -55,6 +55,7 @@ function load(relative) {
   return compiledModule.exports;
 }
 const c = load('app/utils/challenges.ts');
+const recommendations = load('app/utils/challengeSuggestions.ts');
 const s = load('app/utils/storage.ts');
 const b = load('app/utils/backup.ts');
 const cloudApi = load('app/utils/cloudBackup.ts');
@@ -191,4 +192,236 @@ test('invalid quantities rejected without altering history', () => {
     assert.throws(() => c.startChallenge(data, template, 'main', target, today, 'invalid'));
   }
   assert.equal(data.attempts[0].target, 3);
+});
+
+function suggestionData(successes, overrides = {}) {
+  return { ...c.emptyChallenges(), attempts: Array.from({ length: 4 }, (_, i) => ({
+    ...template, instanceId: `history-${i}`, slot: 'main', date: `2026-10-${20 + i}`,
+    endDate: `2026-10-${20 + i}`, target: 10, progress: i < successes ? 10 : 4,
+    note: 'À conserver', closed: true, ...overrides,
+  })) };
+}
+const recommend = (data) => recommendations.getChallengeSuggestion(data, today);
+
+test('91B: 3 or 4 successes suggest exactly the next level without a large jump', () => {
+  for (const successes of [3, 4]) {
+    const data = suggestionData(successes);
+    const result = recommend(data);
+    assert.equal(result.kind, 'advance');
+    assert.equal(result.suggested.difficulty, 2);
+    assert.equal(result.suggested.target, 12);
+    assert.ok(result.message.includes(`${successes} de tes 4`));
+  }
+});
+test('91B: 2 successes maintain the latest level and adjusted target', () => {
+  const result = recommend(suggestionData(2, { difficulty: 3, target: 8 }));
+  assert.equal(result.kind, 'maintain');
+  assert.equal(result.suggested.difficulty, 3);
+  assert.equal(result.suggested.target, 8);
+});
+test('91B: 0 or 1 success suggests a reasonable reduction using actual results', () => {
+  for (const successes of [0, 1]) {
+    const result = recommend(suggestionData(successes));
+    assert.equal(result.kind, 'ease');
+    assert.equal(result.suggested.target, 8);
+    assert.equal(result.suggested.difficulty, 1);
+  }
+  const minimal = recommend(suggestionData(0, { target: 1, progress: 0 }));
+  assert.equal(minimal.suggested.target, 1);
+  assert.ok(minimal.message.includes('déjà minimale'));
+});
+test('91B: fewer than four finished comparable attempts never claims personalization', () => {
+  for (let count = 0; count < 4; count++) {
+    const data = suggestionData(4);
+    data.attempts = data.attempts.slice(0, count);
+    const result = recommend(data);
+    assert.equal(result.kind, 'insufficient');
+    assert.equal(result.suggested, null);
+    assert.ok(!result.message.includes('Tu as réussi'));
+  }
+});
+test('91B: curated progressions compare across IDs but not category or incompatible units', () => {
+  const data = suggestionData(3);
+  data.attempts[0] = { ...data.attempts[0], ...c.CHALLENGE_TEMPLATES.find((t) => t.id === 'meet-5'), progress: 5 };
+  assert.equal(recommend(data).kind, 'advance');
+  data.attempts[0].unit = 'minutes';
+  assert.equal(recommend(data).kind, 'insufficient');
+  data.attempts[0] = { ...data.attempts[0], ...c.CHALLENGE_TEMPLATES.find((t) => t.id === 'follow-up-5') };
+  assert.equal(recommend(data).kind, 'insufficient');
+});
+test('91B: 25-minute sessions compare singular/plural; 45-minute work is excluded', () => {
+  const focus = c.CHALLENGE_TEMPLATES.find((t) => t.id === 'focus-25');
+  const data = suggestionData(4, focus);
+  data.attempts[0] = { ...data.attempts[0], ...c.CHALLENGE_TEMPLATES.find((t) => t.id === 'focus-4') };
+  assert.equal(recommend(data).kind, 'advance');
+  data.attempts[0] = { ...data.attempts[0], ...c.CHALLENGE_TEMPLATES.find((t) => t.id === 'deep-work') };
+  assert.equal(recommend(data).kind, 'insufficient');
+});
+test('91B: daily main and bonus compare together, weekly attempts stay separate', () => {
+  const data = suggestionData(4);
+  data.attempts[0].slot = 'bonus';
+  assert.equal(recommend(data).kind, 'advance');
+  data.attempts[0].slot = 'week';
+  assert.equal(recommend(data).kind, 'insufficient');
+  data.attempts.forEach((a) => { a.slot = 'week'; });
+  assert.equal(recommend(data).kind, 'advance');
+});
+test('91B: four latest results use actual target per attempt and deterministic date ordering', () => {
+  const data = suggestionData(4);
+  data.attempts.forEach((a) => { a.target = 100; a.progress = 1; });
+  data.attempts[0].target = 1;
+  data.attempts[1].target = 1;
+  // Older successes inserted at the end must not displace newer results.
+  data.attempts.push(...suggestionData(4).attempts.map((a, i) => ({ ...a, instanceId: `old-${i}`, date: '2026-09-01', endDate: '2026-09-01' })));
+  assert.equal(recommend(data).kind, 'maintain');
+  const sameDay = suggestionData(0, { date: today, endDate: today });
+  sameDay.attempts.push(...suggestionData(4, { date: today, endDate: today }).attempts);
+  assert.equal(recommend(sameDay).kind, 'advance');
+});
+test('91B: unfinished ongoing and future attempts excluded; expired attempts count as closed', () => {
+  const data = suggestionData(3, { closed: false });
+  assert.equal(recommend(data).kind, 'advance');
+  data.attempts[3].date = today;
+  data.attempts[3].endDate = today;
+  assert.equal(recommend(data).kind, 'insufficient');
+  data.attempts[3].progress = 10;
+  assert.equal(recommend(data).kind, 'advance');
+  data.attempts[3].date = '2026-11-01';
+  data.attempts[3].endDate = '2026-11-01';
+  assert.equal(recommend(data).kind, 'insufficient');
+});
+test('91B: custom settings and history are unchanged; changed success criteria excluded', () => {
+  const custom = { ...template, id: 'custom-personal', title: 'Mon modèle', description: 'Mon texte', target: 15, difficulty: 2 };
+  const data = suggestionData(4, custom);
+  data.customTemplates = [custom];
+  s.setStorage(s.STORAGE_KEYS.challenges, data);
+  const snapshot = JSON.stringify(data);
+  const storageBefore = [...values];
+  const result = recommend(data);
+  assert.equal(result.kind, 'ease'); // actual quantity 10 is below custom target 15
+  assert.equal(result.suggested.title, custom.title);
+  assert.equal(result.suggested.successCriterion, custom.successCriterion);
+  assert.equal(JSON.stringify(data), snapshot);
+  assert.deepEqual([...values], storageBefore);
+  data.attempts[0].successCriterion = 'Un autre résultat attendu';
+  assert.equal(recommend(data).kind, 'insufficient');
+});
+test('91B: level and quantity boundaries never generate an invalid or fifth level', () => {
+  const top = recommend(suggestionData(4, { difficulty: 4 }));
+  assert.equal(top.kind, 'maintain');
+  assert.equal(top.suggested.difficulty, 4);
+  const capped = recommend(suggestionData(4, { target: 1000000, progress: 1000000 }));
+  assert.equal(capped.suggested.target, 1000000);
+});
+
+test('optional results: only relevant prospecting models and custom prospecting challenges qualify', () => {
+  const relevant = c.CHALLENGE_TEMPLATES.filter(c.canTrackChallengeResults).map((t) => t.id);
+  assert.deepEqual(relevant, ['meet-3', 'meet-5', 'meet-10', 'follow-up-5', 'discovery-2']);
+  assert.equal(c.canTrackChallengeResults({ ...template, id: 'custom-prospecting' }), true);
+  assert.equal(c.canTrackChallengeResults({ ...template, id: 'custom-reading', category: c.CHALLENGE_CATEGORIES[5] }), false);
+});
+test('optional results: independent + and − counters, zero floor and safe maximum', () => {
+  let data = attempted();
+  assert.equal(data.attempts[0].results, undefined);
+  for (const key of Object.keys(c.CHALLENGE_RESULT_LABELS)) {
+    data = c.stepChallengeResult(data, 'attempt-1', key, 1);
+    data = c.stepChallengeResult(data, 'attempt-1', key, 1);
+    data = c.stepChallengeResult(data, 'attempt-1', key, -1);
+    assert.equal(data.attempts[0].results[key], 1);
+  }
+  assert.equal(data.attempts[0].progress, 0);
+  assert.equal(data.attempts[0].target, 3);
+  data = c.stepChallengeResult(data, 'attempt-1', 'conversations', -1);
+  data = c.stepChallengeResult(data, 'attempt-1', 'conversations', -1);
+  assert.equal(data.attempts[0].results.conversations, 0);
+  data.attempts[0].results.appointmentsObtained = 1000000;
+  data = c.stepChallengeResult(data, 'attempt-1', 'appointmentsObtained', 1);
+  assert.equal(data.attempts[0].results.appointmentsObtained, 1000000);
+  assert.ok(c.isChallengesData(data));
+  assert.throws(() => c.stepChallengeResult(data, 'missing', 'conversations', 1));
+  assert.throws(() => c.stepChallengeResult(data, 'attempt-1', 'prospectName', 1));
+  assert.throws(() => c.stepChallengeResult(data, 'attempt-1', 'conversations', 2));
+  const irrelevant = { ...data, attempts: [{ ...data.attempts[0], id: 'focus-25', category: c.CHALLENGE_CATEGORIES[4] }] };
+  assert.throws(() => c.stepChallengeResult(irrelevant, 'attempt-1', 'conversations', 1));
+});
+test('optional results: legacy data remains valid and is not rewritten to add empty counters', () => {
+  saveAttempt();
+  const original = localStorage.getItem(s.STORAGE_KEYS.challenges);
+  assert.ok(c.isChallengesData(attempted()));
+  const file = b.createBackupFile();
+  assert.ok(b.isBackupFile(file));
+  assert.equal(localStorage.getItem(s.STORAGE_KEYS.challenges), original);
+  values.clear();
+  b.importBackupData(file.data);
+  assert.equal(b.getBackupData().challenges.attempts[0].results, undefined);
+});
+test('optional results: history retains results and reflection; later outcomes can be recorded', () => {
+  const original = attempted();
+  let data = c.stepChallengeResult(original, 'attempt-1', 'conversations', 1);
+  data = c.updateChallenge(data, 'attempt-1', { note: 'Une bonne expérience.', progress: 3 });
+  data = c.startChallenge(data, template, 'main', 5, today, 'new-attempt');
+  data = c.stepChallengeResult(data, 'attempt-1', 'appointmentsObtained', 1);
+  assert.equal(original.attempts[0].results, undefined, 'no mutation of prior snapshot');
+  assert.equal(data.attempts[0].closed, true);
+  assert.equal(data.attempts[0].results.conversations, 1);
+  assert.equal(data.attempts[0].results.appointmentsObtained, 1);
+  assert.equal(data.attempts[0].note, 'Une bonne expérience.');
+  assert.equal(data.attempts[1].results, undefined, 'new attempt never inherits past outcomes');
+  s.setStorage(s.STORAGE_KEYS.challenges, data);
+  assert.deepEqual(b.getBackupData().challenges, data, 'reload preserves full history');
+});
+test('optional results: no impact on action success or 91B recommendations', () => {
+  const data = suggestionData(3);
+  const before = recommend(data);
+  let after = data;
+  for (const a of data.attempts) after = c.stepChallengeResult(after, a.instanceId, 'appointmentsObtained', 1);
+  const result = recommend(after);
+  assert.equal(result.kind, before.kind);
+  assert.equal(result.message, before.message);
+  assert.deepEqual(result.suggested, before.suggested);
+  for (let i = 0; i < data.attempts.length; i++) {
+    assert.equal(c.challengeStatus(after.attempts[i], today), c.challengeStatus(data.attempts[i], today));
+    assert.equal(after.attempts[i].progress, data.attempts[i].progress);
+  }
+  assert.equal(c.challengeStatus(c.stepChallengeResult(attempted(), 'attempt-1', 'appointmentsObtained', 1).attempts[0], today), 'En cours');
+  assert.equal(c.challengeStatus(c.updateChallenge(attempted(), 'attempt-1', { progress: 3 }).attempts[0], today), 'Terminé');
+});
+test('optional results: JSON export/import includes all three counters', () => {
+  let data = attempted();
+  for (const key of Object.keys(c.CHALLENGE_RESULT_LABELS)) data = c.stepChallengeResult(data, 'attempt-1', key, 1);
+  s.setStorage(s.STORAGE_KEYS.challenges, data);
+  const backup = JSON.parse(JSON.stringify(b.createBackupFile()));
+  assert.ok(b.isBackupFile(backup));
+  values.clear();
+  b.importBackupData(backup.data);
+  assert.deepEqual(b.getBackupData().challenges, data);
+});
+test('optional results: malformed values reject an import before any write', () => {
+  saveAttempt();
+  const snapshot = [...values];
+  for (const invalid of [null, {}, { conversations: -1, appointmentsProposed: 0, appointmentsObtained: 0 },
+    { conversations: 1.5, appointmentsProposed: 0, appointmentsObtained: 0 },
+    { conversations: 0, appointmentsProposed: 0, appointmentsObtained: 1000001 },
+    { conversations: 0, appointmentsProposed: 0, appointmentsObtained: 0, prospectName: 'Unexpected field' }]) {
+    const backup = b.createBackupFile();
+    backup.data.challenges.attempts[0].results = invalid;
+    assert.equal(b.isBackupFile(backup), false);
+    assert.throws(() => b.importBackupData(backup.data));
+    assert.deepEqual([...values], snapshot);
+  }
+});
+test('optional results: simulated cloud round trip and newer-cloud conflicts preserve data', async () => {
+  const data = c.stepChallengeResult(attempted(), 'attempt-1', 'appointmentsObtained', 1);
+  s.setStorage(s.STORAGE_KEYS.challenges, data);
+  assert.equal((await sync.saveCloudBackupSafely('test-user')).status, 'success');
+  const savedCloud = await cloudApi.getCloudBackup('test-user');
+  values.clear();
+  assert.ok(b.isBackupData(savedCloud.data));
+  b.importBackupData(savedCloud.data);
+  assert.deepEqual(b.getBackupData().challenges, data);
+  const beforeConflict = [...values];
+  cloud.updated_at = '2099-01-01T00:00:00.000Z';
+  assert.equal((await sync.saveCloudBackupSafely('test-user')).status, 'conflict');
+  assert.equal(writes, 1);
+  assert.deepEqual([...values], beforeConflict);
 });

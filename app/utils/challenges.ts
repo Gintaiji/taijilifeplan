@@ -10,9 +10,17 @@ export type ChallengeTemplate = {
   difficulty: number; target: number; unit: string; successCriterion: string;
 };
 export type ChallengeSlot = "main" | "bonus" | "week";
+export const CHALLENGE_RESULT_LABELS = {
+  conversations: "Conversations engagées",
+  appointmentsProposed: "Rendez-vous proposés",
+  appointmentsObtained: "Rendez-vous obtenus",
+} as const;
+export type ChallengeResultKey = keyof typeof CHALLENGE_RESULT_LABELS;
+export type ChallengeResults = Record<ChallengeResultKey, number>;
 export type ChallengeAttempt = ChallengeTemplate & {
   instanceId: string; slot: ChallengeSlot; date: string; endDate: string;
   progress: number; note: string; closed: boolean;
+  results?: ChallengeResults;
 };
 export type ChallengesData = {
   version: 1; customTemplates: ChallengeTemplate[]; attempts: ChallengeAttempt[];
@@ -86,6 +94,18 @@ function object(value: unknown): value is Record<string, unknown> {
 export function isChallengeQuantity(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 1 && value <= 1000000;
 }
+export function isChallengeResults(value: unknown): value is ChallengeResults {
+  return object(value) && Object.keys(value).length === 3 &&
+    Object.keys(CHALLENGE_RESULT_LABELS).every((key) =>
+      typeof value[key] === "number" && Number.isSafeInteger(value[key]) &&
+      Number(value[key]) >= 0 && Number(value[key]) <= 1000000);
+}
+export function canTrackChallengeResults(template: ChallengeTemplate) {
+  return template.category === CHALLENGE_CATEGORIES[0] && (
+    ["meet-3", "meet-5", "meet-10", "follow-up-5", "discovery-2"].includes(template.id) ||
+    template.id.startsWith("custom-")
+  );
+}
 function isTemplate(value: unknown): value is ChallengeTemplate {
   return object(value) && ["id", "title", "description", "category", "unit", "successCriterion"].every(
     (key) => typeof value[key] === "string" && (value[key] as string).trim().length > 0,
@@ -104,7 +124,8 @@ export function isChallengesData(value: unknown): value is ChallengesData {
     typeof a.instanceId === "string" && a.instanceId.length > 0 &&
     ["main", "bonus", "week"].includes(String(a.slot)) && isDateKey(a.date) && isDateKey(a.endDate) && a.endDate >= a.date &&
     Number.isSafeInteger(a.progress) && Number(a.progress) >= 0 && Number(a.progress) <= 1000000 &&
-    typeof a.note === "string" && typeof a.closed === "boolean" && isTemplate(a))) return false;
+    typeof a.note === "string" && typeof a.closed === "boolean" &&
+    (a.results === undefined || isChallengeResults(a.results)) && isTemplate(a))) return false;
   return new Set(value.attempts.map((a: ChallengeAttempt) => a.instanceId)).size === value.attempts.length &&
     new Set(value.customTemplates.map((t: ChallengeTemplate) => t.id)).size === value.customTemplates.length;
 }
@@ -138,4 +159,15 @@ export function updateChallenge(data: ChallengesData, id: string, patch: Partial
   if (patch.target !== undefined && !isChallengeQuantity(patch.target)) throw new Error("Cible invalide.");
   if (patch.progress !== undefined && (!Number.isSafeInteger(patch.progress) || patch.progress < 0 || patch.progress > 1000000)) throw new Error("Progression invalide.");
   return { ...data, attempts: data.attempts.map((a) => a.instanceId === id ? { ...a, ...patch } : a) };
+}
+
+// Results are observations only: never update progress, target, status or level.
+// Called with the latest storage snapshot, including for archived attempts.
+export function stepChallengeResult(data: ChallengesData, id: string, key: ChallengeResultKey, delta: number): ChallengesData {
+  const attempt = data.attempts.find((a) => a.instanceId === id);
+  if (!attempt || !canTrackChallengeResults(attempt)) throw new Error("Les résultats ne sont pas disponibles pour ce défi.");
+  if (!Object.hasOwn(CHALLENGE_RESULT_LABELS, key) || (delta !== 1 && delta !== -1)) throw new Error("Compteur de résultat invalide.");
+  const results = attempt.results ?? { conversations: 0, appointmentsProposed: 0, appointmentsObtained: 0 };
+  const nextResults = { ...results, [key]: Math.min(1000000, Math.max(0, results[key] + delta)) };
+  return { ...data, attempts: data.attempts.map((a) => a.instanceId === id ? { ...a, results: nextResults } : a) };
 }

@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { getChallengeSuggestion } from "../utils/challengeSuggestions";
 import { APP_STORAGE_CHANGED_EVENT, setStorage, STORAGE_KEYS, type AppStorageChangedDetail } from "../utils/storage";
 import {
   CHALLENGE_CATEGORIES, CHALLENGE_LEVELS, CHALLENGE_TEMPLATES,
   challengeStatus, dateKey, emptyChallenges, isChallengeQuantity, isChallengesData,
   isCurrentChallenge, startChallenge, updateChallenge,
+  CHALLENGE_RESULT_LABELS, canTrackChallengeResults, stepChallengeResult,
+  type ChallengeResultKey,
   type ChallengeAttempt, type ChallengesData, type ChallengeSlot, type ChallengeTemplate,
 } from "../utils/challenges";
 import styles from "./ProgressChallenges.module.css";
@@ -34,6 +37,7 @@ export default function ProgressChallenges() {
   const [selected, setSelected] = useState<ChallengeTemplate | null>(null);
   const [target, setTarget] = useState("1");
   const [historyLimit, setHistoryLimit] = useState(10);
+  const previewRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -109,6 +113,7 @@ export default function ProgressChallenges() {
     (t) => (!category || t.category === category) && (!level || t.difficulty === Number(level)),
   );
   const attempts = [...(data?.attempts ?? [])].reverse();
+  const suggestion = data ? getChallengeSuggestion(data, today) : null;
 
   return (
     <section className={styles.section} aria-label="Défis de progression" aria-busy={!data && !error}>
@@ -116,6 +121,18 @@ export default function ProgressChallenges() {
       {error && <p role="alert" className={styles.error}>{error}</p>}
       <p role="status" className={styles.muted}>{message}</p>
       {!data ? <p className={styles.muted}>{error ? "Les défis sont temporairement indisponibles." : "Chargement des défis…"}</p> : <>
+        {suggestion && <div className={styles.suggestion}>
+          {suggestion.reference && <span className={styles.muted}>
+            {suggestion.reference.title} · {suggestion.reference.slot === "week" ? "Hebdomadaire" : "Quotidien"}
+          </span>}
+          <p>{suggestion.message}</p>
+          {suggestion.suggested && <button type="button" onClick={() => {
+            if (!suggestion.suggested || !suggestion.reference) return;
+            choose(suggestion.suggested);
+            setSlot(suggestion.reference.slot);
+            requestAnimationFrame(() => previewRef.current?.focus());
+          }}>Consulter le défi suggéré</button>}
+        </div>}
         {(["main", "bonus", "week"] as ChallengeSlot[]).map((key) => {
           const attempt = data.attempts.find((a) => a.slot === key && isCurrentChallenge(a, today));
           if (key === "bonus" && !attempt) return null;
@@ -127,7 +144,9 @@ export default function ProgressChallenges() {
                 const latest = current.attempts.find((a) => a.instanceId === attempt.instanceId);
                 if (!latest) throw new Error("Ce défi a changé. Recharge la page.");
                 return updateChallenge(current, latest.instanceId, { progress: Math.min(1000000, Math.max(0, latest.progress + delta)) });
-              })} /> : <p className={styles.muted}>{key === "week" ? "Choisis un défi plus ambitieux, à réaliser d’ici dimanche." : "Choisis un défi dans la bibliothèque ci-dessous."}</p>}
+              })}>
+                <ResultsCounters attempt={attempt} onStep={(field, delta) => commit((current) => stepChallengeResult(current, attempt.instanceId, field, delta))} />
+              </AttemptCard> : <p className={styles.muted}>{key === "week" ? "Choisis un défi plus ambitieux, à réaliser d’ici dimanche." : "Choisis un défi dans la bibliothèque ci-dessous."}</p>}
           </article>;
         })}
 
@@ -167,8 +186,9 @@ export default function ProgressChallenges() {
           </div>
         </details>
 
-        {selected && <form onSubmit={activate} className={styles.card}>
+        {selected && <form ref={previewRef} tabIndex={-1} aria-label="Aperçu du défi" onSubmit={activate} className={styles.card}>
           <h3>{selected.title}</h3><p>{selected.description}</p>
+          <p className={styles.muted}>Niveau : {CHALLENGE_LEVELS[selected.difficulty - 1]} · Cible proposée : {target} {selected.unit}</p>
           <p className={styles.muted}>Réussite : {selected.successCriterion}</p>
           <div className={styles.filters}>
             <label>Place du défi<select value={slot} onChange={(e) => setSlot(e.target.value as ChallengeSlot)}>
@@ -188,6 +208,7 @@ export default function ProgressChallenges() {
               <strong>{a.title}</strong>
               <p>{formatDate(a.date)}{a.slot === "week" ? ` au ${formatDate(a.endDate)}` : ""} · {slotLabels[a.slot]}</p>
               <p>{a.progress} / {a.target} {a.unit} · <span className={a.progress >= a.target ? styles.success : ""}>{challengeStatus(a, today)}</span></p>
+              <ResultsCounters attempt={a} history onStep={(field, delta) => commit((current) => stepChallengeResult(current, a.instanceId, field, delta))} />
               {a.note && <p className={styles.note}>{a.note}</p>}
               <details><summary>{a.note ? "Modifier ma réflexion" : "Ajouter une réflexion"}</summary>
                 <label>Qu’est-ce que ce défi m’a appris ?<textarea rows={3} maxLength={5000} value={a.note}
@@ -202,10 +223,11 @@ export default function ProgressChallenges() {
   );
 }
 
-function AttemptCard({ attempt: a, today, onChange, onStep }: {
+function AttemptCard({ attempt: a, today, onChange, onStep, children }: {
   attempt: ChallengeAttempt; today: string;
   onChange: (patch: Partial<Pick<ChallengeAttempt, "target" | "progress" | "note" | "closed">>) => boolean;
   onStep: (delta: number) => boolean;
+  children: React.ReactNode;
 }) {
   return <div className={styles.attempt}>
     <strong>{a.title}</strong>
@@ -218,6 +240,7 @@ function AttemptCard({ attempt: a, today, onChange, onStep }: {
     </div>
     <progress aria-label={`Progression : ${a.title}`} max={a.target} value={Math.min(a.progress, a.target)} />
     <span role="status" className={a.progress >= a.target ? styles.success : styles.muted}>{challengeStatus(a, today)}</span>
+    {children}
     <details>
       <summary>Ajuster la cible et réfléchir</summary>
       <form key={a.target} className={styles.form} onSubmit={(e) => {
@@ -233,4 +256,30 @@ function AttemptCard({ attempt: a, today, onChange, onStep }: {
       <button type="button" onClick={() => onChange({ closed: true })}>Archiver ce défi</button>
     </details>
   </div>;
+}
+
+function ResultsCounters({ attempt, history = false, onStep }: {
+  attempt: ChallengeAttempt; history?: boolean;
+  onStep: (key: ChallengeResultKey, delta: number) => boolean;
+}) {
+  if (!canTrackChallengeResults(attempt)) return null;
+  return <details className={styles.results}>
+    <summary>Résultats obtenus
+      {history && attempt.results && <span className={styles.resultSummary}>
+        {attempt.results.conversations} conversations · {attempt.results.appointmentsProposed} RDV proposés · {attempt.results.appointmentsObtained} RDV obtenus
+      </span>}
+    </summary>
+    <p className={styles.muted}>Facultatif, pour garder une trace. La réussite du défi dépend de tes actions, quel que soit le résultat.</p>
+    {(Object.entries(CHALLENGE_RESULT_LABELS) as [ChallengeResultKey, string][]).map(([key, label]) => {
+      const count = attempt.results?.[key] ?? 0;
+      return <div key={key} className={styles.resultRow}>
+        <span>{label}</span>
+        <div className={styles.resultControls}>
+          <button type="button" disabled={count === 0} aria-label={`Diminuer : ${label} · ${attempt.title}`} onClick={() => onStep(key, -1)}>−</button>
+          <output aria-label={label} aria-live="polite">{count}</output>
+          <button type="button" disabled={count >= 1000000} aria-label={`Augmenter : ${label} · ${attempt.title}`} onClick={() => onStep(key, 1)}>+</button>
+        </div>
+      </div>;
+    })}
+  </details>;
 }

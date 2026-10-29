@@ -33,6 +33,15 @@
 .history { padding: 14px 0; border-bottom: 1px solid var(--app-border); overflow-wrap: anywhere; }
 .history p { color: var(--dashboard-text-muted); font-size: .9rem; }
 .note { white-space: pre-wrap; }
+.results { margin-top: 8px; }
+.resultSummary { display: block; color: var(--dashboard-text-muted); font-size: .8rem; font-weight: 400; margin-top: 4px; }
+.resultRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; margin: 10px 0; font-size: .85rem; }
+.resultControls { display: flex; align-items: center; gap: 6px; }
+.resultControls button { width: 44px; padding: 8px; }
+.resultControls output { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
 .error { color: #fca5a5; }
+.suggestion { border-left: 2px solid #86efac; padding: 4px 0 4px 14px; overflow-wrap: anywhere; }
+.suggestion p { font-size: .9rem; }
+.suggestion button { font-size: .85rem; background: transparent; color: #86efac; }
 .section :is(button, input, select, textarea, summary):focus-visible { outline: 2px solid #86efac; outline-offset: 3px; }
 @media (max-width: 540px) { .filters { grid-template-columns: 1fr; } .card { padding: 16px; } }
