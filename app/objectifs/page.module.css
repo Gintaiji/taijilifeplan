@@ -1,0 +1,283 @@
+.page {
+  min-height: 100vh;
+  padding: 28px 20px 56px;
+  color: var(--dashboard-text-primary);
+}
+
+.container {
+  width: min(860px, 100%);
+  margin: 0 auto;
+}
+
+.header,
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header h1,
+.form h2,
+.goalTitle {
+  margin: 0;
+}
+
+.intro,
+.muted,
+.empty {
+  color: var(--dashboard-text-muted);
+  line-height: 1.6;
+}
+
+.intro {
+  margin: 8px 0 0;
+}
+
+.empty {
+  margin-top: 28px;
+}
+
+.period {
+  margin-top: 28px;
+}
+
+.periodTitle {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: var(--dashboard-text-secondary);
+}
+
+.list,
+.steps {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card,
+.form {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+}
+
+.completed {
+  border-color: rgba(134, 239, 172, 0.35);
+}
+
+.goalTitle {
+  flex: 1 1 240px;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--dashboard-text-accent);
+  font-size: 0.8rem;
+}
+
+.progressText {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 16px 0 8px;
+  color: var(--dashboard-text-muted);
+  font-size: 0.9rem;
+}
+
+.progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  border: 0;
+  border-radius: 99px;
+  overflow: hidden;
+  appearance: none;
+  background: rgba(134, 239, 172, 0.12);
+  color: #4ade80;
+}
+
+.progress::-webkit-progress-bar {
+  background: rgba(134, 239, 172, 0.12);
+}
+
+.progress::-webkit-progress-value {
+  background: #4ade80;
+}
+
+.progress::-moz-progress-bar {
+  background: #4ade80;
+}
+
+.details {
+  margin-top: 14px;
+  border-top: 1px solid var(--app-border);
+}
+
+.details summary {
+  min-height: 48px;
+  padding: 14px 4px;
+  cursor: pointer;
+  color: var(--dashboard-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.manage {
+  margin-top: 0;
+}
+
+.manage summary {
+  color: var(--dashboard-text-muted);
+  font-size: 0.9rem;
+}
+
+.detailsBody,
+.form,
+.editForm {
+  display: grid;
+  gap: 16px;
+}
+
+.detailsBody {
+  padding: 4px 0 16px;
+}
+
+.form {
+  margin-top: 24px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.95rem;
+  color: var(--dashboard-text-secondary);
+}
+
+.page input:not([type="checkbox"]),
+.page select {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px;
+  border-radius: var(--app-radius-sm);
+  font-size: 1rem;
+}
+
+.page button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--app-radius-sm);
+  white-space: normal;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stepForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-muted);
+}
+
+.stepCompleted {
+  border-color: rgba(134, 239, 172, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.stepLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 10px 0;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.stepLabel input {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  accent-color: #4ade80;
+}
+
+.page :is(button, input, select, summary):focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 3px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 12px 40px;
+  }
+
+  .card,
+  .form {
+    padding: 16px;
+  }
+
+  .fields,
+  .stepForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .actions button {
+    flex: 1 1 120px;
+  }
+
+  .step button {
+    margin-bottom: 8px;
+  }
+}

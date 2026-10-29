@@ -82,20 +82,6 @@ type SavedPriorities = {
 
 type PrioritiesByDate = Record<string, DailyPriority[]>;
 
-type TodayAction = {
-  id: string;
-  category: string;
-  title: string;
-  detail: string;
-  planningTaskId?: number;
-};
-
-type ScheduleFields = {
-  day: string;
-  time: string;
-  message: string;
-};
-
 type DashboardState = {
   habitsCompleted: number;
   habitsTotal: number;
@@ -121,16 +107,6 @@ const weekdayOrder: Record<string, number> = {
   samedi: 6,
   dimanche: 7,
 };
-
-const weekdays = [
-  "Lundi",
-  "Mardi",
-  "Mercredi",
-  "Jeudi",
-  "Vendredi",
-  "Samedi",
-  "Dimanche",
-];
 
 const initialDashboardState: DashboardState = {
   habitsCompleted: 0,
@@ -398,33 +374,6 @@ function sortPlanningTasks(tasks: PlannedTask[]) {
   });
 }
 
-function hasSamePlannedTask(
-  tasks: PlannedTask[],
-  label: string,
-  day: string,
-  time: string,
-) {
-  const cleanLabel = label.trim().toLowerCase();
-  const cleanDay = day.trim().toLowerCase();
-  const cleanTime = time.trim();
-
-  return tasks.some(
-    (task) =>
-      task.label.trim().toLowerCase() === cleanLabel &&
-      task.day.trim().toLowerCase() === cleanDay &&
-      task.time.trim() === cleanTime,
-  );
-}
-
-function getNextTaskId(tasks: PlannedTask[]) {
-  const highestId = tasks.reduce(
-    (currentHighestId, task) => Math.max(currentHighestId, task.id),
-    0,
-  );
-
-  return Math.max(Date.now(), highestId + 1);
-}
-
 function formatTrajectoryDate(dateKey: string) {
   return new Date(`${dateKey}T12:00:00`).toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -474,14 +423,6 @@ function getTodayDayOrder() {
   });
 
   return getDayOrder(todayName);
-}
-
-function getTodayDayName() {
-  const todayName = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-  });
-
-  return todayName.charAt(0).toUpperCase() + todayName.slice(1);
 }
 
 function isTaskPlannedForToday(task: PlannedTask, todayKey: string) {
@@ -691,87 +632,6 @@ function getHabitsByDateFromLocalStorage(): HabitsByDate {
     },
     {},
   );
-}
-
-function getRelevantPlanningTask(tasks: PlannedTask[]): PlannedTask | null {
-  const unfinishedTasks = tasks.filter((task) => !task.completed);
-
-  if (unfinishedTasks.length === 0) {
-    return null;
-  }
-
-  const todayOrder = getTodayDayOrder();
-  const sortedTasks = sortPlanningTasks(unfinishedTasks);
-  const todayTask = sortedTasks.find(
-    (task) => getDayOrder(task.day) === todayOrder,
-  );
-
-  if (todayTask) {
-    return todayTask;
-  }
-
-  return (
-    sortedTasks.find((task) => getDayOrder(task.day) > todayOrder) ??
-    sortedTasks[0] ??
-    null
-  );
-}
-
-function getTodayActionsFromLocalStorage(todayKey: string): TodayAction[] {
-  const actions: TodayAction[] = [];
-  const priorities = getInitialPriorities(todayKey);
-  const firstUnfinishedPriority = priorities.find(
-    (priority) => !priority.completed,
-  );
-
-  if (firstUnfinishedPriority) {
-    actions.push({
-      id: "priority",
-      category: "Objectif du jour",
-      title: firstUnfinishedPriority.label,
-      detail:
-        firstUnfinishedPriority.time === ""
-          ? "A faire aujourd'hui."
-          : `Prevu a ${firstUnfinishedPriority.time}.`,
-    });
-  }
-
-  const tasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
-  const relevantTask = getRelevantPlanningTask(tasks);
-
-  if (relevantTask) {
-    actions.push({
-      id: `planning-${relevantTask.id}`,
-      category: "Planning",
-      title: relevantTask.label,
-      detail: `${relevantTask.day} a ${relevantTask.time}`,
-      planningTaskId: relevantTask.id,
-    });
-  }
-
-  const habitNames = getSavedData(
-    HABIT_LIST_STORAGE_KEY,
-    normalizeHabitNames,
-    [],
-  );
-  const habitsByDate = getHabitsByDateFromLocalStorage();
-  const todayHabitsState = habitsByDate[todayKey] ?? {};
-  const dashboardHabitNames =
-    habitNames.length > 0 ? habitNames : Object.keys(todayHabitsState);
-  const firstUnfinishedHabit = dashboardHabitNames.find(
-    (habitName) => !todayHabitsState[habitName],
-  );
-
-  if (firstUnfinishedHabit) {
-    actions.push({
-      id: "habit",
-      category: "Habitude",
-      title: firstUnfinishedHabit,
-      detail: "Encore a cocher aujourd'hui.",
-    });
-  }
-
-  return actions.slice(0, 3);
 }
 
 function getDashboardFromLocalStorage(): DashboardState {
@@ -985,7 +845,7 @@ function DailyObjectivesCard({
         <div>
           <h2 className={styles.cardTitle}>Objectifs du jour</h2>
           <p className={styles.cardText}>
-            Choisis jusqu&apos;a 3 priorites pour aujourd&apos;hui.
+            Trois priorités, un cap.
           </p>
         </div>
         <span className={styles.counterBadge}>{priorities.length}/3</span>
@@ -997,7 +857,8 @@ function DailyObjectivesCard({
             type="text"
             value={priorityLabel}
             onChange={(event) => setPriorityLabel(event.target.value)}
-            placeholder="Exemple : Faire 20 minutes de sport"
+            placeholder="Ce qui compte aujourd’hui"
+            aria-label="Nouvel objectif du jour"
             className={styles.textField}
           />
 
@@ -1012,14 +873,14 @@ function DailyObjectivesCard({
           <button
             type="submit"
             className={`control-button ${styles.button} ${styles.addButton}`}
-            disabled={priorities.length >= 3}
+            disabled={priorities.length >= 3 || priorityLabel.trim() === "" || hasSamePriorityLabel(priorityLabel)}
           >
             Ajouter
           </button>
         </div>
 
         <p className={styles.helperText}>
-          Simple, court, utile pour avancer aujourd&apos;hui.
+          Heure facultative · 3 objectifs maximum
         </p>
       </form>
 
@@ -1056,14 +917,17 @@ function DailyObjectivesCard({
                 <button
                   type="button"
                   className={`control-button ${styles.button}`}
+                  aria-pressed={priority.completed}
+                  aria-label={`${priority.completed ? "Marquer à faire" : "Terminer"} : ${priority.label}`}
                   onClick={() => handleTogglePriority(priority.id)}
                 >
-                  {priority.completed ? "A refaire" : "Terminer"}
+                  {priority.completed ? "Fait ✓" : "Terminer"}
                 </button>
 
                 <button
                   type="button"
                   className={`control-button control-button-danger ${styles.button}`}
+                  aria-label={`Supprimer : ${priority.label}`}
                   onClick={() => handleDeletePriority(priority.id)}
                 >
                   Supprimer
@@ -1079,263 +943,9 @@ function DailyObjectivesCard({
 
 function DailyObjectivesLoadingCard() {
   return (
-    <article className={`${styles.card} ${styles.primaryCard}`}>
-      <div className={styles.sectionHeader}>
-        <div>
-          <h2 className={styles.cardTitle}>Objectifs du jour</h2>
-          <p className={styles.cardText}>
-            Choisis jusqu&apos;a 3 priorites pour aujourd&apos;hui.
-          </p>
-        </div>
-        <span className={styles.counterBadge}>0/3</span>
-      </div>
-
-      <form className={styles.prioritiesForm}>
-        <div className={styles.inputRow}>
-          <input
-            type="text"
-            value=""
-            placeholder="Exemple : Faire 20 minutes de sport"
-            className={styles.textField}
-            readOnly
-          />
-
-          <input
-            type="time"
-            value=""
-            aria-label="Heure prevue"
-            className={styles.textField}
-            readOnly
-          />
-
-          <button
-            type="button"
-            className={`control-button ${styles.button} ${styles.addButton}`}
-          >
-            Ajouter
-          </button>
-        </div>
-
-        <p className={styles.helperText}>
-          Ajoute ce qui compte vraiment aujourd&apos;hui.
-        </p>
-      </form>
-
-      <p className={styles.emptyText}>
-        Aucun objectif du jour pour l&apos;instant.
-      </p>
-    </article>
-  );
-}
-
-function TodayActionsCard({
-  todayKey,
-  onPlanningChange,
-}: {
-  todayKey: string;
-  onPlanningChange: () => void;
-}) {
-  const actions = getTodayActionsFromLocalStorage(todayKey);
-  const [scheduleByAction, setScheduleByAction] = useState<
-    Record<string, ScheduleFields>
-  >({});
-
-  function getScheduleFields(actionId: string): ScheduleFields {
-    return (
-      scheduleByAction[actionId] ?? {
-        day: getTodayDayName(),
-        time: "",
-        message: "",
-      }
-    );
-  }
-
-  function updateScheduleField(
-    actionId: string,
-    fieldName: "day" | "time",
-    value: string,
-  ) {
-    const currentFields = getScheduleFields(actionId);
-
-    setScheduleByAction((currentSchedules) => ({
-      ...currentSchedules,
-      [actionId]: {
-        ...currentFields,
-        [fieldName]: value,
-        message: "",
-      },
-    }));
-  }
-
-  function setScheduleMessage(actionId: string, message: string) {
-    const currentFields = getScheduleFields(actionId);
-
-    setScheduleByAction((currentSchedules) => ({
-      ...currentSchedules,
-      [actionId]: {
-        ...currentFields,
-        message,
-      },
-    }));
-  }
-
-  function handleScheduleAction(
-    event: React.FormEvent<HTMLFormElement>,
-    action: TodayAction,
-  ) {
-    event.preventDefault();
-
-    const fields = getScheduleFields(action.id);
-    const cleanDay = fields.day.trim();
-    const cleanTime = fields.time.trim();
-    const cleanLabel = action.title.trim();
-
-    if (cleanDay === "" || cleanTime === "" || cleanLabel === "") {
-      setScheduleMessage(action.id, "Ajoute un jour et une heure.");
-      return;
-    }
-
-    const savedTasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
-
-    if (hasSamePlannedTask(savedTasks, cleanLabel, cleanDay, cleanTime)) {
-      setScheduleMessage(action.id, "Deja ajoute au planning.");
-      return;
-    }
-
-    const newTask: PlannedTask = {
-      id: getNextTaskId(savedTasks),
-      day: cleanDay,
-      time: cleanTime,
-      label: cleanLabel,
-      completed: false,
-    };
-    const nextTasks = sortPlanningTasks([...savedTasks, newTask]);
-
-    setStorage(PLANNING_STORAGE_KEY, nextTasks);
-    setScheduleByAction((currentSchedules) => ({
-      ...currentSchedules,
-      [action.id]: {
-        day: cleanDay,
-        time: cleanTime,
-        message: "Action ajoutee au planning.",
-      },
-    }));
-    onPlanningChange();
-  }
-
-  function handleCompletePlanningAction(taskId: number) {
-    const savedTasks = getSavedData(PLANNING_STORAGE_KEY, normalizeTasks, []);
-    const nextTasks = savedTasks.map((task) =>
-      task.id === taskId
-        ? {
-            ...task,
-            completed: true,
-          }
-        : task,
-    );
-
-    setStorage(PLANNING_STORAGE_KEY, sortPlanningTasks(nextTasks));
-    onPlanningChange();
-  }
-
-  return (
-    <article className={`${styles.card} ${styles.actionsCard}`}>
-      <div className={styles.sectionHeader}>
-        <div>
-          <h2 className={styles.cardTitle}>Prochaines actions</h2>
-          <p className={styles.cardText}>
-            Ce que tu peux faire maintenant.
-          </p>
-        </div>
-        <span className={styles.counterBadge}>{actions.length}/3</span>
-      </div>
-
-      {actions.length === 0 ? (
-        <p className={styles.emptyText}>Tout est clair pour aujourd&apos;hui.</p>
-      ) : (
-        <ul className={styles.list}>
-          {actions.map((action) => (
-            <li key={action.id} className={styles.actionItem}>
-              <form
-                className={styles.scheduleForm}
-                onSubmit={(event) => handleScheduleAction(event, action)}
-              >
-                <div>
-                  <span className={styles.actionCategory}>
-                    {action.category}
-                  </span>
-                  <strong className={styles.itemTitle}>{action.title}</strong>
-                  <p className={styles.itemMeta}>{action.detail}</p>
-                </div>
-
-                {action.planningTaskId === undefined ? (
-                  <div className={styles.scheduleControls}>
-                    <label className={styles.scheduleField}>
-                      <span className={styles.scheduleLabel}>Jour</span>
-                      <select
-                        value={getScheduleFields(action.id).day}
-                        onChange={(event) =>
-                          updateScheduleField(
-                            action.id,
-                            "day",
-                            event.target.value,
-                          )
-                        }
-                        className={styles.textField}
-                      >
-                        {weekdays.map((weekday) => (
-                          <option key={weekday} value={weekday}>
-                            {weekday}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className={styles.scheduleField}>
-                      <span className={styles.scheduleLabel}>Heure</span>
-                      <input
-                        type="time"
-                        value={getScheduleFields(action.id).time}
-                        onChange={(event) =>
-                          updateScheduleField(
-                            action.id,
-                            "time",
-                            event.target.value,
-                          )
-                        }
-                        className={styles.textField}
-                      />
-                    </label>
-
-                    <button
-                      type="submit"
-                      className={`control-button ${styles.button} ${styles.scheduleButton}`}
-                    >
-                      Planifier
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className={`control-button ${styles.button} ${styles.doneButton}`}
-                    onClick={() =>
-                      handleCompletePlanningAction(action.planningTaskId!)
-                    }
-                  >
-                    Terminer
-                  </button>
-                )}
-
-                {getScheduleFields(action.id).message !== "" ? (
-                  <p className={styles.scheduleMessage}>
-                    {getScheduleFields(action.id).message}
-                  </p>
-                ) : null}
-              </form>
-            </li>
-          ))}
-        </ul>
-      )}
+    <article className={`${styles.card} ${styles.primaryCard}`} aria-busy="true">
+      <h2 className={styles.cardTitle}>Objectifs du jour</h2>
+      <p className={styles.emptyText}>Chargement des objectifs…</p>
     </article>
   );
 }
@@ -1496,7 +1106,6 @@ function CloudNewerNotice({
 
 export default function HomePage() {
   const [todayKey, setTodayKey] = useState(getTodayKey);
-  const [planningRefreshKey, setPlanningRefreshKey] = useState(0);
   const [dailyObjectivesRefreshKey, setDailyObjectivesRefreshKey] = useState(0);
   const [availableCloudBackup, setAvailableCloudBackup] =
     useState<CloudBackup | null>(null);
@@ -1513,7 +1122,6 @@ export default function HomePage() {
   const dashboard = isClient
     ? getDashboardFromLocalStorage()
     : initialDashboardState;
-  const homePriorities = isClient ? getInitialPriorities(todayKey) : [];
   const homeDate = isClient ? formatHomeDate(todayKey) : "Aujourd'hui";
 
   useEffect(() => {
@@ -1639,34 +1247,14 @@ export default function HomePage() {
           </span>
         </div>
 
-        <div className={styles.homePrioritiesCard}>
-          <div className={styles.homePrioritiesHeader}>
-            <h2>Objectifs du jour</h2>
-            <span>{homePriorities.length}/3</span>
-          </div>
-
-          {!isClient ? (
-            <p className={styles.homeEmptyText}>Chargement...</p>
-          ) : homePriorities.length === 0 ? (
-            <p className={styles.homeEmptyText}>Aucun objectif pour l&apos;instant.</p>
-          ) : (
-            <ul className={styles.homePriorityList}>
-              {homePriorities.slice(0, 3).map((priority) => (
-                <li
-                  key={priority.id}
-                  className={
-                    priority.completed
-                      ? styles.homePriorityDone
-                      : styles.homePriorityItem
-                  }
-                >
-                  <span>{priority.label}</span>
-                  <strong>{priority.completed ? "Fait" : priority.time || "A faire"}</strong>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {isClient ? (
+          <DailyObjectivesCard
+            todayKey={todayKey}
+            onDailyObjectivesChange={handleDailyObjectivesChange}
+          />
+        ) : (
+          <DailyObjectivesLoadingCard />
+        )}
 
         <div className={styles.homeSync}>
           {isClient ? <CloudSyncDashboardSummary /> : null}
@@ -1693,7 +1281,6 @@ export default function HomePage() {
 
       <section
         className={styles.grid}
-        data-planning-refresh={planningRefreshKey}
         data-daily-objectives-refresh={dailyObjectivesRefreshKey}
       >
         {availableCloudBackup ? (
@@ -1707,24 +1294,6 @@ export default function HomePage() {
           <CloudNewerNotice
             cloudBackup={newerCloudBackup}
             onResolved={() => setNewerCloudBackup(null)}
-          />
-        ) : null}
-
-        {isClient ? (
-          <DailyObjectivesCard
-            todayKey={todayKey}
-            onDailyObjectivesChange={handleDailyObjectivesChange}
-          />
-        ) : (
-          <DailyObjectivesLoadingCard />
-        )}
-
-        {isClient ? (
-          <TodayActionsCard
-            todayKey={todayKey}
-            onPlanningChange={() =>
-              setPlanningRefreshKey((currentKey) => currentKey + 1)
-            }
           />
         ) : null}
 
@@ -1742,19 +1311,6 @@ export default function HomePage() {
 
           {isClient ? (
             <>
-              <div className={styles.progressTop}>
-                <div>
-                  <p className={styles.progressLabel}>Score actuel</p>
-                  <p className={styles.progressValue}>
-                    {dashboard.globalProgressScore}%
-                  </p>
-                </div>
-
-                <p className={styles.messageBadge}>
-                  {dashboard.globalProgressMessage}
-                </p>
-              </div>
-
               <div className={styles.progressBar} aria-hidden="true">
                 <div
                   className={styles.progressBarFill}
@@ -1798,41 +1354,6 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <ul className={styles.progressDetails}>
-                  <li className={styles.progressDetailItem}>
-                    <span className={styles.progressDetailLabel}>Habitudes</span>
-                    <span className={styles.progressDetailValue}>
-                      {dashboard.habitsCompleted}/{dashboard.habitsTotal}
-                    </span>
-                  </li>
-                  <li className={styles.progressDetailItem}>
-                    <span className={styles.progressDetailLabel}>
-                      Objectifs du jour
-                    </span>
-                    <span className={styles.progressDetailValue}>
-                      {dashboard.dailyObjectivesCompleted}/
-                      {dashboard.dailyObjectivesTotal}
-                    </span>
-                  </li>
-                  <li className={styles.progressDetailItem}>
-                    <span className={styles.progressDetailLabel}>Planning</span>
-                    <span className={styles.progressDetailValue}>
-                      {dashboard.planningTotal > 0
-                        ? `${dashboard.planningCompleted} / ${dashboard.planningTotal} taches faites`
-                        : "rien de prevu aujourd'hui"}
-                    </span>
-                  </li>
-                  <li className={styles.progressDetailItem}>
-                    <span className={styles.progressDetailLabel}>
-                      Correcteur de trajectoire
-                    </span>
-                    <span className={styles.progressDetailValue}>
-                      {dashboard.hasTodayTrajectoryEntry
-                        ? "point du jour fait"
-                        : "point du jour a faire"}
-                    </span>
-                  </li>
-                </ul>
               </details>
             </>
           ) : (

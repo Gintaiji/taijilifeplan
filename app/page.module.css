@@ -62,7 +62,6 @@
 }
 
 .homeHeroMain {
-  grid-row: span 2;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -118,6 +117,33 @@
 
 .homePrioritiesCard {
   padding: 16px;
+}
+
+.homeHero > .primaryCard {
+  grid-column: 1 / -1;
+  order: 0;
+}
+
+.homeHero .prioritiesForm {
+  margin-top: 16px;
+}
+
+.homeHero .button,
+.homeHero .textField,
+.collapsibleSummary {
+  min-height: 48px;
+}
+
+.homeHero .actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.homeHero .button:focus-visible,
+.homeHero .textField:focus-visible,
+.collapsibleSummary:focus-visible {
+  outline: 2px solid var(--dashboard-text-accent);
+  outline-offset: 3px;
 }
 
 .homePrioritiesHeader {
@@ -803,6 +829,7 @@
   display: grid;
   gap: 4px;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .priorityText {

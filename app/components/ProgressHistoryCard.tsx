@@ -205,12 +205,12 @@ export default function ProgressHistoryCard({
         <>
           <details className={styles.collapsibleBlock}>
             <summary className={styles.collapsibleSummary}>
-              Voir les series et le graphique
+              Séries
             </summary>
 
             <div className={styles.streakPanel}>
               <div className={styles.streakMetric}>
-                <span className={styles.metricLabel}>Streak actuel</span>
+                <span className={styles.metricLabel}>Série actuelle</span>
                 <strong className={styles.metricValue}>
                   {streakStats.currentStreak} jours
                 </strong>
@@ -228,6 +228,9 @@ export default function ProgressHistoryCard({
               </p>
             </div>
 
+          </details>
+          <details className={styles.collapsibleBlock}>
+            <summary className={styles.collapsibleSummary}>Graphique · 7 jours</summary>
             <div className={styles.historyChart}>
               {chartHistory.map((entry) => (
                 <div key={entry.date} className={styles.historyBarGroup}>
@@ -245,6 +248,9 @@ export default function ProgressHistoryCard({
               ))}
             </div>
 
+          </details>
+          <details className={styles.collapsibleBlock}>
+            <summary className={styles.collapsibleSummary}>Historique récent</summary>
             <ul className={styles.list}>
               {visibleHistory.map((entry) => (
                 <li key={entry.date} className={styles.historyItem}>

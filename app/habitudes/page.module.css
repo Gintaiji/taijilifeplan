@@ -7,11 +7,7 @@
 .hero {
   width: min(860px, 100%);
   margin: 0 auto;
-  padding: 28px;
-  border: 1px solid var(--app-border-strong);
-  border-radius: var(--app-radius-lg);
-  background: var(--app-surface-strong);
-  box-shadow: var(--app-shadow);
+  padding: 4px 0;
 }
 
 .eyebrow {
@@ -26,7 +22,7 @@
 .pageTitle {
   margin: 0;
   color: var(--dashboard-text-primary);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.6rem, 4vw, 2rem);
   line-height: 1.05;
 }
 
@@ -44,7 +40,6 @@
   }
 
   .hero {
-    padding: 18px;
-    border-radius: 18px;
+    padding: 4px;
   }
 }

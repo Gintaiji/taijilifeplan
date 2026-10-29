@@ -63,6 +63,13 @@
   display: none;
 }
 
+.link:focus-visible,
+.mobileLink:focus-visible,
+.moreLink:focus-visible {
+  outline: 2px solid var(--dashboard-text-accent);
+  outline-offset: 2px;
+}
+
 @media (max-width: 640px) {
   .nav {
     position: fixed;
@@ -72,9 +79,8 @@
     left: 0;
     border-top: 1px solid rgba(134, 239, 172, 0.14);
     border-bottom: none;
-    background:
-      linear-gradient(180deg, rgba(7, 17, 13, 0.84), rgba(5, 12, 9, 0.96));
-    box-shadow: 0 -16px 36px rgba(0, 0, 0, 0.36);
+    background: #07110d;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.16);
   }
 
   .desktopInner {
@@ -84,13 +90,14 @@
   .mobileInner {
     position: relative;
     display: block;
-    padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+    padding: 6px max(4px, env(safe-area-inset-right))
+      calc(6px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
   }
 
   .mobileList {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 4px;
+    gap: 2px;
     width: min(520px, 100%);
     margin: 0 auto;
     padding: 0;
@@ -103,46 +110,50 @@
 
   .mobileLink {
     display: inline-flex;
+    flex-direction: column;
+    gap: 5px;
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 42px;
-    padding: 7px 4px;
+    min-height: 62px;
+    padding: 7px 1px;
     border: 1px solid transparent;
-    border-radius: 14px;
+    border-radius: 10px;
     background: transparent;
     color: var(--dashboard-text-muted);
     cursor: pointer;
     font: inherit;
-    font-size: 0.68rem;
+    font-size: clamp(0.625rem, 2.9vw, 0.75rem);
     font-weight: 750;
     line-height: 1.15;
     text-align: center;
     text-decoration: none;
     white-space: normal;
-    transition:
-      color 0.18s ease,
-      background 0.18s ease,
-      border-color 0.18s ease,
-      box-shadow 0.18s ease;
   }
 
-  .mobileLink:hover,
-  .mobileLink:focus {
+  .icon {
+    flex: 0 0 auto;
+  }
+
+  .mobileLabel {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .mobileLink:hover {
     border-color: rgba(134, 239, 172, 0.18);
     background: rgba(20, 83, 45, 0.22);
     color: var(--dashboard-text-primary);
-    outline: none;
   }
 
   .mobileActive {
-    border-color: rgba(187, 247, 208, 0.34);
-    background:
-      linear-gradient(180deg, rgba(34, 197, 94, 0.28), rgba(20, 83, 45, 0.5));
-    color: #f7fee7;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 8px 20px rgba(20, 83, 45, 0.25);
+    border-color: rgba(134, 239, 172, 0.2);
+    background: rgba(22, 101, 52, 0.28);
+    color: var(--dashboard-text-accent);
+  }
+
+  .mobileActive .icon {
+    stroke-width: 2.2;
   }
 
   .moreButton {
@@ -156,6 +167,9 @@
     display: grid;
     gap: 8px;
     width: min(300px, calc(100vw - 20px));
+    max-height: calc(100dvh - var(--mobile-navigation-height, 90px) - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 10px;
     border: 1px solid rgba(134, 239, 172, 0.18);
     border-radius: 18px;
@@ -165,7 +179,9 @@
   }
 
   .moreLink {
-    display: block;
+    display: flex;
+    align-items: center;
+    min-height: 48px;
     padding: 12px 13px;
     border: 1px solid rgba(134, 239, 172, 0.1);
     border-radius: 12px;
@@ -178,15 +194,17 @@
   }
 
   .moreLinkActive,
-  .moreLink:hover,
-  .moreLink:focus {
+  .moreLink:hover {
     border-color: rgba(187, 247, 208, 0.3);
     background: rgba(22, 101, 52, 0.5);
     color: #f7fee7;
-    outline: none;
   }
 
   :global(body) {
-    padding-bottom: 76px;
+    padding-bottom: calc(var(--mobile-navigation-height, calc(75px + env(safe-area-inset-bottom))) + 12px);
+  }
+
+  :global(html) {
+    scroll-padding-bottom: calc(var(--mobile-navigation-height, calc(75px + env(safe-area-inset-bottom))) + 12px);
   }
 }

@@ -35,8 +35,8 @@
 
 .summary {
   margin: 18px 0 0;
-  color: var(--dashboard-text-primary);
-  font-weight: 700;
+  color: var(--dashboard-text-muted);
+  font-size: 0.92rem;
   line-height: 1.6;
 }
 
@@ -84,7 +84,7 @@
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 16px;
+  padding: 0;
   border: 1px solid rgba(134, 239, 172, 0.12);
   border-radius: var(--app-radius-md);
   background: var(--app-surface-muted);
@@ -96,7 +96,9 @@
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  flex: 1 1 240px;
+  flex: 1 1 100%;
+  padding: 18px 16px;
+  min-height: 68px;
   min-width: 0;
 }
 
@@ -112,6 +114,7 @@
   gap: 8px;
   justify-content: flex-end;
   max-width: 100%;
+  padding: 0 16px 16px;
 }
 
 .editForm {
@@ -120,9 +123,74 @@
   gap: 10px;
   width: 100%;
   align-items: start;
+  padding: 16px;
+}
+
+.editForm .actions {
+  padding: 0;
+}
+
+.label input {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  accent-color: #4ade80;
+  cursor: pointer;
+}
+
+.label:focus-within {
+  outline: 2px solid #86efac;
+  outline-offset: 3px;
+  border-radius: var(--app-radius-md);
+}
+
+.completed {
+  border-color: rgba(134, 239, 172, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 99px;
+  overflow: hidden;
+  appearance: none;
+  background: rgba(134, 239, 172, 0.12);
+  color: #4ade80;
+}
+
+.progress::-webkit-progress-bar {
+  background: rgba(134, 239, 172, 0.12);
+}
+
+.progress::-webkit-progress-value {
+  background: #4ade80;
+}
+
+.progress::-moz-progress-bar {
+  background: #4ade80;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.footer .resetButton {
+  background: transparent;
+  border-color: transparent;
+  color: var(--dashboard-text-muted);
+  font-weight: 400;
 }
 
 .button {
+  min-height: 44px;
   border-radius: var(--app-radius-sm);
   padding: 10px 14px;
   cursor: pointer;

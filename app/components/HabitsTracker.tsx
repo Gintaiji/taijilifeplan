@@ -267,6 +267,8 @@ export default function HabitsTracker() {
   const [newHabitName, setNewHabitName] = useState("");
   const [editingHabitName, setEditingHabitName] = useState<string | null>(null);
   const [editHabitName, setEditHabitName] = useState("");
+  const [isManaging, setIsManaging] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   const completedHabitsCount = Object.values(habitsData.habitsState).filter(
     Boolean,
@@ -322,6 +324,10 @@ export default function HabitsTracker() {
   }
 
   function handleResetHabits() {
+    if (!window.confirm("Tout décocher pour aujourd'hui ? L'historique des autres jours sera conservé.")) {
+      return;
+    }
+
     setHabitsData((currentHabitsData) => ({
       ...currentHabitsData,
       habitsState: currentHabitsData.habitNames.reduce<HabitsState>(
@@ -357,6 +363,7 @@ export default function HabitsTracker() {
       },
     }));
     setNewHabitName("");
+    setIsAdding(false);
   }
 
   function handleStartEditHabit(habitName: string) {
@@ -437,30 +444,90 @@ export default function HabitsTracker() {
   }
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} aria-labelledby="daily-habits-title" aria-busy={!isStorageLoaded}>
       <div className={styles.header}>
         <div>
-          <h2 className={styles.title}>Habitudes du jour</h2>
+          <h2 id="daily-habits-title" className={styles.title}>Habitudes du jour</h2>
           <p className={styles.date}>Aujourd&apos;hui : {today}</p>
         </div>
 
         <button
           type="button"
           className={`control-button ${styles.button}`}
-          onClick={handleResetHabits}
+          disabled={!isStorageLoaded}
+          aria-pressed={isManaging}
+          onClick={() => {
+            setIsManaging(!isManaging);
+            handleCancelEditHabit();
+          }}
         >
-          Tout decocher
+          {isManaging ? "Terminer" : "Gérer"}
         </button>
       </div>
 
-      <p className={styles.summary}>
-        {completedHabitsCount} sur {habitsData.habitNames.length} faites
+      <p className={styles.summary} role="status">
+        {completedHabitsCount} sur {habitsData.habitNames.length} réalisées
       </p>
-
-      <form className={styles.form} onSubmit={handleAddHabit}>
+      <progress
+        className={styles.progress}
+        value={completedHabitsCount}
+        max={habitsData.habitNames.length || 1}
+        aria-label="Progression des habitudes du jour"
+      />
+      <ul className={styles.list}>
+        {habitsData.habitNames.map((habit) => (
+          <li key={habit} className={`${styles.item} ${habitsData.habitsState[habit] ? styles.completed : ""}`}>
+            {editingHabitName === habit ? (
+              <form className={styles.editForm} onSubmit={(event) => handleSaveEditHabit(event, habit)}>
+                <input type="text" value={editHabitName}
+                  onChange={(event) => setEditHabitName(event.target.value)}
+                  className={styles.input} aria-label={`Nouveau nom pour ${habit}`} />
+                <div className={styles.actions}>
+                  <button type="submit" className={`control-button ${styles.button}`}>Enregistrer</button>
+                  <button type="button" className={`control-button ${styles.button}`} onClick={handleCancelEditHabit}>Annuler</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <label className={styles.label}>
+                  <input type="checkbox" checked={habitsData.habitsState[habit] ?? false}
+                    disabled={!isStorageLoaded} onChange={() => handleHabitChange(habit)} />
+                  <span className={styles.habitName}>{habit}</span>
+                </label>
+                {isManaging && (
+                  <div className={styles.actions}>
+                    <button type="button" className={`control-button ${styles.button}`}
+                      aria-label={`Modifier : ${habit}`} onClick={() => handleStartEditHabit(habit)}>Modifier</button>
+                    <button type="button" className={`control-button ${styles.button} ${styles.deleteButton}`}
+                      aria-label={`Supprimer : ${habit}`} onClick={() => handleDeleteHabit(habit)}>Supprimer</button>
+                  </div>
+                )}
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      {isStorageLoaded && habitsData.habitNames.length === 0 && (
+        <p className={styles.helperText}>Ajoute ta première habitude pour commencer.</p>
+      )}
+      <div className={styles.footer}>
+        <button type="button" className={`control-button ${styles.button}`}
+          disabled={!isStorageLoaded} aria-expanded={isAdding} aria-controls="add-habit-form"
+          onClick={() => setIsAdding(!isAdding)}>
+          {isAdding ? "Fermer le formulaire" : "Ajouter une habitude"}
+        </button>
+        <button type="button" className={`control-button ${styles.button} ${styles.resetButton}`}
+          disabled={!isStorageLoaded || completedHabitsCount === 0} onClick={handleResetHabits}>
+          Tout décocher
+        </button>
+      </div>
+      {isAdding && (
+      <form id="add-habit-form" className={styles.form} onSubmit={handleAddHabit}>
+        <label htmlFor="new-habit-name" className={styles.helperText}>Nom de l&apos;habitude</label>
         <div className={styles.formRow}>
           <input
             type="text"
+            id="new-habit-name"
             value={newHabitName}
             onChange={(event) => setNewHabitName(event.target.value)}
             placeholder="Exemple : 10 minutes d'etirements"
@@ -479,73 +546,7 @@ export default function HabitsTracker() {
           Ta liste reste disponible chaque jour.
         </p>
       </form>
-
-      <ul className={styles.list}>
-        {habitsData.habitNames.map((habit) => (
-          <li key={habit} className={styles.item}>
-            {editingHabitName === habit ? (
-              <form
-                className={styles.editForm}
-                onSubmit={(event) => handleSaveEditHabit(event, habit)}
-              >
-                <input
-                  type="text"
-                  value={editHabitName}
-                  onChange={(event) => setEditHabitName(event.target.value)}
-                  className={styles.input}
-                  aria-label={`Nouveau nom pour ${habit}`}
-                />
-
-                <div className={styles.actions}>
-                  <button
-                    type="submit"
-                    className={`control-button ${styles.button}`}
-                  >
-                    Enregistrer
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`control-button ${styles.button}`}
-                    onClick={handleCancelEditHabit}
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <label className={styles.label}>
-                  <input
-                    type="checkbox"
-                    checked={habitsData.habitsState[habit] ?? false}
-                    onChange={() => handleHabitChange(habit)}
-                  />
-                  <span className={styles.habitName}>{habit}</span>
-                </label>
-
-                <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={`control-button ${styles.button}`}
-                    onClick={() => handleStartEditHabit(habit)}
-                  >
-                    Modifier
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`control-button ${styles.button} ${styles.deleteButton}`}
-                    onClick={() => handleDeleteHabit(habit)}
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      )}
     </section>
   );
 }
