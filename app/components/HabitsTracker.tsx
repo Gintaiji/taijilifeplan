@@ -269,6 +269,13 @@ export default function HabitsTracker() {
   const [editHabitName, setEditHabitName] = useState("");
   const [isManaging, setIsManaging] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const newHabitAlreadyExists = newHabitName.trim() !== "" && habitsData.habitNames.some(
+    (habitName) => habitName.trim().toLowerCase() === newHabitName.trim().toLowerCase(),
+  );
+  const editedHabitAlreadyExists = editHabitName.trim() !== "" && habitsData.habitNames.some(
+    (habitName) => habitName !== editingHabitName &&
+      habitName.trim().toLowerCase() === editHabitName.trim().toLowerCase(),
+  );
 
   const completedHabitsCount = Object.values(habitsData.habitsState).filter(
     Boolean,
@@ -458,7 +465,6 @@ export default function HabitsTracker() {
           aria-pressed={isManaging}
           onClick={() => {
             setIsManaging(!isManaging);
-            handleCancelEditHabit();
           }}
         >
           {isManaging ? "Terminer" : "Gérer"}
@@ -477,15 +483,20 @@ export default function HabitsTracker() {
       <ul className={styles.list}>
         {habitsData.habitNames.map((habit) => (
           <li key={habit} className={`${styles.item} ${habitsData.habitsState[habit] ? styles.completed : ""}`}>
-            {editingHabitName === habit ? (
+            {isManaging && editingHabitName === habit ? (
               <form className={styles.editForm} onSubmit={(event) => handleSaveEditHabit(event, habit)}>
-                <input type="text" value={editHabitName}
+                <input type="text" value={editHabitName} required pattern=".*\S.*"
+                  aria-invalid={editedHabitAlreadyExists}
+                  aria-describedby={editedHabitAlreadyExists ? "edit-habit-error" : undefined}
                   onChange={(event) => setEditHabitName(event.target.value)}
                   className={styles.input} aria-label={`Nouveau nom pour ${habit}`} />
                 <div className={styles.actions}>
                   <button type="submit" className={`control-button ${styles.button}`}>Enregistrer</button>
                   <button type="button" className={`control-button ${styles.button}`} onClick={handleCancelEditHabit}>Annuler</button>
                 </div>
+                {editedHabitAlreadyExists && (
+                  <p id="edit-habit-error" className={styles.validation}>Ce nom est déjà utilisé. Choisis un autre nom.</p>
+                )}
               </form>
             ) : (
               <>
@@ -528,6 +539,10 @@ export default function HabitsTracker() {
           <input
             type="text"
             id="new-habit-name"
+            required
+            pattern=".*\S.*"
+            aria-invalid={newHabitAlreadyExists}
+            aria-describedby={newHabitAlreadyExists ? "new-habit-error" : undefined}
             value={newHabitName}
             onChange={(event) => setNewHabitName(event.target.value)}
             placeholder="Exemple : 10 minutes d'etirements"
@@ -541,6 +556,9 @@ export default function HabitsTracker() {
             Ajouter
           </button>
         </div>
+        {newHabitAlreadyExists && (
+          <p id="new-habit-error" className={styles.validation}>Cette habitude existe déjà. Choisis un autre nom.</p>
+        )}
 
         <p className={styles.helperText}>
           Ta liste reste disponible chaque jour.

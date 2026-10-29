@@ -30,7 +30,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  min-height: 44px;
   padding: 9px 12px;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -205,6 +205,7 @@
   }
 
   :global(html) {
+    scroll-padding-top: 12px;
     scroll-padding-bottom: calc(var(--mobile-navigation-height, calc(75px + env(safe-area-inset-bottom))) + 12px);
   }
 }

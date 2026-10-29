@@ -336,7 +336,11 @@ export default function PlanningPage() {
                             <summary aria-label={`Gérer la tâche : ${task.label}`}>Gérer</summary>
                             <div className={styles.menu}>
                               <button type="button" className="control-button"
-                                onClick={() => handleStartEdit(task)}>Modifier</button>
+                                onClick={(event) => {
+                                  handleStartEdit(task);
+                                  const menu = event.currentTarget.closest("details");
+                                  if (menu) menu.open = false;
+                                }}>Modifier</button>
                               <button type="button" className="control-button control-button-danger"
                                 onClick={() => handleDelete(task.id)}>Supprimer</button>
                             </div>

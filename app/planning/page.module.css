@@ -96,6 +96,7 @@
   align-items: flex-start;
   gap: 4px;
   padding-right: 8px;
+  flex-wrap: wrap;
 }
 
 .taskLabel {
@@ -155,18 +156,29 @@
 }
 
 .menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 1;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  width: 160px;
+  width: 100%;
   padding: 10px;
   border: 1px solid var(--app-border-strong);
   border-radius: var(--app-radius-md);
   background: var(--dashboard-card-background);
   box-shadow: var(--app-shadow-soft);
+}
+
+.manage[open] {
+  flex-basis: 100%;
+  margin: 0 0 8px 8px;
+}
+
+.manage[open] summary {
+  width: fit-content;
+  margin-left: auto;
+}
+
+.menu button {
+  flex: 1 1 100px;
 }
 
 .form,

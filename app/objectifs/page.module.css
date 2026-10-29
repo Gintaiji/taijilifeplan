@@ -223,6 +223,11 @@
   background: rgba(34, 197, 94, 0.08);
 }
 
+.stepCompleted .stepLabel span {
+  color: var(--dashboard-text-muted);
+  text-decoration: line-through;
+}
+
 .stepLabel {
   display: flex;
   align-items: center;
