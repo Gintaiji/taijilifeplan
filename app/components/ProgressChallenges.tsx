@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getChallengeSuggestion } from "../utils/challengeSuggestions";
+import SurpriseChallenge from "./SurpriseChallenge";
 import { APP_STORAGE_CHANGED_EVENT, setStorage, STORAGE_KEYS, type AppStorageChangedDetail } from "../utils/storage";
 import {
   CHALLENGE_CATEGORIES, CHALLENGE_LEVELS, CHALLENGE_TEMPLATES,
@@ -121,6 +122,7 @@ export default function ProgressChallenges() {
       {error && <p role="alert" className={styles.error}>{error}</p>}
       <p role="status" className={styles.muted}>{message}</p>
       {!data ? <p className={styles.muted}>{error ? "Les défis sont temporairement indisponibles." : "Chargement des défis…"}</p> : <>
+        <SurpriseChallenge data={data} today={today} commit={commit} />
         {suggestion && <div className={styles.suggestion}>
           {suggestion.reference && <span className={styles.muted}>
             {suggestion.reference.title} · {suggestion.reference.slot === "week" ? "Hebdomadaire" : "Quotidien"}

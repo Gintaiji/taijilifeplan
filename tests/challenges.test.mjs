@@ -56,6 +56,7 @@ function load(relative) {
 }
 const c = load('app/utils/challenges.ts');
 const recommendations = load('app/utils/challengeSuggestions.ts');
+const surprise = load('app/utils/surpriseChallenges.ts');
 const s = load('app/utils/storage.ts');
 const b = load('app/utils/backup.ts');
 const cloudApi = load('app/utils/cloudBackup.ts');
@@ -424,4 +425,169 @@ test('optional results: simulated cloud round trip and newer-cloud conflicts pre
   assert.equal((await sync.saveCloudBackupSafely('test-user')).status, 'conflict');
   assert.equal(writes, 1);
   assert.deepEqual([...values], beforeConflict);
+});
+
+const surpriseOptions = { slot: 'main', mode: 'balanced', includeCustom: false };
+const offered = (data) => data.surpriseDays[today].offers.at(-1);
+test('surprise: 80/20 and 65/35 levels, uniform within each selected group', () => {
+  const day = { ...surpriseOptions, baseLevel: 1, personalized: false };
+  const candidates = c.CHALLENGE_TEMPLATES.filter((t) => surprise.SURPRISE_MIN_DAYS[t.id] === 1 && t.difficulty === 1);
+  for (let i = 0; i < candidates.length; i++) {
+    const samples = [.9, (i + .5) / candidates.length];
+    const selection = surprise.selectSurprise(c.emptyChallenges(), today, day, () => samples.shift());
+    assert.equal(selection.template.id, candidates[i].id);
+  }
+  for (const mode of ['balanced', 'bold']) {
+    let higher = 0;
+    for (let i = 0; i < 100; i++) {
+      const samples = [(i + .5) / 100, .5];
+      const selection = surprise.selectSurprise(c.emptyChallenges(), today, { ...day, mode }, () => samples.shift());
+      assert.ok([1, 2].includes(selection.template.difficulty));
+      if (selection.template.difficulty === 2) higher++;
+    }
+    assert.equal(higher, mode === 'balanced' ? 20 : 35);
+  }
+});
+test('surprise: duration rules exclude multi-day work daily and check remaining week days', () => {
+  const minDays = surprise.SURPRISE_MIN_DAYS;
+  assert.equal(minDays['plan-5'], 5);
+  assert.equal(minDays['personal-experiment'], 7);
+  assert.equal(minDays['network-event'], undefined);
+  assert.equal(minDays['new-activity'], undefined);
+  for (const slot of ['main', 'bonus']) {
+    for (let i = 0; i < 40; i++) {
+      const result = surprise.selectSurprise(c.emptyChallenges(), today, { ...surpriseOptions, slot, baseLevel: 3, personalized: true }, () => i / 40);
+      assert.equal(minDays[result.template.id], 1);
+    }
+  }
+  // Thursday leaves four days: never propose 5/7-day challenges for this week.
+  for (let i = 0; i < 40; i++) {
+    const result = surprise.selectSurprise(c.emptyChallenges(), today, { ...surpriseOptions, slot: 'week', baseLevel: 3, personalized: true }, () => i / 40);
+    assert.ok(minDays[result.template.id] <= 4);
+  }
+});
+test('surprise: recent attempts avoided when at least two fresh candidates exist', () => {
+  const data = attempted();
+  data.attempts[0].date = '2026-10-28'; data.attempts[0].endDate = '2026-10-28';
+  for (let i = 0; i < 40; i++) {
+    const result = surprise.selectSurprise(data, today, { ...surpriseOptions, baseLevel: 1, personalized: false }, () => i / 40);
+    assert.notEqual(result.template.id, template.id);
+  }
+});
+test('surprise: fallback is explicit; same-day exclusion is never relaxed; no candidates throws', () => {
+  const data = { ...c.emptyChallenges(), attempts: c.CHALLENGE_TEMPLATES.map((t, i) => ({
+    ...attempted().attempts[0], ...t, instanceId: `recent-${i}`, date: '2026-10-28', endDate: '2026-10-28',
+  })) };
+  const day = { ...surpriseOptions, baseLevel: 1, personalized: false };
+  assert.ok(surprise.selectSurprise(data, today, day, () => .5).notes.some((n) => n.includes('7 derniers jours')));
+  data.attempts.forEach((a) => { a.date = today; a.endDate = today; });
+  assert.throws(() => surprise.selectSurprise(data, today, day, () => .5), /Aucun défi éligible/);
+  // Only a higher-level candidate left: report this instead of silently changing the mix.
+  data.attempts = data.attempts.filter((a) => a.difficulty !== 2);
+  const higherOnly = surprise.selectSurprise(data, today, day, () => .5);
+  assert.equal(higherOnly.template.difficulty, 2);
+  assert.ok(higherOnly.notes.some((n) => n.includes('seul le niveau immédiatement supérieur')));
+});
+test('surprise: joker and exceptional alternative are bounded across slots and reloads', () => {
+  let data = surprise.drawSurprise(c.emptyChallenges(), today, surpriseOptions, 'initial', () => .5);
+  assert.equal(data.attempts.length, 0);
+  assert.ok(c.isChallengesData(data));
+  assert.throws(() => surprise.drawSurprise(data, today, { ...surpriseOptions, slot: 'week' }, 'initial'), /existe déjà/);
+  assert.throws(() => surprise.drawSurprise(data, today, surpriseOptions, 'alternative'), /réservée/);
+  const firstId = offered(data).template.id;
+  data = surprise.drawSurprise(data, today, { ...surpriseOptions, mode: 'bold', slot: 'week' }, 'joker', () => .5);
+  assert.equal(data.surpriseDays[today].slot, 'main', 'configuration locked for the day');
+  assert.notEqual(offered(data).template.id, firstId);
+  assert.throws(() => surprise.drawSurprise(data, today, surpriseOptions, 'joker'), /déjà été utilisé/);
+  data = surprise.refuseSurprise(data, today, offered(data).template.id);
+  assert.equal(data.attempts.length, 0, 'refusal never creates a failed attempt');
+  data = surprise.drawSurprise(data, today, surpriseOptions, 'alternative', () => .5);
+  assert.equal(new Set(data.surpriseDays[today].offers.map((o) => o.template.id)).size, 3);
+  s.setStorage(s.STORAGE_KEYS.challenges, data);
+  data = JSON.parse(localStorage.getItem(s.STORAGE_KEYS.challenges));
+  assert.throws(() => surprise.drawSurprise(data, today, surpriseOptions, 'joker'));
+  data = surprise.refuseSurprise(data, today, offered(data).template.id);
+  assert.throws(() => surprise.drawSurprise(data, today, surpriseOptions, 'alternative'));
+  assert.equal(data.attempts.length, 0);
+  assert.ok(c.isChallengesData(data));
+  const tomorrow = surprise.drawSurprise(data, '2026-10-30', surpriseOptions, 'initial', () => .5);
+  assert.equal(tomorrow.surpriseDays['2026-10-30'].offers.length, 1);
+});
+test('surprise: failed redraw does not consume the joker', () => {
+  const data = surprise.drawSurprise(c.emptyChallenges(), today, surpriseOptions, 'initial', () => .5);
+  const snapshot = JSON.stringify(data);
+  const blocked = { ...data, attempts: c.CHALLENGE_TEMPLATES.map((t, i) => ({ ...attempted().attempts[0], ...t, instanceId: `today-${i}` })) };
+  assert.throws(() => surprise.drawSurprise(blocked, today, surpriseOptions, 'joker'), /Aucun défi éligible/);
+  assert.equal(JSON.stringify(data), snapshot);
+  assert.equal(data.surpriseDays[today].offers.some((o) => o.reason === 'joker'), false);
+});
+test('surprise: voluntary acceptance alone starts an attempt and archives the previous active one', () => {
+  let data = surprise.drawSurprise(attempted(), today, surpriseOptions, 'initial', () => .5);
+  assert.equal(data.attempts.length, 1);
+  const chosen = offered(data).template;
+  assert.throws(() => surprise.acceptSurprise(data, today, 'stale', 'outdated-template'), /autre onglet/);
+  assert.throws(() => surprise.refuseSurprise(data, today, 'outdated-template'), /autre onglet/);
+  data = surprise.acceptSurprise(data, today, 'accepted-surprise', chosen.id);
+  assert.equal(data.attempts.length, 2);
+  assert.equal(data.attempts[0].closed, true);
+  assert.equal(data.attempts[1].id, chosen.id);
+  assert.equal(data.attempts[1].target, chosen.target);
+  assert.equal(data.attempts[1].progress, 0);
+  assert.equal(data.attempts[1].results, undefined);
+  assert.throws(() => surprise.acceptSurprise(data, today, 'second', chosen.id));
+  assert.throws(() => surprise.drawSurprise(data, today, surpriseOptions, 'joker'));
+  assert.ok(c.isChallengesData(data));
+});
+test('surprise: conservative fallback and 91B reference never jump more than one level', () => {
+  assert.deepEqual(surprise.surpriseLevel(c.emptyChallenges(), today, surpriseOptions), { baseLevel: 1, personalized: false });
+  const history = suggestionData(4, { difficulty: 3 });
+  assert.deepEqual(surprise.surpriseLevel(history, today, surpriseOptions), { baseLevel: 3, personalized: true });
+  assert.deepEqual(surprise.surpriseLevel(history, today, { ...surpriseOptions, slot: 'week' }), { baseLevel: 1, personalized: false });
+  const drawn = surprise.drawSurprise(history, today, surpriseOptions, 'initial', () => .5);
+  assert.ok([3, 4].includes(offered(drawn).template.difficulty));
+  assert.equal(history.attempts.at(-1).difficulty, 3);
+});
+test('surprise: custom challenges require both global opt-in and explicit duration confirmation', () => {
+  const custom = { ...template, id: 'custom-surprise', surpriseMinDays: 1 };
+  const data = { ...c.emptyChallenges(), customTemplates: [custom] };
+  const day = { ...surpriseOptions, baseLevel: 1, personalized: false };
+  const eligible = c.CHALLENGE_TEMPLATES.filter((t) => t.difficulty === 1 && surprise.SURPRISE_MIN_DAYS[t.id] === 1).length;
+  const chooseLast = () => .99999;
+  assert.notEqual(surprise.selectSurprise(data, today, day, chooseLast).template.id, custom.id);
+  assert.equal(surprise.selectSurprise(data, today, { ...day, includeCustom: true }, chooseLast).template.id, custom.id);
+  assert.ok(eligible > 1);
+  delete custom.surpriseMinDays;
+  assert.notEqual(surprise.selectSurprise(data, today, { ...day, includeCustom: true }, chooseLast).template.id, custom.id);
+  custom.surpriseMinDays = 7;
+  assert.notEqual(surprise.selectSurprise(data, today, { ...day, includeCustom: true }, chooseLast).template.id, custom.id);
+});
+test('surprise: optional schema rejects corrupt draw state before any import write', () => {
+  assert.ok(c.isChallengesData(attempted()));
+  const data = surprise.drawSurprise(c.emptyChallenges(), today, surpriseOptions, 'initial', () => .5);
+  s.setStorage(s.STORAGE_KEYS.challenges, data);
+  const snapshot = [...values];
+  const invalid = b.createBackupFile();
+  invalid.data.challenges.surpriseDays[today].offers.push(invalid.data.challenges.surpriseDays[today].offers[0]);
+  assert.equal(b.isBackupFile(invalid), false);
+  assert.throws(() => b.importBackupData(invalid.data));
+  assert.deepEqual([...values], snapshot);
+});
+test('surprise: JSON and cloud round trips, old payloads and conflict protection', async () => {
+  let data = surprise.drawSurprise(c.emptyChallenges(), today, surpriseOptions, 'initial', () => .5);
+  data = surprise.drawSurprise(data, today, surpriseOptions, 'joker', () => .5);
+  s.setStorage(s.STORAGE_KEYS.challenges, data);
+  assert.equal(b.isBackupDataEmptyOrAlmostEmpty(b.getBackupData()), false, 'draw-only data is meaningful cloud data');
+  const file = JSON.parse(JSON.stringify(b.createBackupFile()));
+  values.clear(); b.importBackupData(file.data);
+  assert.deepEqual(b.getBackupData().challenges, data);
+  const old = b.createBackupFile(); delete old.data.challenges.surpriseDays;
+  b.importBackupData(old.data);
+  assert.deepEqual(b.getBackupData().challenges.surpriseDays, data.surpriseDays, 'old backup cannot erase joker history');
+  assert.equal((await sync.saveCloudBackupSafely('test-user')).status, 'success');
+  const remote = await cloudApi.getCloudBackup('test-user');
+  values.clear(); b.importBackupData(remote.data);
+  assert.deepEqual(b.getBackupData().challenges, data);
+  cloud.updated_at = '2099-01-01T00:00:00.000Z';
+  assert.equal((await sync.saveCloudBackupSafely('test-user')).status, 'conflict');
+  assert.equal(writes, 1);
 });

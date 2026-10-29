@@ -8,6 +8,8 @@ export const CHALLENGE_CATEGORIES = [
 export type ChallengeTemplate = {
   id: string; title: string; description: string; category: string;
   difficulty: number; target: number; unit: string; successCriterion: string;
+  // Present only after explicit feasibility confirmation for a custom template.
+  surpriseMinDays?: number;
 };
 export type ChallengeSlot = "main" | "bonus" | "week";
 export const CHALLENGE_RESULT_LABELS = {
@@ -24,7 +26,14 @@ export type ChallengeAttempt = ChallengeTemplate & {
 };
 export type ChallengesData = {
   version: 1; customTemplates: ChallengeTemplate[]; attempts: ChallengeAttempt[];
+  surpriseDays?: Record<string, SurpriseDay>;
 };
+export type SurpriseOptions = { slot: ChallengeSlot; mode: "balanced" | "bold"; includeCustom: boolean };
+export type SurpriseOffer = {
+  template: ChallengeTemplate; reason: "initial" | "joker" | "alternative";
+  status: "offered" | "replaced" | "refused" | "accepted"; notes: string[];
+};
+export type SurpriseDay = SurpriseOptions & { baseLevel: number; personalized: boolean; offers: SurpriseOffer[] };
 
 // IDs are explicit and remain stable when wording or ordering changes.
 const groups: [string, string, number, number, string, string, string][][] = [
@@ -106,20 +115,42 @@ export function canTrackChallengeResults(template: ChallengeTemplate) {
     template.id.startsWith("custom-")
   );
 }
-function isTemplate(value: unknown): value is ChallengeTemplate {
+export function isTemplate(value: unknown): value is ChallengeTemplate {
   return object(value) && ["id", "title", "description", "category", "unit", "successCriterion"].every(
     (key) => typeof value[key] === "string" && (value[key] as string).trim().length > 0,
   ) && CHALLENGE_CATEGORIES.includes(value.category as typeof CHALLENGE_CATEGORIES[number]) &&
     Number.isInteger(value.difficulty) && Number(value.difficulty) >= 1 && Number(value.difficulty) <= 4 &&
-    isChallengeQuantity(value.target);
+    isChallengeQuantity(value.target) &&
+    (value.surpriseMinDays === undefined || (Number.isInteger(value.surpriseMinDays) && Number(value.surpriseMinDays) >= 1 && Number(value.surpriseMinDays) <= 7));
 }
 function isDateKey(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(new Date(`${value}T12:00:00`).getTime()) && dateKey(new Date(`${value}T12:00:00`)) === value;
 }
+export function isSurpriseDays(value: unknown): value is Record<string, SurpriseDay> {
+  if (!object(value)) return false;
+  return Object.entries(value).every(([date, day]) => {
+    if (!isDateKey(date) || !object(day) || !["main", "bonus", "week"].includes(String(day.slot)) ||
+      !["balanced", "bold"].includes(String(day.mode)) || typeof day.includeCustom !== "boolean" ||
+      typeof day.personalized !== "boolean" || !Number.isInteger(day.baseLevel) || Number(day.baseLevel) < 1 || Number(day.baseLevel) > 4 ||
+      !Array.isArray(day.offers) || day.offers.length < 1 || day.offers.length > 3) return false;
+    const offers = day.offers;
+    if (!offers.every((offer: unknown, index: number) => object(offer) && isTemplate(offer.template) &&
+      offer.template.difficulty >= Number(day.baseLevel) && offer.template.difficulty <= Math.min(4, Number(day.baseLevel) + 1) &&
+      ["initial", "joker", "alternative"].includes(String(offer.reason)) &&
+      (index === 0 ? offer.reason === "initial" : offer.reason !== "initial") &&
+      ["offered", "replaced", "refused", "accepted"].includes(String(offer.status)) &&
+      (index === offers.length - 1 || ["replaced", "refused"].includes(String(offer.status))) &&
+      Array.isArray(offer.notes) && offer.notes.every((note: unknown) => typeof note === "string"))) return false;
+    return new Set(offers.map((o: SurpriseOffer) => o.template.id)).size === offers.length &&
+      new Set(offers.map((o: SurpriseOffer) => o.reason)).size === offers.length &&
+      offers.every((o: SurpriseOffer, i: number) => o.reason !== "alternative" || (i > 0 && offers[i - 1].status === "refused"));
+  });
+}
 export function isChallengesData(value: unknown): value is ChallengesData {
   if (!object(value) || value.version !== 1 || !Array.isArray(value.customTemplates) || !Array.isArray(value.attempts)) return false;
   if (!value.customTemplates.every(isTemplate)) return false;
+  if (value.surpriseDays !== undefined && !isSurpriseDays(value.surpriseDays)) return false;
   if (!value.attempts.every((a: unknown) => object(a) &&
     typeof a.instanceId === "string" && a.instanceId.length > 0 &&
     ["main", "bonus", "week"].includes(String(a.slot)) && isDateKey(a.date) && isDateKey(a.endDate) && a.endDate >= a.date &&

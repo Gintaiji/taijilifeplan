@@ -40,6 +40,16 @@
 .resultControls button { width: 44px; padding: 8px; }
 .resultControls output { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
 .error { color: #fca5a5; }
+.surprise { border: 1px solid var(--app-border); border-radius: var(--app-radius-md); padding: 14px; min-width: 0; overflow-wrap: anywhere; }
+.surprise .heading { justify-content: space-between; }
+.surpriseOptions { border: 0; padding: 0; margin: 0; min-width: 0; }
+.surpriseOptions:disabled { opacity: .65; }
+.section .check { display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
+.section .check input { width: 22px; min-height: 22px; flex: 0 0 22px; accent-color: #86efac; }
+.reveal { margin-top: 14px; animation: reveal .18s ease-out; }
+.mystery { padding: 14px 0; color: #86efac; }
+@keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .reveal { animation: none; } }
 .suggestion { border-left: 2px solid #86efac; padding: 4px 0 4px 14px; overflow-wrap: anywhere; }
 .suggestion p { font-size: .9rem; }
 .suggestion button { font-size: .85rem; background: transparent; color: #86efac; }

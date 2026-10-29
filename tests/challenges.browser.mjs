@@ -20,6 +20,10 @@ socket.addEventListener('message', (event) => {
   if (message.error) callback.reject(new Error(JSON.stringify(message.error)));
   else callback.resolve(message.result);
 });
+socket.addEventListener('close', () => {
+  for (const callback of pending.values()) callback.reject(new Error('Browser connection closed'));
+  pending.clear();
+});
 function send(method, params = {}) {
   const id = ++sequence;
   return new Promise((resolve, reject) => {
@@ -161,10 +165,46 @@ try {
     window.dispatchEvent(new CustomEvent('taiji-life-plan-storage-changed', {detail:{key:'taiji-life-plan-challenges'}}));
   })()`);
   await waitFor(`![...document.querySelector('section[aria-label="Défis de progression"] > article').querySelectorAll('summary')].some(s=>s.textContent.includes('Résultats obtenus'))`);
+  // Surprise draws persist separately and create no attempt until accepted.
+  const attemptsBeforeSurprise = (await saved()).attempts.length;
+  await click('Surprends-moi');
+  await waitFor(`document.querySelector('[aria-label="Défi Surprise"]').textContent.includes('J’accepte ce défi')`);
+  const drawn = await saved();
+  const drawDate = Object.keys(drawn.surpriseDays)[0];
+  const firstDraw = drawn.surpriseDays[drawDate].offers[0].template.id;
+  assert.equal(drawn.attempts.length, attemptsBeforeSurprise);
+  await send('Page.reload');
+  await waitFor(`document.querySelector('[aria-label="Défi Surprise"]')?.textContent.includes('J’accepte ce défi')`);
+  assert.equal((await saved()).surpriseDays[drawDate].offers[0].template.id, firstDraw, 'refresh does not reroll');
+  // Reduced-motion reveal skips both the waiting state and CSS animation.
+  await send('Emulation.setEmulatedMedia', { features:[{name:'prefers-reduced-motion', value:'reduce'}] });
+  await click('Utiliser mon joker');
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).surpriseDays['${drawDate}'].offers.length === 2`);
+  assert.notEqual((await saved()).surpriseDays[drawDate].offers[1].template.id, firstDraw);
+  assert.ok(!await evaluate(`document.querySelector('[aria-label="Défi Surprise"]').textContent.includes('Un petit pas à découvrir')`));
+  assert.equal(await evaluate(`getComputedStyle(document.querySelector('[aria-label="Défi Surprise"] > div:last-child')).animationName`), 'none');
+  await send('Page.reload');
+  await waitFor(`[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Joker du jour utilisé') && b.disabled)`);
+  await click('Refuser : impossible ou inadapté');
+  assert.equal((await saved()).attempts.length, attemptsBeforeSurprise, 'refusal is not a failed attempt');
+  await click('Chercher une alternative exceptionnelle');
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).surpriseDays['${drawDate}'].offers.length === 3`);
+  const finalDraw = (await saved()).surpriseDays[drawDate];
+  assert.equal(new Set(finalDraw.offers.map(o=>o.template.id)).size, 3);
+  for (const width of [320,390]) {
+    await send('Emulation.setDeviceMetricsOverride', {width,height:844,deviceScaleFactor:1,mobile:true});
+    assert.ok(await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`), `surprise reveal fits ${width}px`);
+  }
+  await click('J’accepte ce défi');
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts.length === ${attemptsBeforeSurprise+1}`);
+  const accepted = await saved();
+  assert.equal(accepted.attempts.at(-1).id, finalDraw.offers.at(-1).template.id);
+  assert.equal(accepted.surpriseDays[drawDate].offers.at(-1).status, 'accepted');
+  assert.equal(accepted.attempts.filter(a=>a.slot==='main'&&!a.closed).length, 1);
   assert.ok(await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`), 'no overflow on 390px screen');
   assert.ok(await evaluate(`[...document.querySelectorAll('section[aria-label="Défis de progression"] button')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().height >= 44)`), 'comfortable touch controls');
   assert.deepEqual(errors, [], 'no browser exceptions');
-  console.log('Browser PASS: action and results counters, closed-by-default results, reload, custom creation, archived results/history, independent suggestions, relevant-only indicators, 320px/390px mobile, touch controls.');
+  console.log('Browser PASS: actions/results/history/91B; Surprise reveal, persistent draw and joker, no attempt before acceptance, refusal/alternative, voluntary activation, reduced motion, 320px/390px mobile.');
 } finally {
   await send('Browser.close').catch(() => {});
   socket.close();

@@ -117,7 +117,7 @@ export function getBackupDataSize(data: BackupData) {
     getArraySize(data.progressHistory) +
     // One attempt or custom template is meaningful data, beyond the existing <= 1 empty guard.
     (isChallengesData(data.challenges)
-      ? 2 * (data.challenges.attempts.length + data.challenges.customTemplates.length)
+      ? 2 * (data.challenges.attempts.length + data.challenges.customTemplates.length + Object.keys(data.challenges.surpriseDays ?? {}).length)
       : 0)
   );
 }
@@ -172,7 +172,17 @@ export function importBackupData(data: BackupData) {
   }
 
   if (data.challenges !== undefined) {
-    setStorage(STORAGE_KEYS.challenges, data.challenges);
+    let challenges = data.challenges;
+    // Older challenge payloads must not erase the optional draw/joker history.
+    if (isChallengesData(challenges) && challenges.surpriseDays === undefined) {
+      try {
+        const current = getStoredChallengesForBackup();
+        if (isChallengesData(current) && current.surpriseDays !== undefined) {
+          challenges = { ...challenges, surpriseDays: current.surpriseDays };
+        }
+      } catch { /* A valid backup can still restore unreadable local data. */ }
+    }
+    setStorage(STORAGE_KEYS.challenges, challenges);
   }
 
   if (typeof data.settings?.lastBackupExport === "string") {
