@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getStorage, setStorage, STORAGE_KEYS } from "../utils/storage";
 
 import styles from "./TrajectoryReview.module.css";
+import ProgressChallenges from "./ProgressChallenges";
 
 const TRAJECTORY_STORAGE_KEY = STORAGE_KEYS.trajectory;
 const DAILY_OBJECTIVES_STORAGE_KEY = STORAGE_KEYS.dailyObjectives;
@@ -573,6 +574,8 @@ export default function TrajectoryReview() {
             )}
         </div>
       </details>
+
+      <ProgressChallenges />
 
       <div className={styles.reflections}>
         <div className={styles.field}>

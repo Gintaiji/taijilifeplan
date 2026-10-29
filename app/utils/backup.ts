@@ -1,3 +1,4 @@
+import { emptyChallenges, isChallengesData } from "./challenges";
 import {
   getLocalDataUpdatedAt,
   getStorage,
@@ -15,6 +16,7 @@ export type BackupData = {
   trajectory: unknown;
   priorities: unknown;
   progressHistory?: unknown;
+  challenges?: unknown;
   settings?: {
     lastBackupExport?: string | null;
     localDataUpdatedAt?: string | null;
@@ -58,6 +60,7 @@ export function isBackupData(value: unknown): value is BackupData {
     (value.priorities === null || isObject(value.priorities)) &&
     (value.progressHistory === undefined ||
       Array.isArray(value.progressHistory)) &&
+    (value.challenges === undefined || isChallengesData(value.challenges)) &&
     (value.settings === undefined || isObject(value.settings))
   );
 }
@@ -72,6 +75,7 @@ export function getBackupData(): BackupData {
     trajectory: getStorage<unknown>(STORAGE_KEYS.trajectory, {}),
     priorities: getStorage<unknown | null>(STORAGE_KEYS.dailyObjectives, null),
     progressHistory: getStorage<unknown>(STORAGE_KEYS.progressHistory, []),
+    challenges: getStoredChallengesForBackup(),
     settings: {
       lastBackupExport: getStorage<string | null>(
         STORAGE_KEYS.lastBackupExport,
@@ -80,6 +84,13 @@ export function getBackupData(): BackupData {
       localDataUpdatedAt: getLocalDataUpdatedAt(),
     },
   };
+}
+
+// Read without getStorage's repair-on-parse-error: never replace damaged challenges silently.
+function getStoredChallengesForBackup(): unknown {
+  if (typeof window === "undefined") return emptyChallenges();
+  const raw = localStorage.getItem(STORAGE_KEYS.challenges);
+  return raw === null ? emptyChallenges() : JSON.parse(raw);
 }
 
 function getObjectSize(value: unknown) {
@@ -103,7 +114,11 @@ export function getBackupDataSize(data: BackupData) {
     getArraySize(data.planning) +
     getObjectSize(data.trajectory) +
     getObjectSize(data.priorities) +
-    getArraySize(data.progressHistory)
+    getArraySize(data.progressHistory) +
+    // One attempt or custom template is meaningful data, beyond the existing <= 1 empty guard.
+    (isChallengesData(data.challenges)
+      ? 2 * (data.challenges.attempts.length + data.challenges.customTemplates.length)
+      : 0)
   );
 }
 
@@ -140,6 +155,10 @@ export function downloadJsonFile(fileName: string, content: BackupFile) {
 }
 
 export function importBackupData(data: BackupData) {
+  // Validate the optional extension before writing any existing feature's data.
+  if (data.challenges !== undefined && !isChallengesData(data.challenges)) {
+    throw new Error("Données de défis invalides : import annulé.");
+  }
   setStorage(STORAGE_KEYS.habits, data.habits);
   setStorage(STORAGE_KEYS.habitNames, data.habitNames);
   setStorage(STORAGE_KEYS.goals, data.goals);
@@ -150,6 +169,10 @@ export function importBackupData(data: BackupData) {
 
   if (data.progressHistory !== undefined) {
     setStorage(STORAGE_KEYS.progressHistory, data.progressHistory);
+  }
+
+  if (data.challenges !== undefined) {
+    setStorage(STORAGE_KEYS.challenges, data.challenges);
   }
 
   if (typeof data.settings?.lastBackupExport === "string") {
