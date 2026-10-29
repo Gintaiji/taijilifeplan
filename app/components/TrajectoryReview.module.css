@@ -1,0 +1,172 @@
+.page {
+  min-height: 100vh;
+  padding: 28px 20px 56px;
+  color: var(--dashboard-text-primary);
+}
+
+.container {
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+}
+
+.review { margin-top: 20px; width: 100%; }
+.introduction { margin-bottom: 24px; }
+.introduction h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.3;
+}
+
+.date, .helper {
+  color: var(--dashboard-text-muted);
+  line-height: 1.6;
+}
+.date { margin: 8px 0 0; font-size: 0.95rem; }
+.helper { margin: 0; font-size: 0.9rem; }
+.introduction .helper { margin-top: 12px; }
+
+.disclosure, .field, .tomorrow {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+}
+.disclosure summary {
+  min-height: 56px;
+  padding: 16px 20px;
+  cursor: pointer;
+  color: var(--dashboard-text-secondary);
+  line-height: 1.5;
+}
+.counter {
+  display: inline-block;
+  color: var(--dashboard-text-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+summary .counter { margin-left: 12px; }
+.disclosureBody { padding: 0 20px 20px; }
+
+.reflections { display: grid; gap: 20px; margin-top: 24px; }
+.field { display: grid; gap: 12px; padding: 22px; }
+.field > label { font-weight: 600; line-height: 1.5; }
+.field textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 180px;
+  padding: 16px;
+  border: 1px solid var(--field-border);
+  border-radius: var(--app-radius-sm);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.review button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--app-radius-sm);
+  white-space: normal;
+}
+.review .secondary {
+  background: transparent;
+  border-color: transparent;
+  color: var(--dashboard-text-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-align: left;
+}
+.review .secondary:hover { background: var(--control-button-background-hover); }
+
+.tomorrow { margin-top: 20px; padding: 22px; }
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sectionHeader h2 { margin: 0; font-size: 1.1rem; }
+.objectives {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.objective {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-muted);
+}
+.objectiveText {
+  flex: 1 1 180px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.objectiveTime, .status { font-size: 0.85rem; color: var(--dashboard-text-muted); }
+.completed { color: var(--dashboard-text-muted); text-decoration: line-through; }
+.timeField {
+  display: grid;
+  gap: 6px;
+  max-width: 100%;
+  font-size: 0.8rem;
+  color: var(--dashboard-text-muted);
+}
+.timeField input {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border-radius: var(--app-radius-sm);
+}
+
+.history { margin-top: 32px; }
+.historyDates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.historyDates button { width: 100%; text-align: left; }
+.consultation { display: grid; gap: 20px; margin-top: 24px; }
+.consultation :is(h3, h4) { margin: 0; font-size: 1rem; }
+.consultation p {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  color: var(--dashboard-text-secondary);
+}
+.review :is(button, input, textarea, summary):focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .page { padding: 20px 12px 40px; }
+  .field, .tomorrow { padding: 16px; }
+  .disclosure summary { padding: 16px; }
+  .disclosureBody { padding: 0 16px 16px; }
+  .field textarea { padding: 12px; }
+  .tomorrow .objectiveText { flex-basis: 100%; }
+}

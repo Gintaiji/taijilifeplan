@@ -3,234 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { getStorage, setStorage, STORAGE_KEYS } from "../utils/storage";
 
+import styles from "./TrajectoryReview.module.css";
+
 const TRAJECTORY_STORAGE_KEY = STORAGE_KEYS.trajectory;
 const DAILY_OBJECTIVES_STORAGE_KEY = STORAGE_KEYS.dailyObjectives;
-
-const sectionStyle = {
-  marginTop: "24px",
-  maxWidth: "720px",
-  width: "100%",
-};
-
-const dateStyle = {
-  margin: "8px 0 0 0",
-  color: "var(--dashboard-text-muted)",
-};
-
-const objectivesSectionStyle = {
-  marginTop: "24px",
-  border: "1px solid rgba(134, 239, 172, 0.16)",
-  borderRadius: "8px",
-  padding: "16px",
-  backgroundColor: "rgba(15, 23, 42, 0.86)",
-};
-
-const objectivesHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "12px",
-  flexWrap: "wrap" as const,
-};
-
-const objectivesTitleStyle = {
-  margin: 0,
-  color: "var(--dashboard-text-primary)",
-  fontSize: "20px",
-};
-
-const objectiveCounterStyle = {
-  width: "fit-content",
-  padding: "4px 9px",
-  border: "1px solid rgba(134, 239, 172, 0.18)",
-  borderRadius: "999px",
-  color: "var(--dashboard-text-accent)",
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const objectivesListStyle = {
-  listStyle: "none",
-  padding: 0,
-  margin: "16px 0 0 0",
-  display: "grid",
-  gap: "12px",
-};
-
-const objectiveItemStyle = {
-  display: "flex",
-  flexWrap: "wrap" as const,
-  gap: "12px",
-  alignItems: "center",
-  justifyContent: "space-between",
-  border: "1px solid rgba(134, 239, 172, 0.12)",
-  borderRadius: "8px",
-  padding: "12px",
-  backgroundColor: "rgba(19, 39, 29, 0.72)",
-};
-
-const objectiveCompletedItemStyle = {
-  ...objectiveItemStyle,
-  backgroundColor: "rgba(18, 34, 25, 0.92)",
-};
-
-const tomorrowObjectiveItemStyle = {
-  ...objectiveItemStyle,
-  display: "flex",
-  flexWrap: "wrap" as const,
-  justifyContent: "space-between",
-};
-
-const tomorrowObjectiveTextStyle = {
-  flex: "1 1 180px",
-  minWidth: 0,
-};
-
-const objectiveTimeStyle = {
-  color: "var(--dashboard-text-muted)",
-  fontWeight: 700,
-  flex: "0 1 90px",
-};
-
-const objectiveTextStyle = {
-  color: "var(--dashboard-text-primary)",
-  fontWeight: 700,
-  lineHeight: 1.4,
-  flex: "1 1 180px",
-  minWidth: 0,
-  overflowWrap: "anywhere" as const,
-};
-
-const objectiveCompletedTextStyle = {
-  ...objectiveTextStyle,
-  color: "var(--dashboard-text-muted)",
-  textDecoration: "line-through",
-};
-
-const objectiveStatusStyle = {
-  width: "fit-content",
-  padding: "4px 9px",
-  border: "1px solid rgba(134, 239, 172, 0.18)",
-  borderRadius: "999px",
-  color: "var(--dashboard-text-accent)",
-  fontSize: "12px",
-  fontWeight: 700,
-};
-
-const timeInputStyle = {
-  width: "min(130px, 100%)",
-  padding: "10px 12px",
-  border: "1px solid rgba(134, 239, 172, 0.15)",
-  borderRadius: "8px",
-  font: "inherit",
-};
-
-const formStyle = {
-  display: "grid",
-  gap: "16px",
-  marginTop: "24px",
-};
-
-const fieldStyle = {
-  border: "1px solid rgba(134, 239, 172, 0.16)",
-  borderRadius: "8px",
-  padding: "16px",
-  backgroundColor: "rgba(15, 23, 42, 0.86)",
-};
-
-const labelStyle = {
-  display: "block",
-  fontWeight: 600,
-  marginBottom: "8px",
-  color: "var(--dashboard-text-primary)",
-};
-
-const fieldHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap" as const,
-  marginBottom: "8px",
-};
-
-const fieldHeaderLabelStyle = {
-  ...labelStyle,
-  marginBottom: 0,
-};
-
-const prefillButtonStyle = {
-  fontSize: "14px",
-  padding: "8px 12px",
-};
-
-const textareaStyle = {
-  width: "100%",
-  minWidth: 0,
-  minHeight: "140px",
-  padding: "12px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
-  font: "inherit",
-  resize: "vertical" as const,
-};
-
-const historySectionStyle = {
-  marginTop: "32px",
-  color: "var(--dashboard-text-primary)",
-};
-
-const historyListStyle = {
-  listStyle: "none",
-  padding: 0,
-  margin: "16px 0 0 0",
-  display: "grid",
-  gap: "12px",
-};
-
-const historyButtonStyle = {
-  width: "100%",
-  textAlign: "left" as const,
-  borderRadius: "8px",
-  padding: "12px 16px",
-  cursor: "pointer",
-  font: "inherit",
-};
-
-const activeHistoryButtonStyle = {
-  ...historyButtonStyle,
-  fontWeight: 600,
-};
-
-const emptyTextStyle = {
-  marginTop: "16px",
-  color: "var(--dashboard-text-muted)",
-};
-
-const helperTextStyle = {
-  margin: "10px 0 0 0",
-  color: "var(--dashboard-text-muted)",
-  fontSize: "14px",
-};
-
-const consultationTitleStyle = {
-  margin: "24px 0 0 0",
-};
-
-const consultationBoxStyle = {
-  border: "1px solid rgba(134, 239, 172, 0.16)",
-  borderRadius: "8px",
-  padding: "16px",
-  marginTop: "16px",
-  display: "grid",
-  gap: "16px",
-  backgroundColor: "rgba(15, 23, 42, 0.86)",
-};
-
-const consultationTextStyle = {
-  margin: "8px 0 0 0",
-  whiteSpace: "pre-wrap" as const,
-};
 
 type TrajectoryState = {
   accomplishedToday: string;
@@ -769,270 +545,151 @@ export default function TrajectoryReview() {
   }
 
   return (
-    <section style={sectionStyle}>
-      <p style={dateStyle}>Aujourd&apos;hui : {today}</p>
+    <section className={styles.review} aria-busy={!isStorageLoaded} aria-label="Bilan quotidien">
+      <header className={styles.introduction}>
+        <h2>Aujourd&apos;hui, je fais le point.</h2>
+        <p className={styles.date}>{isStorageLoaded ? today : "Chargement du bilan…"}</p>
+        <p className={styles.helper}>Quelques mots suffisent. Tes textes sont enregistrés automatiquement.</p>
+      </header>
 
-      <section style={objectivesSectionStyle}>
-        <div style={objectivesHeaderStyle}>
-          <h2 style={objectivesTitleStyle}>Objectifs du jour</h2>
-          {isStorageLoaded ? (
-            <span style={objectiveCounterStyle}>
-              {completedObjectivesCount}/{dailyObjectives.length} faits
-            </span>
-          ) : null}
+      <details className={styles.disclosure}>
+        <summary>
+          Objectifs du jour
+          {isStorageLoaded && <span className={styles.counter}>{completedObjectivesCount}/{dailyObjectives.length} réalisés</span>}
+        </summary>
+        <div className={styles.disclosureBody}>
+          {!isStorageLoaded ? <p className={styles.helper}>Chargement des objectifs…</p>
+            : dailyObjectives.length === 0 ? <p className={styles.helper}>Aucun objectif prévu aujourd&apos;hui.</p>
+            : (
+              <ul className={styles.objectives}>
+                {dailyObjectives.map((objective) => (
+                  <li key={objective.id} className={styles.objective}>
+                    <span className={styles.objectiveTime}>{objective.time || "Sans heure"}</span>
+                    <span className={`${styles.objectiveText} ${objective.completed ? styles.completed : ""}`}>{objective.label}</span>
+                    <span className={styles.status}>{objective.completed ? "Réalisé" : "À faire"}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
         </div>
+      </details>
 
-        {!isStorageLoaded ? (
-          <p style={emptyTextStyle}>Chargement des objectifs...</p>
-        ) : dailyObjectives.length === 0 ? (
-          <p style={emptyTextStyle}>
-            Aucun objectif du jour pour l&apos;instant.
-          </p>
-        ) : (
-          <ul style={objectivesListStyle}>
-            {dailyObjectives.map((objective) => (
-              <li
-                key={objective.id}
-                style={
-                  objective.completed
-                    ? objectiveCompletedItemStyle
-                    : objectiveItemStyle
-                }
-              >
-                <span style={objectiveTimeStyle}>
-                  {objective.time || "Sans heure"}
-                </span>
-                <span
-                  style={
-                    objective.completed
-                      ? objectiveCompletedTextStyle
-                      : objectiveTextStyle
-                  }
-                >
-                  {objective.label}
-                </span>
-                <span style={objectiveStatusStyle}>
-                  {objective.completed ? "Fait" : "Non fait"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section style={objectivesSectionStyle}>
-        <div style={objectivesHeaderStyle}>
-          <div>
-            <h2 style={objectivesTitleStyle}>Objectifs de demain</h2>
-            <p style={dateStyle}>{formatDate(tomorrowKey)}</p>
-          </div>
-          {isStorageLoaded ? (
-            <span style={objectiveCounterStyle}>
-              {tomorrowObjectives.length}/3 prevus
-            </span>
-          ) : null}
-        </div>
-
-        {!isStorageLoaded ? (
-          <p style={emptyTextStyle}>Chargement de demain...</p>
-        ) : tomorrowObjectives.length === 0 ? (
-          <p style={emptyTextStyle}>
-            Aucun objectif prepare pour demain.
-          </p>
-        ) : (
-          <ul style={objectivesListStyle}>
-            {tomorrowObjectives.map((objective) => (
-              <li key={objective.id} style={tomorrowObjectiveItemStyle}>
-                <input
-                  type="time"
-                  value={objective.time}
-                  onChange={(event) =>
-                    handleTomorrowObjectiveTimeChange(
-                      objective.id,
-                      event.target.value,
-                    )
-                  }
-                  aria-label={`Heure prevue pour ${objective.label}`}
-                  style={timeInputStyle}
-                />
-                <span
-                  style={
-                    objective.completed
-                      ? {
-                          ...objectiveCompletedTextStyle,
-                          ...tomorrowObjectiveTextStyle,
-                        }
-                      : {
-                          ...objectiveTextStyle,
-                          ...tomorrowObjectiveTextStyle,
-                        }
-                  }
-                >
-                  {objective.label}
-                </span>
-                <span style={objectiveStatusStyle}>
-                  {objective.completed ? "Fait" : "Non fait"}
-                </span>
-                <button
-                  type="button"
-                  className="control-button control-button-danger"
-                  style={prefillButtonStyle}
-                  onClick={() => handleDeleteTomorrowObjective(objective.id)}
-                >
-                  Supprimer
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <div style={formStyle}>
-        <div style={fieldStyle}>
-          <div style={fieldHeaderStyle}>
-            <label htmlFor="accomplishedToday" style={fieldHeaderLabelStyle}>
-              Ce que j&apos;ai fait aujourd&apos;hui
-            </label>
-            <button
-              type="button"
-              className="control-button"
-              style={prefillButtonStyle}
+      <div className={styles.reflections}>
+        <div className={styles.field}>
+          <label htmlFor="accomplishedToday">Ce que j&apos;ai accompli aujourd&apos;hui</label>
+          <p id="accomplished-help" className={styles.helper}>Une avancée, un effort, une petite victoire…</p>
+          <textarea id="accomplishedToday" rows={6} disabled={!isStorageLoaded}
+            aria-describedby="accomplished-help" value={todayEntry.accomplishedToday}
+            onChange={(event) => handleFieldChange("accomplishedToday", event.target.value)} />
+          <div className={styles.actions}>
+            <button type="button" className={`control-button ${styles.secondary}`}
               disabled={!isStorageLoaded || completedObjectives.length === 0}
-              onClick={() =>
-                handlePrefillField("accomplishedToday", completedObjectives)
-              }
-            >
-              Ajouter les objectifs faits
+              onClick={() => handlePrefillField("accomplishedToday", completedObjectives)}>
+              Ajouter les objectifs réalisés
             </button>
           </div>
-          <textarea
-            id="accomplishedToday"
-            style={textareaStyle}
-            value={todayEntry.accomplishedToday}
-            onChange={(event) =>
-              handleFieldChange("accomplishedToday", event.target.value)
-            }
-          />
         </div>
 
-        <div style={fieldStyle}>
-          <div style={fieldHeaderStyle}>
-            <label htmlFor="notDoneToday" style={fieldHeaderLabelStyle}>
-              Ce qui reste a faire
-            </label>
-            <button
-              type="button"
-              className="control-button"
-              style={prefillButtonStyle}
+        <div className={styles.field}>
+          <label htmlFor="notDoneToday">Ce qu&apos;il me reste à faire</label>
+          <p id="not-done-help" className={styles.helper}>Ce qui attend encore, sans te juger.</p>
+          <textarea id="notDoneToday" rows={6} disabled={!isStorageLoaded}
+            aria-describedby="not-done-help" value={todayEntry.notDoneToday}
+            onChange={(event) => handleFieldChange("notDoneToday", event.target.value)} />
+          <div className={styles.actions}>
+            <button type="button" className={`control-button ${styles.secondary}`}
               disabled={!isStorageLoaded || unfinishedObjectives.length === 0}
-              onClick={() =>
-                handlePrefillField("notDoneToday", unfinishedObjectives)
-              }
-            >
+              onClick={() => handlePrefillField("notDoneToday", unfinishedObjectives)}>
               Ajouter les objectifs restants
             </button>
           </div>
-          <textarea
-            id="notDoneToday"
-            style={textareaStyle}
-            value={todayEntry.notDoneToday}
-            onChange={(event) => handleFieldChange("notDoneToday", event.target.value)}
-          />
         </div>
 
-        <div style={fieldStyle}>
-          <div style={fieldHeaderStyle}>
-            <label htmlFor="decideForTomorrow" style={fieldHeaderLabelStyle}>
-              Ce que je choisis pour demain
-            </label>
-            <button
-              type="button"
-              className="control-button"
-              style={prefillButtonStyle}
-              disabled={
-                !isStorageLoaded || todayEntry.decideForTomorrow.trim() === ""
-              }
-              onClick={handlePrepareTomorrowObjectives}
-            >
-              Preparer demain
-            </button>
-          </div>
-          <textarea
-            id="decideForTomorrow"
-            style={textareaStyle}
-            value={todayEntry.decideForTomorrow}
+        <div className={styles.field}>
+          <label htmlFor="decideForTomorrow">Ce que je décide pour demain</label>
+          <p id="tomorrow-help" className={styles.helper}>Qu&apos;est-ce qui compte pour demain ? Une décision par ligne, jusqu&apos;à trois objectifs.</p>
+          <textarea id="decideForTomorrow" rows={6} disabled={!isStorageLoaded}
+            aria-describedby="tomorrow-help" value={todayEntry.decideForTomorrow}
             onChange={(event) => {
               setTomorrowPreparationMessage("");
               handleFieldChange("decideForTomorrow", event.target.value);
-            }}
-          />
-          {tomorrowPreparationMessage !== "" ? (
-            <p style={helperTextStyle}>{tomorrowPreparationMessage}</p>
-          ) : null}
+            }} />
+          <div className={styles.actions}>
+            <button type="button" className="control-button"
+              disabled={!isStorageLoaded || todayEntry.decideForTomorrow.trim() === ""}
+              onClick={handlePrepareTomorrowObjectives}>Préparer demain</button>
+          </div>
+          <p className={styles.helper}>Les objectifs déjà préparés et leurs horaires sont conservés.</p>
+          {tomorrowPreparationMessage !== "" && <p className={styles.helper} role="status">{tomorrowPreparationMessage}</p>}
         </div>
       </div>
 
-      <section style={historySectionStyle}>
-        <h2>Derniers points</h2>
-
-        {!isStorageLoaded ? (
-          <p style={emptyTextStyle}>Chargement des derniers points...</p>
-        ) : savedDates.length === 0 ? (
-          <p style={emptyTextStyle}>Aucun point pour l&apos;instant.</p>
-        ) : (
-          <ul style={historyListStyle}>
-            {savedDates.map((dateKey) => (
-              <li key={dateKey}>
-                <button
-                  type="button"
-                  className={
-                    consultationDate === dateKey
-                      ? "control-button control-button-active"
-                      : "control-button"
-                  }
-                  style={
-                    consultationDate === dateKey
-                      ? activeHistoryButtonStyle
-                      : historyButtonStyle
-                  }
-                  onClick={() => setSelectedDate(dateKey)}
-                >
-                  {formatDate(dateKey)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {isStorageLoaded && savedDates.length > 0 && (
-          <>
-            <h3 style={consultationTitleStyle}>Point du {formatDate(consultationDate)}</h3>
-
-            <div style={consultationBoxStyle}>
-              <div>
-                <strong>Ce que j&apos;ai fait</strong>
-                <p style={consultationTextStyle}>
-                  {consultationEntry.accomplishedToday || "Rien note."}
-                </p>
-              </div>
-
-              <div>
-                <strong>Ce qui reste</strong>
-                <p style={consultationTextStyle}>
-                  {consultationEntry.notDoneToday || "Rien note."}
-                </p>
-              </div>
-
-              <div>
-                <strong>Ce que je choisis pour demain</strong>
-                <p style={consultationTextStyle}>
-                  {consultationEntry.decideForTomorrow || "Rien note."}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
+      <section className={styles.tomorrow} aria-labelledby="tomorrow-title">
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2 id="tomorrow-title">Objectifs de demain</h2>
+            {isStorageLoaded && <p className={styles.date}>{formatDate(tomorrowKey)}</p>}
+          </div>
+          {isStorageLoaded && <span className={styles.counter}>{tomorrowObjectives.length}/3 prévus</span>}
+        </div>
+        {!isStorageLoaded ? <p className={styles.helper}>Chargement de demain…</p>
+          : tomorrowObjectives.length === 0 ? <p className={styles.helper}>Tes objectifs apparaîtront ici après « Préparer demain ».</p>
+          : (
+            <ul className={styles.objectives}>
+              {tomorrowObjectives.map((objective) => (
+                <li key={objective.id} className={styles.objective}>
+                  <span className={`${styles.objectiveText} ${objective.completed ? styles.completed : ""}`}>{objective.label}</span>
+                  <label className={styles.timeField} htmlFor={`tomorrow-time-${objective.id}`}>
+                    Heure prévue
+                    <input id={`tomorrow-time-${objective.id}`} type="time" value={objective.time}
+                      aria-label={`Heure prévue pour ${objective.label}`}
+                      onChange={(event) => handleTomorrowObjectiveTimeChange(objective.id, event.target.value)} />
+                  </label>
+                  <span className={styles.status}>{objective.completed ? "Réalisé" : "À faire"}</span>
+                  <button type="button" className="control-button control-button-danger"
+                    aria-label={`Supprimer l'objectif de demain : ${objective.label}`}
+                    onClick={() => handleDeleteTomorrowObjective(objective.id)}>Supprimer</button>
+                </li>
+              ))}
+            </ul>
+          )}
       </section>
+
+      <details className={`${styles.disclosure} ${styles.history}`}>
+        <summary>Historique des bilans</summary>
+        <div className={styles.disclosureBody}>
+          {!isStorageLoaded ? <p className={styles.helper}>Chargement des bilans…</p>
+            : savedDates.length === 0 ? <p className={styles.helper}>Tes bilans seront conservés ici.</p>
+            : (
+              <>
+                <ul className={styles.historyDates} aria-label="Choisir un bilan">
+                  {savedDates.map((dateKey) => (
+                    <li key={dateKey}>
+                      <button type="button" aria-pressed={consultationDate === dateKey}
+                        className={consultationDate === dateKey ? "control-button control-button-active" : "control-button"}
+                        onClick={() => setSelectedDate(dateKey)}>{formatDate(dateKey)}</button>
+                    </li>
+                  ))}
+                </ul>
+                <article className={styles.consultation} aria-label={`Bilan du ${formatDate(consultationDate)}`}>
+                  <h3>Point du {formatDate(consultationDate)}</h3>
+                  <div>
+                    <h4>Ce que j&apos;ai accompli</h4>
+                    <p>{consultationEntry.accomplishedToday || "Rien noté."}</p>
+                  </div>
+                  <div>
+                    <h4>Ce qu&apos;il me reste à faire</h4>
+                    <p>{consultationEntry.notDoneToday || "Rien noté."}</p>
+                  </div>
+                  <div>
+                    <h4>Ce que je décide pour demain</h4>
+                    <p>{consultationEntry.decideForTomorrow || "Rien noté."}</p>
+                  </div>
+                </article>
+              </>
+            )}
+        </div>
+      </details>
     </section>
   );
 }

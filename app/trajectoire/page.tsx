@@ -1,26 +1,13 @@
 import TrajectoryReview from "../components/TrajectoryReview";
-
-const pageStyle = {
-  minHeight: "100vh",
-  padding: "clamp(16px, 5vw, 24px)",
-  background: "linear-gradient(180deg, #08110d 0%, #0a0a0a 100%)",
-  color: "var(--dashboard-text-primary)",
-};
-
-const introStyle = {
-  marginTop: "8px",
-  color: "var(--dashboard-text-secondary)",
-  lineHeight: 1.6,
-};
+import styles from "../components/TrajectoryReview.module.css";
 
 export default function TrajectoirePage() {
   return (
-    <main style={pageStyle}>
-      <h1>Correcteur de trajectoire</h1>
-      <p style={introStyle}>
-        Fais le point, puis choisis la suite.
-      </p>
-      <TrajectoryReview />
+    <main className={styles.page}>
+      <div className={styles.container}>
+        <h1 className={styles.pageTitle}>Correcteur de trajectoire</h1>
+        <TrajectoryReview />
+      </div>
     </main>
   );
 }
