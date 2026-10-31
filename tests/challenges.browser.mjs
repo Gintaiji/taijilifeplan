@@ -99,7 +99,7 @@ try {
     await waitFor(`document.querySelector('output').textContent.startsWith('${i + 1} /')`);
   }
   assert.equal((await saved()).attempts[0].progress, 3);
-  assert.ok(await evaluate(`document.querySelector('section[aria-label="Défis de progression"]').textContent.includes('Défi accompli')`));
+  assert.ok(await evaluate(`document.querySelector('section[aria-label="Défis de progression"]').textContent.includes('Objectif atteint')`));
   await click('Ajuster la cible');
   await fill('input[name="target"]', '5');
   await click('Modifier la cible');
@@ -248,10 +248,62 @@ try {
   assert.equal(accepted.attempts.at(-1).id, finalDraw.offers.at(-1).template.id);
   assert.equal(accepted.surpriseDays[drawDate].offers.at(-1).status, 'accepted');
   assert.equal(accepted.attempts.filter(a=>a.slot==='main'&&!a.closed).length, 1);
+  // Official closure uses the existing note field in the automatically opened history.
+  const currentId = accepted.attempts.at(-1).instanceId;
+  await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('taiji-life-plan-challenges'));
+    const a = data.attempts.find(a=>a.instanceId===${JSON.stringify(currentId)});
+    a.target=5; a.progress=4;
+    localStorage.setItem('taiji-life-plan-challenges',JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('taiji-life-plan-storage-changed',{detail:{key:'taiji-life-plan-challenges'}}));
+  })()`);
+  await waitFor(`document.querySelector('section[aria-label="Défis de progression"] > article output')?.textContent.includes('4 / 5')`);
+  assert.ok(!await evaluate(`[...document.querySelectorAll('button')].some(b=>b.textContent==='Valider mon défi')`));
+  await evaluate(`document.querySelector('button[aria-label^="Augmenter la progression"]').click()`);
+  await click('Valider mon défi');
+  await waitFor(`document.activeElement?.tagName === 'TEXTAREA'`);
+  assert.equal((await saved()).attempts.at(-1).closed, true);
+  assert.equal((await saved()).attempts.at(-1).progress, 5);
+  assert.ok(await evaluate(`document.querySelector('section[aria-label="Défis de progression"] > article').textContent.includes('Choisir un défi')`));
+  for (const width of [320,390]) {
+    await send('Emulation.setDeviceMetricsOverride', {width,height:844,deviceScaleFactor:1,mobile:true});
+    assert.ok(await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`));
+  }
+  await evaluate(`document.activeElement.id='validated-note'`);
+  await fill('#validated-note', 'Ma réflexion après réussite.');
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts.at(-1).note === 'Ma réflexion après réussite.'`);
+  await send('Page.reload');
+  await waitFor(`document.querySelector('section[aria-label="Défis de progression"][aria-busy="false"]')`);
+  assert.equal((await saved()).attempts.at(-1).note, 'Ma réflexion après réussite.');
+  await click('Revoir mes progrès');
+  await click('Modifier ma réflexion');
+  await fill('section[aria-label="Défis de progression"] article textarea', 'Réflexion modifiée.');
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts.at(-1).note === 'Réflexion modifiée.'`);
+  await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('taiji-life-plan-challenges'));
+    const base = data.attempts.at(-1);
+    data.attempts.push({...base, instanceId:'early-week-validation', slot:'week', endDate:${JSON.stringify(weekly.endDate)}, closed:false, progress:5, target:5, note:''});
+    localStorage.setItem('taiji-life-plan-challenges',JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('taiji-life-plan-storage-changed',{detail:{key:'taiji-life-plan-challenges'}}));
+  })()`);
+  await click('Valider mon défi');
+  await waitFor(`document.activeElement?.tagName === 'TEXTAREA' && document.activeElement.value === ''`);
+  assert.equal((await saved()).attempts.at(-1).closed, true, 'weekly validation frees slot before period end');
+  assert.equal((await saved()).attempts.at(-1).note, '', 'reflection may stay empty');
+  await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('taiji-life-plan-challenges'));
+    data.attempts.push({...data.attempts.at(-1), instanceId:'abandoned', slot:'main', closed:false, progress:4});
+    localStorage.setItem('taiji-life-plan-challenges',JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('taiji-life-plan-storage-changed',{detail:{key:'taiji-life-plan-challenges'}}));
+  })()`);
+  await click('Ajuster la cible');
+  await click('Archiver ce défi');
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts.at(-1).closed`);
+  assert.equal((await saved()).attempts.at(-1).progress, 4, 'unsuccessful archival keeps progress');
   assert.ok(await evaluate(`document.documentElement.scrollWidth <= window.innerWidth`), 'no overflow on 390px screen');
   assert.ok(await evaluate(`[...document.querySelectorAll('section[aria-label="Défis de progression"] button')].filter(e=>e.getClientRects().length).every(e=>e.getBoundingClientRect().height >= 44)`), 'comfortable touch controls');
   assert.deepEqual(errors, [], 'no browser exceptions');
-  console.log('Browser PASS: actions/results/history/91B; Surprise reveal, persistent draw and joker, no attempt before acceptance, refusal/alternative, voluntary activation, reduced motion, 320px/390px mobile.');
+  console.log('Browser PASS: actions/results/history/91B/Surprise; 92B daily and weekly validation, 4/5 guard, focus, optional reflection, persistence and editing, unsuccessful archival; 320px/390px mobile.');
 } finally {
   await send('Browser.close').catch(() => {});
   socket.close();

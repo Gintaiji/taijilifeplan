@@ -61,3 +61,5 @@
 .preview { border-color: #86efac; overflow-wrap: anywhere; }
 .section .primary { background: #86efac; color: #10251a; font-weight: 700; flex: 1; }
 .preview .actions button { flex-grow: 1; }
+.validated { border-left: 2px solid #86efac; padding-inline: 12px; animation: reveal .18s ease-out; }
+@media (prefers-reduced-motion: reduce) { .validated { animation: none; } }

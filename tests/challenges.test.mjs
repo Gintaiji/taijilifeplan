@@ -65,6 +65,27 @@ const today = '2026-10-29';
 const template = c.CHALLENGE_TEMPLATES[0];
 function attempted() { return c.startChallenge(c.emptyChallenges(), template, 'main', 3, today, 'attempt-1'); }
 function saveAttempt() { s.setStorage(s.STORAGE_KEYS.challenges, attempted()); }
+test('92B: validation guards, daily and early weekly closure preserve notes and results', () => {
+  for (const slot of ['main', 'week']) {
+    let data = c.startChallenge(c.emptyChallenges(), template, slot, 5, today, 'validate');
+    data = c.updateChallenge(data, 'validate', { progress: 4, note: 'Réflexion' });
+    data = c.stepChallengeResult(data, 'validate', 'conversations', 1);
+    const before = structuredClone(data);
+    assert.throws(() => c.validateChallenge(data, 'validate', today));
+    assert.deepEqual(data, before);
+    data = c.updateChallenge(data, 'validate', { progress: 5 });
+    const reached = data.attempts[0];
+    data = c.validateChallenge(data, 'validate', today);
+    assert.deepEqual(data.attempts[0], { ...reached, closed: true });
+    assert.equal(c.isCurrentChallenge(data.attempts[0], today), false);
+    assert.equal(c.challengeStatus(data.attempts[0], today), 'Terminé');
+    assert.throws(() => c.validateChallenge(data, 'validate', today));
+    assert.ok(c.isChallengesData(JSON.parse(JSON.stringify(data))));
+  }
+  const archived = c.updateChallenge(attempted(), 'attempt-1', { closed: true });
+  assert.equal(c.challengeStatus(archived.attempts[0], today), 'Non terminé');
+  assert.throws(() => c.validateChallenge(archived, 'attempt-1', today));
+});
 beforeEach(() => { values.clear(); cloud = null; writes = 0; failRead = false; failWrite = false; });
 
 test('36 stable templates cover all categories and levels with concrete criteria', () => {

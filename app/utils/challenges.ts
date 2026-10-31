@@ -186,6 +186,14 @@ export function startChallenge(data: ChallengesData, template: ChallengeTemplate
     { ...template, ...challengePeriod(slot, today), date: today, instanceId, slot, target, progress: 0, note: "", closed: false },
   ] };
 }
+export function validateChallenge(data: ChallengesData, id: string, today: string): ChallengesData {
+  const attempt = data.attempts.find((a) => a.instanceId === id);
+  if (!attempt || !isCurrentChallenge(attempt, today) || challengeStatus(attempt, today) !== "Terminé") {
+    throw new Error("La validation nécessite un défi actif dont l’objectif est atteint.");
+  }
+  return updateChallenge(data, id, { closed: true });
+}
+
 export function updateChallenge(data: ChallengesData, id: string, patch: Partial<Pick<ChallengeAttempt, "target" | "progress" | "note" | "closed">>): ChallengesData {
   if (patch.target !== undefined && !isChallengeQuantity(patch.target)) throw new Error("Cible invalide.");
   if (patch.progress !== undefined && (!Number.isSafeInteger(patch.progress) || patch.progress < 0 || patch.progress > 1000000)) throw new Error("Progression invalide.");

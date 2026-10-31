@@ -7,7 +7,7 @@ import { APP_STORAGE_CHANGED_EVENT, setStorage, STORAGE_KEYS, type AppStorageCha
 import {
   CHALLENGE_CATEGORIES, CHALLENGE_LEVELS, CHALLENGE_TEMPLATES,
   challengeStatus, dateKey, emptyChallenges, isChallengeQuantity, isChallengesData,
-  isCurrentChallenge, startChallenge, updateChallenge,
+  isCurrentChallenge, startChallenge, updateChallenge, validateChallenge,
   CHALLENGE_RESULT_LABELS, canTrackChallengeResults, stepChallengeResult,
   type ChallengeResultKey,
   type ChallengeAttempt, type ChallengesData, type ChallengeSlot, type ChallengeTemplate,
@@ -38,9 +38,28 @@ export default function ProgressChallenges() {
   const [selected, setSelected] = useState<ChallengeTemplate | null>(null);
   const [target, setTarget] = useState("1");
   const [historyLimit, setHistoryLimit] = useState(10);
+  const [reflectionId, setReflectionId] = useState<string | null>(null);
+  const historyRef = useRef<HTMLDetailsElement>(null);
+  const reflectionRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLFormElement>(null);
   const libraryRef = useRef<HTMLDetailsElement>(null);
   const activeRefs = useRef<Partial<Record<ChallengeSlot, HTMLElement | null>>>({});
+
+  useEffect(() => {
+    if (reflectionId) {
+      if (historyRef.current) historyRef.current.open = true;
+      reflectionRef.current?.focus({ preventScroll: true });
+      reflectionRef.current?.scrollIntoView({ block: "center" });
+    }
+  }, [reflectionId]);
+
+  function validate(id: string) {
+    if (commit((current) => validateChallenge(current, id, dateKey()))) {
+      setHistoryLimit((limit) => Math.max(limit, data?.attempts.length ?? 0));
+      setReflectionId(id);
+      setMessage("Défi validé !");
+    }
+  }
 
   function openLibrary(destination: ChallengeSlot) {
     setSlot(destination); setSelected(null); setCategory(""); setLevel("");
@@ -169,6 +188,7 @@ export default function ProgressChallenges() {
           return <article key={key} ref={(node) => { activeRefs.current[key] = node; }} tabIndex={-1} className={styles.card}>
             <h3>{slotLabels[key]}</h3>
             {attempt ? <AttemptCard key={attempt.instanceId} attempt={attempt} today={today}
+              onValidate={() => validate(attempt.instanceId)}
               onChange={(patch) => commit((current) => updateChallenge(current, attempt.instanceId, patch))}
               onStep={(delta) => commit((current) => {
                 const latest = current.attempts.find((a) => a.instanceId === attempt.instanceId);
@@ -232,18 +252,19 @@ export default function ProgressChallenges() {
 
 
 
-        <details className={styles.disclosure}>
+        <details ref={historyRef} className={styles.disclosure}>
           <summary>Revoir mes progrès · {attempts.length} défi{attempts.length > 1 ? "s" : ""} tenté{attempts.length > 1 ? "s" : ""}</summary>
           <div className={styles.body}>
             {attempts.length === 0 && <p className={styles.muted}>Tes défis apparaîtront ici dès que tu en choisis un.</p>}
-            {attempts.slice(0, historyLimit).map((a) => <article className={styles.history} key={a.instanceId}>
+            {attempts.slice(0, historyLimit).map((a) => <article className={`${styles.history} ${reflectionId === a.instanceId ? styles.validated : ""}`} key={a.instanceId}>
+              {reflectionId === a.instanceId && <p role="status" className={styles.success}>Défi validé !</p>}
               <strong>{a.title}</strong>
               <p>{formatDate(a.date)}{a.slot === "week" ? ` au ${formatDate(a.endDate)}` : ""} · {slotLabels[a.slot]}</p>
-              <p>{a.progress} / {a.target} {a.unit} · <span className={a.progress >= a.target ? styles.success : ""}>{challengeStatus(a, today) === "Terminé" ? "Défi accompli" : challengeStatus(a, today)}</span></p>
+              <p>{a.progress} / {a.target} {a.unit} · <span className={a.progress >= a.target ? styles.success : ""}>{challengeStatus(a, today) === "Terminé" ? (a.closed ? "Clôturé · réussi" : "Objectif atteint") : challengeStatus(a, today)}</span></p>
               <ResultsCounters attempt={a} history onStep={(field, delta) => commit((current) => stepChallengeResult(current, a.instanceId, field, delta))} />
               {a.note && <p className={styles.note}>{a.note}</p>}
-              <details><summary>{a.note ? "Modifier ma réflexion" : "Ajouter une réflexion"}</summary>
-                <label>Qu’est-ce que ce défi m’a appris ?<textarea rows={3} maxLength={5000} value={a.note}
+              <details open={reflectionId === a.instanceId ? true : undefined}><summary>{a.note ? "Modifier ma réflexion" : "Ajouter une réflexion"}</summary>
+                <label>Qu’est-ce que ce défi m’a appris ?<textarea ref={reflectionId === a.instanceId ? reflectionRef : undefined} placeholder="Facultatif" rows={3} maxLength={5000} value={a.note}
                   onChange={(e) => commit((current) => updateChallenge(current, a.instanceId, { note: e.target.value }))} /></label>
               </details>
             </article>)}
@@ -255,10 +276,11 @@ export default function ProgressChallenges() {
   );
 }
 
-function AttemptCard({ attempt: a, today, onChange, onStep, children }: {
+function AttemptCard({ attempt: a, today, onChange, onStep, onValidate, children }: {
   attempt: ChallengeAttempt; today: string;
   onChange: (patch: Partial<Pick<ChallengeAttempt, "target" | "progress" | "note" | "closed">>) => boolean;
   onStep: (delta: number) => boolean;
+  onValidate: () => void;
   children: React.ReactNode;
 }) {
   return <div className={styles.attempt}>
@@ -271,7 +293,8 @@ function AttemptCard({ attempt: a, today, onChange, onStep, children }: {
       <button type="button" aria-label={`Augmenter la progression : ${a.title}`} disabled={a.progress >= 1000000} onClick={() => onStep(1)}>+</button>
     </div>
     <progress aria-label={`Progression : ${a.title}`} max={a.target} value={Math.min(a.progress, a.target)} />
-    <span role="status" className={a.progress >= a.target ? styles.success : styles.muted}>{challengeStatus(a, today) === "Terminé" ? "Défi accompli" : challengeStatus(a, today)}</span>
+    <span role="status" className={a.progress >= a.target ? styles.success : styles.muted}>{challengeStatus(a, today) === "Terminé" ? "Objectif atteint" : challengeStatus(a, today)}</span>
+    {challengeStatus(a, today) === "Terminé" && <div className={styles.actions}><button type="button" className={styles.primary} onClick={onValidate}>Valider mon défi</button></div>}
     {children}
     <details>
       <summary>Ajuster la cible et réfléchir</summary>
@@ -285,7 +308,7 @@ function AttemptCard({ attempt: a, today, onChange, onStep, children }: {
       <label className={styles.reflection}>Qu’est-ce que ce défi m’a appris ?
         <textarea rows={3} value={a.note} placeholder="Facultatif" maxLength={5000} onChange={(e) => onChange({ note: e.target.value })} />
       </label>
-      <button type="button" onClick={() => onChange({ closed: true })}>Archiver ce défi</button>
+      {challengeStatus(a, today) !== "Terminé" && <button type="button" onClick={() => onChange({ closed: true })}>Archiver ce défi</button>}
     </details>
   </div>;
 }
