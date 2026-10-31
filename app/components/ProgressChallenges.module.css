@@ -55,3 +55,9 @@
 .suggestion button { font-size: .85rem; background: transparent; color: #86efac; }
 .section :is(button, input, select, textarea, summary):focus-visible { outline: 2px solid #86efac; outline-offset: 3px; }
 @media (max-width: 540px) { .filters { grid-template-columns: 1fr; } .card { padding: 16px; } }
+
+.library[hidden] { display: none; }
+.card, .disclosure { scroll-margin-block: 24px 100px; }
+.preview { border-color: #86efac; overflow-wrap: anywhere; }
+.section .primary { background: #86efac; color: #10251a; font-weight: 700; flex: 1; }
+.preview .actions button { flex-grow: 1; }

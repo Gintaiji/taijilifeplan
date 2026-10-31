@@ -39,6 +39,25 @@ export default function ProgressChallenges() {
   const [target, setTarget] = useState("1");
   const [historyLimit, setHistoryLimit] = useState(10);
   const previewRef = useRef<HTMLFormElement>(null);
+  const libraryRef = useRef<HTMLDetailsElement>(null);
+  const activeRefs = useRef<Partial<Record<ChallengeSlot, HTMLElement | null>>>({});
+
+  function openLibrary(destination: ChallengeSlot) {
+    setSlot(destination); setSelected(null); setCategory(""); setLevel("");
+    if (libraryRef.current) {
+      libraryRef.current.open = true;
+      libraryRef.current.scrollIntoView({ block: "start" });
+      libraryRef.current.querySelector("summary")?.focus();
+    }
+  }
+
+  useEffect(() => {
+    if (selected) {
+      if (libraryRef.current) libraryRef.current.open = true;
+      previewRef.current?.focus();
+      previewRef.current?.scrollIntoView({ block: "start" });
+    }
+  }, [selected]);
 
   useEffect(() => {
     let mounted = true;
@@ -91,8 +110,17 @@ export default function ProgressChallenges() {
     if (!selected) return;
     const quantity = Number(target);
     if (!isChallengeQuantity(quantity)) { setError("Choisis une cible entière entre 1 et 1 000 000."); return; }
-    if (commit((current) => startChallenge(current, selected, slot, quantity, dateKey(), crypto.randomUUID()))) {
-      setSelected(null); setMessage("Défi choisi. Tu peux commencer à ton rythme.");
+    if (commit((current) => {
+      const active = current.attempts.find((a) => a.slot === slot && isCurrentChallenge(a, dateKey()));
+      if (active && !window.confirm(`Remplacer « ${active.title} » (${active.progress} / ${active.target} ${active.unit}) ? Son historique et sa progression seront conservés.`)) throw new Error("Remplacement annulé. Le défi actif est conservé.");
+      return startChallenge(current, selected, slot, quantity, dateKey(), crypto.randomUUID());
+    })) {
+      setSelected(null); setMessage("Défi activé. Tu peux commencer à ton rythme.");
+      if (libraryRef.current) libraryRef.current.open = false;
+      requestAnimationFrame(() => {
+        activeRefs.current[slot]?.focus();
+        activeRefs.current[slot]?.scrollIntoView({ block: "start" });
+      });
     }
   }
   function createCustom(event: React.FormEvent<HTMLFormElement>) {
@@ -138,7 +166,7 @@ export default function ProgressChallenges() {
         {(["main", "bonus", "week"] as ChallengeSlot[]).map((key) => {
           const attempt = data.attempts.find((a) => a.slot === key && isCurrentChallenge(a, today));
           if (key === "bonus" && !attempt) return null;
-          return <article key={key} className={styles.card}>
+          return <article key={key} ref={(node) => { activeRefs.current[key] = node; }} tabIndex={-1} className={styles.card}>
             <h3>{slotLabels[key]}</h3>
             {attempt ? <AttemptCard key={attempt.instanceId} attempt={attempt} today={today}
               onChange={(patch) => commit((current) => updateChallenge(current, attempt.instanceId, patch))}
@@ -148,11 +176,11 @@ export default function ProgressChallenges() {
                 return updateChallenge(current, latest.instanceId, { progress: Math.min(1000000, Math.max(0, latest.progress + delta)) });
               })}>
                 <ResultsCounters attempt={attempt} onStep={(field, delta) => commit((current) => stepChallengeResult(current, attempt.instanceId, field, delta))} />
-              </AttemptCard> : <p className={styles.muted}>{key === "week" ? "Choisis un défi plus ambitieux, à réaliser d’ici dimanche." : "Choisis un défi dans la bibliothèque ci-dessous."}</p>}
+              </AttemptCard> : <div><p className={styles.muted}>{key === "week" ? "Choisis un défi plus ambitieux, à réaliser d’ici dimanche." : "Choisis un défi dans la bibliothèque ci-dessous."}</p><button type="button" onClick={() => openLibrary(key)}>Choisir un défi</button></div>}
           </article>;
         })}
 
-        <details className={styles.disclosure}>
+        <details ref={libraryRef} className={styles.disclosure}>
           <summary>Choisir un défi · bibliothèque ({CHALLENGE_TEMPLATES.length + data.customTemplates.length})</summary>
           <div className={styles.body}>
             <p className={styles.muted}>Tu choisis librement ton niveau. Aucun changement automatique.</p>
@@ -164,7 +192,21 @@ export default function ProgressChallenges() {
                 <option value="">Tous les niveaux</option>{CHALLENGE_LEVELS.map((l, i) => <option key={l} value={i + 1}>{i + 1} · {l}</option>)}
               </select></label>
             </div>
-            <ul className={styles.library}>{templates.map((t) => <li key={t.id}>
+        {selected && <form ref={previewRef} tabIndex={-1} aria-label="Aperçu du défi" onSubmit={activate} className={`${styles.card} ${styles.preview}`}>
+          <h3>{selected.title}</h3><p>{selected.description}</p>
+          <p className={styles.muted}>Niveau : {CHALLENGE_LEVELS[selected.difficulty - 1]} · Cible proposée : {target} {selected.unit}</p>
+          <p className={styles.muted}>Réussite : {selected.successCriterion}</p>
+          <div className={styles.filters}>
+            <label>Place du défi<select value={slot} onChange={(e) => setSlot(e.target.value as ChallengeSlot)}>
+              <option value="main">Aujourd’hui</option><option value="week">Cette semaine</option><option value="bonus">Bonus facultatif</option>
+            </select></label>
+            <label>Cible · {selected.unit}<input type="number" required min={1} max={1000000} step={1} value={target} onChange={(e) => setTarget(e.target.value)} /></label>
+          </div>
+          {data.attempts.some((a) => a.slot === slot && isCurrentChallenge(a, today)) && <p className={styles.muted}>Un défi est déjà actif ici. Son remplacement demandera confirmation. Sa progression et son historique seront conservés.</p>}
+          <div className={styles.actions}><button className={styles.primary} type="submit">Activer ce défi</button><button type="button" onClick={() => setSelected(null)}>Annuler</button></div>
+        </form>}
+            {selected && <button type="button" onClick={() => setSelected(null)}>Choisir un autre défi</button>}
+            <ul hidden={!!selected} className={styles.library}>{templates.map((t) => <li key={t.id}>
               <button type="button" aria-pressed={selected?.id === t.id} onClick={() => choose(t)}>
                 <strong>{t.title}</strong><span>{CHALLENGE_LEVELS[t.difficulty - 1]} · {t.target} {t.unit}</span>
               </button>
@@ -188,19 +230,7 @@ export default function ProgressChallenges() {
           </div>
         </details>
 
-        {selected && <form ref={previewRef} tabIndex={-1} aria-label="Aperçu du défi" onSubmit={activate} className={styles.card}>
-          <h3>{selected.title}</h3><p>{selected.description}</p>
-          <p className={styles.muted}>Niveau : {CHALLENGE_LEVELS[selected.difficulty - 1]} · Cible proposée : {target} {selected.unit}</p>
-          <p className={styles.muted}>Réussite : {selected.successCriterion}</p>
-          <div className={styles.filters}>
-            <label>Place du défi<select value={slot} onChange={(e) => setSlot(e.target.value as ChallengeSlot)}>
-              {Object.entries(slotLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </select></label>
-            <label>Cible · {selected.unit}<input type="number" required min={1} max={1000000} step={1} value={target} onChange={(e) => setTarget(e.target.value)} /></label>
-          </div>
-          {data.attempts.some((a) => a.slot === slot && isCurrentChallenge(a, today)) && <p className={styles.muted}>Le défi actuel sera conservé dans l’historique.</p>}
-          <div className={styles.actions}><button type="submit">Commencer ce défi</button><button type="button" onClick={() => setSelected(null)}>Annuler</button></div>
-        </form>}
+
 
         <details className={styles.disclosure}>
           <summary>Revoir mes progrès · {attempts.length} défi{attempts.length > 1 ? "s" : ""} tenté{attempts.length > 1 ? "s" : ""}</summary>
@@ -209,7 +239,7 @@ export default function ProgressChallenges() {
             {attempts.slice(0, historyLimit).map((a) => <article className={styles.history} key={a.instanceId}>
               <strong>{a.title}</strong>
               <p>{formatDate(a.date)}{a.slot === "week" ? ` au ${formatDate(a.endDate)}` : ""} · {slotLabels[a.slot]}</p>
-              <p>{a.progress} / {a.target} {a.unit} · <span className={a.progress >= a.target ? styles.success : ""}>{challengeStatus(a, today)}</span></p>
+              <p>{a.progress} / {a.target} {a.unit} · <span className={a.progress >= a.target ? styles.success : ""}>{challengeStatus(a, today) === "Terminé" ? "Défi accompli" : challengeStatus(a, today)}</span></p>
               <ResultsCounters attempt={a} history onStep={(field, delta) => commit((current) => stepChallengeResult(current, a.instanceId, field, delta))} />
               {a.note && <p className={styles.note}>{a.note}</p>}
               <details><summary>{a.note ? "Modifier ma réflexion" : "Ajouter une réflexion"}</summary>
@@ -241,7 +271,7 @@ function AttemptCard({ attempt: a, today, onChange, onStep, children }: {
       <button type="button" aria-label={`Augmenter la progression : ${a.title}`} disabled={a.progress >= 1000000} onClick={() => onStep(1)}>+</button>
     </div>
     <progress aria-label={`Progression : ${a.title}`} max={a.target} value={Math.min(a.progress, a.target)} />
-    <span role="status" className={a.progress >= a.target ? styles.success : styles.muted}>{challengeStatus(a, today)}</span>
+    <span role="status" className={a.progress >= a.target ? styles.success : styles.muted}>{challengeStatus(a, today) === "Terminé" ? "Défi accompli" : challengeStatus(a, today)}</span>
     {children}
     <details>
       <summary>Ajuster la cible et réfléchir</summary>

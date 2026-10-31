@@ -81,7 +81,11 @@ export default function SurpriseChallenge({ data, today, commit }: {
       {offer.status === "offered" && <>
         {replacement && <p className={styles.muted}>Accepter archivera le défi actif de cet emplacement en conservant son historique.</p>}
         <div className={styles.actions}>
-          <button type="button" onClick={() => commit((current) => acceptSurprise(current, dateKey(), crypto.randomUUID(), offer.template.id))}>J’accepte ce défi</button>
+          <button type="button" onClick={() => commit((current) => {
+            const active = current.attempts.find((a) => a.slot === config.slot && isCurrentChallenge(a, dateKey()));
+            if (active && !window.confirm(`Remplacer « ${active.title} » (${active.progress} / ${active.target} ${active.unit}) ? Son historique et sa progression seront conservés.`)) throw new Error("Remplacement annulé. Le défi actif est conservé.");
+            return acceptSurprise(current, dateKey(), crypto.randomUUID(), offer.template.id);
+          })}>J’accepte ce défi</button>
           <button type="button" onClick={() => commit((current) => refuseSurprise(current, dateKey(), offer.template.id))}>Refuser : impossible ou inadapté</button>
         </div>
       </>}

@@ -64,6 +64,7 @@ const saved = () => evaluate(`JSON.parse(localStorage.getItem('taiji-life-plan-c
 try {
   await send('Runtime.enable');
   await send('Page.enable');
+  await send('Page.addScriptToEvaluateOnNewDocument', {source: 'window.confirm = () => true;'});
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await send('Page.navigate', { url: `${appUrl}/trajectoire` });
   await waitFor(`document.querySelector('section[aria-label="Défis de progression"]')`);
@@ -74,7 +75,9 @@ try {
   assert.equal(await evaluate(`document.querySelectorAll('#accomplishedToday,#notDoneToday,#decideForTomorrow').length`), 3);
   await click('Choisir un défi');
   await click('Aborder 3 nouvelles personnes');
-  await click('Commencer ce défi');
+  assert.equal(await saved(), null, 'selection never activates or writes');
+  assert.ok(await evaluate(`document.activeElement === document.querySelector('form[aria-label="Aperçu du défi"]')`), 'preview receives focus');
+  await click('Activer ce défi');
   await waitFor(`document.querySelector('output')`);
   assert.equal((await saved()).attempts.length, 1);
   assert.equal((await saved()).attempts[0].results, undefined);
@@ -96,7 +99,7 @@ try {
     await waitFor(`document.querySelector('output').textContent.startsWith('${i + 1} /')`);
   }
   assert.equal((await saved()).attempts[0].progress, 3);
-  assert.ok(await evaluate(`document.querySelector('section[aria-label="Défis de progression"]').textContent.includes('Terminé')`));
+  assert.ok(await evaluate(`document.querySelector('section[aria-label="Défis de progression"]').textContent.includes('Défi accompli')`));
   await click('Ajuster la cible');
   await fill('input[name="target"]', '5');
   await click('Modifier la cible');
@@ -116,7 +119,13 @@ try {
   await fill('input[name="unit"]', 'actions');
   await fill('textarea[name="criterion"]', 'Réaliser une action et noter son résultat.');
   await click('Créer le modèle');
-  await click('Commencer ce défi');
+  await fill('form[aria-label="Aperçu du défi"] select', 'main');
+  const beforeReplacement = await saved();
+  await evaluate('window.confirm = () => false');
+  await click('Activer ce défi');
+  assert.deepEqual(await saved(), beforeReplacement, 'cancelled replacement preserves everything');
+  await evaluate('window.confirm = () => true');
+  await click('Activer ce défi');
   await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts.length === 2`);
   assert.equal((await saved()).attempts[0].closed, true);
   assert.equal((await saved()).customTemplates[0].title, 'Mon défi navigateur');
@@ -132,6 +141,44 @@ try {
     history.querySelector('button[aria-label^="Augmenter : Rendez-vous obtenus"]').click();
   })()`);
   await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts[0].results.appointmentsObtained === 2`);
+  // Weekly activation from its empty slot, reload and simulated calendar boundaries.
+  await evaluate(`([...document.querySelectorAll('section[aria-label="Défis de progression"] > article')].find(a=>a.querySelector('h3')?.textContent.includes('semaine'))).querySelector('button').click()`);
+  await click('Aborder 3 nouvelles personnes');
+  assert.equal(await evaluate(`document.querySelector('form[aria-label="Aperçu du défi"] select').value`), 'week');
+  await click('Activer ce défi');
+  await waitFor(`document.querySelectorAll('section[aria-label="Défis de progression"] > article progress').length === 2`);
+  const weekSelector = `([...document.querySelectorAll('section[aria-label="Défis de progression"] > article')].find(a=>a.querySelector('h3')?.textContent.includes('semaine')))`;
+  await evaluate(`${weekSelector}.querySelector('button[aria-label^="Augmenter la progression"]').click()`);
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts.at(-1).progress === 1`);
+  const weekly = (await saved()).attempts.at(-1);
+  await send('Page.reload');
+  await waitFor(`${weekSelector}?.querySelector('output')?.textContent.startsWith('1 / 3')`);
+  const setCalendar = async (date) => {
+    const script = await send('Page.addScriptToEvaluateOnNewDocument', {source: `{
+      const OriginalDate = Date;
+      window.Date = class extends OriginalDate {
+        constructor(...args) { super(...(args.length ? args : [${JSON.stringify(date)} + 'T12:00:00'])); }
+        static now() { return new OriginalDate(${JSON.stringify(date)} + 'T12:00:00').getTime(); }
+      };
+    }`});
+    await send('Page.reload');
+    await waitFor(`document.querySelector('section[aria-label="Défis de progression"][aria-busy="false"]')`);
+    return script.identifier;
+  };
+  // Move to Sunday (or remain there when the actual test day is Sunday).
+  const calendar = await setCalendar(weekly.endDate);
+  await waitFor(`${weekSelector}?.querySelector('output')?.textContent.startsWith('1 / 3')`);
+  await evaluate(`${weekSelector}.querySelector('button[aria-label^="Augmenter la progression"]').click()`);
+  await waitFor(`JSON.parse(localStorage.getItem('taiji-life-plan-challenges')).attempts.at(-1).progress === 2`);
+  await send('Page.removeScriptToEvaluateOnNewDocument', {identifier:calendar});
+  const monday = new Date(weekly.endDate + 'T12:00:00'); monday.setDate(monday.getDate()+1);
+  const nextDate = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+  const expired = await setCalendar(nextDate);
+  await waitFor(`${weekSelector}?.textContent.includes('Choisir un défi')`);
+  assert.equal((await saved()).attempts.at(-1).progress, 2, 'expired week remains intact in history');
+  await send('Page.removeScriptToEvaluateOnNewDocument', {identifier:expired});
+  await send('Page.reload');
+  await waitFor(`document.querySelector('section[aria-label="Défis de progression"][aria-busy="false"]')`);
   // Seed only this disposable profile, then ensure consulting never writes or activates.
   await evaluate(`(() => {
     const data = JSON.parse(localStorage.getItem('taiji-life-plan-challenges'));
